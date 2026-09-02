@@ -63,38 +63,6 @@ interface IObtainScreenOptions {
 }
 
 /**
- * Interface for audio constraints.
- */
-interface IAudioConstraints {
-    mandatory?: {
-        chromeMediaSource?: string;
-        chromeMediaSourceId?: string;
-    };
-    optional?: {
-        autoGainControl?: boolean;
-        channelCount?: number;
-        echoCancellation?: boolean;
-        noiseSuppression?: boolean;
-    };
-}
-
-/**
- * Interface for legacy video constraints.
- */
-interface ILegacyVideoConstraints {
-    mandatory: {
-        chromeMediaSource: string;
-        chromeMediaSourceId: string;
-        maxFrameRate: number;
-        maxHeight: number;
-        maxWidth: number;
-        minFrameRate: number;
-        minHeight?: number;
-        minWidth?: number;
-    };
-}
-
-/**
  * Interface for modern video constraints.
  */
 interface IVideoConstraints {
@@ -160,7 +128,6 @@ export const SS_DEFAULT_FRAME_RATE = 5;
  * Handles obtaining a stream from a screen capture on different browsers.
  */
 class ScreenObtainer {
-    private _electronSkipDisplayMedia: boolean;
     public obtainStream: Nullable<((
         onSuccess: (result: IScreenCaptureResult) => void,
         onFailure: (error: JitsiTrackError) => void,
@@ -175,7 +142,6 @@ class ScreenObtainer {
     constructor() {
         this.obtainStream = this._createObtainStreamMethod();
         this.options = {};
-        this._electronSkipDisplayMedia = false;
     }
 
     /**
@@ -202,9 +168,7 @@ class ScreenObtainer {
     private _createObtainStreamMethod() {
         const supportsGetDisplayMedia = browser.supportsGetDisplayMedia();
 
-        if (browser.isElectron()) {
-            return this._obtainScreenOnElectron;
-        } else if (browser.isReactNative() && supportsGetDisplayMedia) {
+        if (browser.isReactNative() && supportsGetDisplayMedia) {
             return this.obtainScreenFromGetDisplayMediaRN;
         } else if (supportsGetDisplayMedia) {
             return this._obtainScreenFromGetDisplayMedia;
@@ -257,111 +221,6 @@ class ScreenObtainer {
         }
 
         return audio;
-    }
-
-    /**
-     * Obtains a screen capture stream on Electron.
-     *
-     * @param onSuccess - Success callback.
-     * @param onFailure - Failure callback.
-     * @param {Object} options - Optional parameters.
-     */
-    private _obtainScreenOnElectron(onSuccess: (result: IScreenCaptureResult) => void, onFailure: (error: JitsiTrackError) => void, options: IObtainScreenOptions = {}) {
-        if (!this._electronSkipDisplayMedia) {
-            // Fall-back to the old API in case of not supported error. This can happen if
-            // an old Electron SDK is used with a new Jitsi Meet + lib-jitsi-meet version.
-            this._obtainScreenFromGetDisplayMedia(onSuccess, err => {
-                if (err.name === JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR) {
-                    // Make sure we don't recurse infinitely.
-                    this._electronSkipDisplayMedia = true;
-                    this._obtainScreenOnElectron(onSuccess, onFailure);
-                } else {
-                    onFailure(err);
-                }
-            });
-
-            return;
-        }
-
-        // @ts-ignore TODO: legacy flow, remove after the Electron SDK supporting gDM has been out for a while.
-        if (typeof window.JitsiMeetScreenObtainer?.openDesktopPicker === 'function') {
-            const { desktopSharingFrameRate, desktopSharingResolution, desktopSharingSources } = this.options;
-
-            // @ts-ignore TODO: legacy flow, remove after the Electron SDK supporting gDM has been out for a while.
-            window.JitsiMeetScreenObtainer.openDesktopPicker(
-                {
-                    desktopSharingSources:
-                        options.desktopSharingSources || desktopSharingSources || [ 'screen', 'window' ]
-                },
-                (streamId: string, streamType: string, screenShareAudio = false) => {
-                    if (streamId) {
-                        let audioConstraints: boolean | IAudioConstraints = false;
-
-                        if (screenShareAudio) {
-                            audioConstraints = {};
-                            const optionalConstraints = this._getAudioConstraints();
-
-                            if (typeof optionalConstraints !== 'boolean') {
-                                audioConstraints = {
-                                    optional: optionalConstraints
-                                };
-                            }
-
-                            // Audio screen sharing for electron only works for screen type devices.
-                            // i.e. when the user shares the whole desktop.
-                            // Note. The documentation specifies that chromeMediaSourceId should not be present
-                            // which, in the case a users has multiple monitors, leads to them being shared all
-                            // at once. However we tested with chromeMediaSourceId present and it seems to be
-                            // working properly.
-                            if (streamType === 'screen') {
-                                (audioConstraints as IAudioConstraints).mandatory = {
-                                    chromeMediaSource: 'desktop'
-                                };
-                            }
-                        }
-
-                        const constraints: any = {
-                            audio: audioConstraints,
-                            video: {
-                                mandatory: {
-                                    chromeMediaSource: 'desktop',
-                                    chromeMediaSourceId: streamId,
-                                    maxFrameRate: desktopSharingFrameRate?.max ?? SS_DEFAULT_FRAME_RATE,
-                                    maxHeight: desktopSharingResolution?.height?.max ?? window.screen.height,
-                                    maxWidth: desktopSharingResolution?.width?.max ?? window.screen.width,
-                                    minFrameRate: desktopSharingFrameRate?.min ?? SS_DEFAULT_FRAME_RATE,
-                                    minHeight: desktopSharingResolution?.height?.min,
-                                    minWidth: desktopSharingResolution?.width?.min
-                                }
-                            } as ILegacyVideoConstraints
-                        };
-
-                        // We have to use the old API on Electron to get a desktop stream.
-                        navigator.mediaDevices.getUserMedia(constraints)
-                            .then(stream => {
-                                this.setContentHint(stream);
-                                onSuccess({
-                                    sourceId: streamId,
-                                    sourceType: streamType,
-                                    stream
-                                });
-                            })
-                            .catch(err => onFailure(err));
-                    } else {
-                        // As noted in Chrome Desktop Capture API:
-                        // If user didn't select any source (i.e. canceled the prompt)
-                        // then the callback is called with an empty streamId.
-                        onFailure(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));
-                    }
-                },
-                err => onFailure(new JitsiTrackError(
-                    JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR,
-                    err
-                ))
-            );
-        } else {
-            onFailure(new JitsiTrackError(JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND));
-        }
     }
 
     /**

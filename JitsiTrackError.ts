@@ -29,8 +29,6 @@ const TRACK_ERROR_TO_MESSAGE_MAP: { [key: string]: string; } = {
     [JitsiTrackErrors.SCREENSHARING_USER_CANCELED]: 'User canceled screen sharing prompt',
     [JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR]: 'Unknown error from screensharing',
     [JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR]: 'Not supported',
-    [JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_ERROR]: 'Unknown error from desktop picker',
-    [JitsiTrackErrors.ELECTRON_DESKTOP_PICKER_NOT_FOUND]: 'Failed to detect desktop picker',
     [JitsiTrackErrors.GENERAL]: 'Generic getUserMedia error',
     [JitsiTrackErrors.PERMISSION_DENIED]: 'User denied permission to use device(s): ',
     [JitsiTrackErrors.NOT_FOUND]: 'Requested device(s) was/were not found: ',
