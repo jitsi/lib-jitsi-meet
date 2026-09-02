@@ -845,11 +845,12 @@ describe('ChatRoom', () => {
                 '</message>';
             const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
 
-            room.onMessage(msg, 'fromjid');
+            // The visitors-relay component always delivers a relayed message with "from" set to the bare room JID.
+            room.onMessage(msg, room.roomjid);
             expect(emitterSpy.calls.count()).toEqual(1);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                'fromjid',
+                room.roomjid,
                 'Hello from visitor',
                 room.myroomjid,
                 null, // stamp
@@ -871,11 +872,12 @@ describe('ChatRoom', () => {
                 '</message>';
             const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
 
-            room.onMessage(msg, 'fromjid');
+            // The visitors-relay component always delivers a relayed message with "from" set to the bare room JID.
+            room.onMessage(msg, room.roomjid);
             expect(emitterSpy.calls.count()).toEqual(1);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
-                'fromjid',
+                room.roomjid,
                 'Hello with address',
                 room.myroomjid,
                 null, // stamp
@@ -883,6 +885,36 @@ describe('ChatRoom', () => {
                 'Visitor Name', // displayName
                 true, // isVisitorMessage
                 'original@visitor.com', // originalFrom
+                null); // replyToId
+        });
+
+        it('ignores a display-name/addresses extension on a private message that is not from the visitor relay', () => {
+            // An ordinary, already-admitted MUC occupant's own <message type="chat"> stanza can still carry this
+            // extension. The server always sets "from" to the sender's own full occupant JID for such a message
+            // (never the bare room JID used by the visitor relay), so the extension must be ignored in that case,
+            // even though its content looks identical to a genuine visitor message.
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="chat" id="msg123b" xmlns="jabber:client">' +
+                    '<body>Hello from a regular occupant</body>' +
+                    '<display-name xmlns="http://jitsi.org/protocol/display-name" source="visitor">Another Participant</display-name>' +
+                    '<addresses xmlns="http://jabber.org/protocol/address">' +
+                        '<address type="ofrom" jid="original@visitor.com"/>' +
+                    '</addresses>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, `${room.roomjid}/regular-nick`);
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
+                `${room.roomjid}/regular-nick`,
+                'Hello from a regular occupant',
+                room.myroomjid,
+                null, // stamp
+                'msg123b', // messageId
+                undefined, // displayName - extension must be ignored
+                false, // isVisitorMessage
+                undefined, // originalFrom - extension must be ignored
                 null); // replyToId
         });
 
@@ -939,11 +971,12 @@ describe('ChatRoom', () => {
                 '</message>';
             const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
 
-            room.onMessage(msg, 'fromjid');
+            // The visitors-relay component always delivers a relayed message with "from" set to the bare room JID.
+            room.onMessage(msg, room.roomjid);
             expect(emitterSpy.calls.count()).toEqual(1);
             expect(emitterSpy).toHaveBeenCalledWith(
                 XMPPEvents.MESSAGE_RECEIVED,
-                'fromjid',
+                room.roomjid,
                 'Hello from visitor to group',
                 room.myroomjid,
                 null, // stamp
@@ -951,6 +984,34 @@ describe('ChatRoom', () => {
                 true, // isVisitorMessage
                 'msg126', // messageId
                 undefined, // source (null for visitor messages)
+                null); // replyToId
+        });
+
+        it('ignores a display-name extension on a group message that is not from the visitor relay', () => {
+            // Same scenario as the private-message case, but as a groupchat message: an ordinary occupant's own
+            // "from" always has a resource (their own nick), never the bare room JID, even when their stanza
+            // carries a display-name extension claiming visitor status. isVisitorMessage must be false here, so
+            // downstream consumers (jitsi-meet's chat middleware) fall back to the sender's real, tracked
+            // participant name instead of the extension's value.
+            const msgStr = '' +
+                '<message to="jid" from="fromjid" type="groupchat" id="msg126b" xmlns="jabber:client">' +
+                    '<body>Hello from a regular occupant to group</body>' +
+                    '<display-name xmlns="http://jitsi.org/protocol/display-name" source="visitor">Another Participant</display-name>' +
+                '</message>';
+            const msg = new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+
+            room.onMessage(msg, `${room.roomjid}/regular-nick`);
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MESSAGE_RECEIVED,
+                `${room.roomjid}/regular-nick`,
+                'Hello from a regular occupant to group',
+                room.myroomjid,
+                null, // stamp
+                'Another Participant', // displayName is still parsed out of the stanza for logging purposes...
+                false, // ...but isVisitorMessage is false, which is what consumers must key off of
+                'msg126b', // messageId
+                'visitor', // source - the raw, untrusted attribute value, not treated as the trusted visitor source
                 null); // replyToId
         });
 

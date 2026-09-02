@@ -1789,7 +1789,13 @@ export default class ChatRoom extends Listenable {
             const messageId = getAttribute(msg, 'id') || uuidv4();
             const replyToId = this._parseReplyMessage(msg);
             const displayNameEl = findFirst(msg, ':scope>display-name[*|xmlns="http://jitsi.org/protocol/display-name"]');
-            const isVisitorMessage = getAttribute(displayNameEl, 'source') === 'visitor';
+
+            // The visitors-relay component (mod_visitors.lua / mod_fmuc.lua) always rewrites the message's "from" to
+            // the bare room JID before delivering it to main-room occupants. An ordinary occupant's own message
+            // always arrives with "from" set to their own full occupant JID instead (server-controlled, not settable
+            // by the client). So the display-name/addresses extension is only honored for a message that actually
+            // went through the visitor relay.
+            const isVisitorMessage = getAttribute(displayNameEl, 'source') === 'visitor' && from === this.roomjid;
 
             if (type === 'chat') {
                 let displayName;
