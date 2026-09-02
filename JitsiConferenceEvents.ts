@@ -304,9 +304,22 @@ export enum JitsiConferenceEvents {
     MEMBERS_ONLY_CHANGED = 'conference.membersOnlyChanged',
 
     /**
-     * Event fired when a chat message is moderated.
+     * Event fired when the author corrects one of their chat messages (XEP-0308).
+     * Carries the sender, the id of the corrected message, the new text and the
+     * timestamp when the correction comes from the room history.
+     */
+    MESSAGE_CORRECTED = 'conference.message_corrected',
+
+    /**
+     * Event fired when a chat message is moderated. The room is the authority for
+     * this, so the event carries only the message id and the optional reason.
      */
     MESSAGE_MODERATED = 'conference.message_moderated',
+
+    /**
+     * Indicates whether the room handles message moderation and editing server side.
+     */
+    MESSAGE_MODERATION_SUPPORTED_CHANGED = 'conference.messageModerationSupported',
 
     /**
      * New text message was received.

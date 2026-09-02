@@ -337,6 +337,7 @@ export default class ChatRoom extends Listenable {
     public transcriptionStatus: string;
     public membersOnlyEnabled?: boolean;
     public visitorsSupported?: boolean;
+    public messageModerationSupported?: boolean;
 
     /* eslint-disable max-params */
 
@@ -709,6 +710,16 @@ export default class ChatRoom extends Listenable {
             if (visitorsSupported !== this.visitorsSupported) {
                 this.visitorsSupported = visitorsSupported;
                 this.eventEmitter.emit(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED, visitorsSupported);
+            }
+
+            const messageModerationEl = findFirst(result,
+                ':scope>query>x[type="result"]>field[var="muc#roominfo_messageModerationEnabled"]>value');
+            const messageModerationSupported = getText(messageModerationEl) === '1';
+
+            if (messageModerationSupported !== this.messageModerationSupported) {
+                this.messageModerationSupported = messageModerationSupported;
+                this.eventEmitter.emit(
+                    XMPPEvents.MUC_MESSAGE_MODERATION_SUPPORTED_CHANGED, messageModerationSupported);
             }
 
             this.initialDiscoRoomInfoReceived = true;
@@ -1312,6 +1323,62 @@ export default class ChatRoom extends Listenable {
      * @param {string} receiverId - The receiver if the message was private.
      * @param {boolean} useDirectJid - Whether receiverId is already a JID.
      */
+    /**
+     * Sends a correction of a previously sent message (XEP-0308). The correction is
+     * an ordinary message carrying the new body, plus a <replace/> naming the message
+     * it corrects, so it is archived and replayed to anyone joining later.
+     *
+     * @param {string} messageId - The id of the message being corrected.
+     * @param {string} message - The new text.
+     * @param {string} [receiverId] - Set for a private message, the recipient.
+     * @param {boolean} [useDirectJid=false] - Whether receiverId is a full jid.
+     */
+    public sendMessageCorrection(
+            messageId: string,
+            message: string,
+            receiverId?: string,
+            useDirectJid: boolean = false): void {
+
+        if (!messageId) {
+            logger.warn('sendMessageCorrection: no messageId provided');
+
+            return;
+        }
+
+        let msg;
+
+        if (receiverId) {
+            const targetJid = useDirectJid
+                ? receiverId
+                : `${this.roomjid}/${receiverId}`;
+
+            msg = $msg({
+                to: targetJid,
+                type: 'chat'
+            });
+        } else {
+            msg = $msg({
+                to: this.roomjid,
+                type: 'groupchat'
+            });
+        }
+
+        msg.c('body')
+        .t(stripXMLInvalidChars(message))
+        .up()
+        .c('replace', {
+            id: messageId,
+            xmlns: 'urn:xmpp:message-correct:0'
+        })
+        .up()
+        .c('store', {
+            xmlns: 'urn:xmpp:hints'
+        })
+        .up();
+
+        this.connection.send(msg);
+    }
+
     public sendMessageRetraction(
             messageId: string,
             receiverId?: string,
@@ -1662,15 +1729,42 @@ export default class ChatRoom extends Listenable {
                 const retractEl = findFirst(moderatedEl, ':scope>retract[*|xmlns="urn:xmpp:message-retract:1"]');
 
                 if (retractEl) {
+                    // Moderation is applied by the room, which sends it from the bare room
+                    // jid. A stanza that still carries a resource is an occupant's own
+                    // request, relayed because the room is not handling moderation, and
+                    // there is nothing here that can stand in for the room's decision.
+                    if (Strophe.getResourceFromJid(from)) {
+                        logger.warn(`Ignoring message moderation relayed from an occupant: ${from}`);
+
+                        return true;
+                    }
+
                     const messageId = getAttribute(applyToEl, 'id');
-                    const moderator = getAttribute(moderatedEl, 'by');
                     const reason = getText(findFirst(moderatedEl, 'reason'));
 
-                    this.eventEmitter.emit(XMPPEvents.MESSAGE_MODERATED, messageId, moderator, reason);
+                    this.eventEmitter.emit(XMPPEvents.MESSAGE_MODERATED, messageId, reason);
 
                     return true;
                 }
             }
+        }
+
+        const replaceEl = findFirst(msg, ':scope>replace[*|xmlns="urn:xmpp:message-correct:0"]');
+
+        if (replaceEl) {
+            const correctedMessageId = getAttribute(replaceEl, 'id');
+            const newText = getText(findFirst(msg, ':scope>body'));
+
+            if (!correctedMessageId || !newText) {
+                logger.warn('MESSAGE_CORRECTED: missing corrected message id or body');
+
+                return true;
+            }
+
+            this.eventEmitter.emit(XMPPEvents.MESSAGE_CORRECTED,
+                from, correctedMessageId, newText, stamp);
+
+            return true;
         }
 
         const retractEl = findFirst(msg, ':scope>retract[*|xmlns="urn:xmpp:message-retract:1"]');

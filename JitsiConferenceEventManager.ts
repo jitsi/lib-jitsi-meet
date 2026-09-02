@@ -342,6 +342,8 @@ export default class JitsiConferenceEventManager {
             JitsiConferenceEvents.MEMBERS_ONLY_CHANGED);
         this.chatRoomForwarder.forward(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED,
             JitsiConferenceEvents.VISITORS_SUPPORTED_CHANGED);
+        this.chatRoomForwarder.forward(XMPPEvents.MUC_MESSAGE_MODERATION_SUPPORTED_CHANGED,
+            JitsiConferenceEvents.MESSAGE_MODERATION_SUPPORTED_CHANGED);
 
         chatRoom.addListener(XMPPEvents.MUC_MEMBER_JOINED,
             conference.onMemberJoined.bind(conference));
@@ -425,14 +427,22 @@ export default class JitsiConferenceEventManager {
                     participantId, txt, ts, messageId, displayName, isVisitor, replyToId);
             });
 
-        chatRoom?.addListener(XMPPEvents.MESSAGE_MODERATED,
-            (messageId: string, moderatorJid?: string, reason?: string) => {
-                const moderatorId = moderatorJid ? Strophe.getResourceFromJid(moderatorJid) : undefined;
+        chatRoom?.addListener(XMPPEvents.MESSAGE_CORRECTED,
+            (from: string, messageId: string, message: string, timestamp?: string) => {
+                conference.eventEmitter.emit(
+                    JitsiConferenceEvents.MESSAGE_CORRECTED,
+                    Strophe.getResourceFromJid(from),
+                    messageId,
+                    message,
+                    timestamp
+                );
+            });
 
+        chatRoom?.addListener(XMPPEvents.MESSAGE_MODERATED,
+            (messageId: string, reason?: string) => {
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.MESSAGE_MODERATED,
                     messageId,
-                    moderatorId,
                     reason
                 );
             });

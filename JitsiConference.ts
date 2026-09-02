@@ -3198,6 +3198,21 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sends a correction of a message this participant sent earlier (XEP-0308).
+     *
+     * @param {string} messageId - The id of the message being corrected.
+     * @param {string} message - The new text.
+     * @param {string} [receiverId] - Set for a private message, the recipient.
+     * @param {boolean} [useFullJid=false] - Whether receiverId is a full jid.
+     */
+    public sendMessageCorrection(
+            messageId: string, message: string, receiverId?: string, useFullJid = false): void {
+        if (this.room) {
+            this.room.sendMessageCorrection(messageId, message, receiverId, useFullJid);
+        }
+    }
+
+    /**
    * Sends private text message to another participant of the conference.
    * @param {string} id - The ID of the participant to send a private message.
    * @param {string} message - The text message.
@@ -4979,6 +4994,16 @@ export default class JitsiConference extends Listenable {
      */
     public isVisitorsSupported(): boolean {
         return Boolean(this.room?.visitorsSupported);
+    }
+
+    /**
+     * Returns <tt>true</tt> when the room handles message moderation and editing
+     * server side. Clients should only offer those actions when it does.
+     *
+     * @returns {boolean} whether the room applies message moderation.
+     */
+    public isMessageModerationSupported(): boolean {
+        return Boolean(this.room?.messageModerationSupported);
     }
 
     /**

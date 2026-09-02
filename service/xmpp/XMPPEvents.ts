@@ -202,6 +202,11 @@ export enum XMPPEvents {
     MEETING_ID_SET = 'xmpp.meeting_id_set',
 
     /**
+     * Event fired when a message is corrected by its author (XEP-0308).
+     */
+    MESSAGE_CORRECTED = 'xmpp.message_corrected',
+
+    /**
      * Event fired when a message is moderated.
      */
     MESSAGE_MODERATED = 'xmpp.message_moderated',
@@ -252,6 +257,10 @@ export enum XMPPEvents {
 
     // Designates an event indicating that a participant left the XMPP MUC.
     MUC_MEMBER_LEFT = 'xmpp.muc_member_left',
+
+    // Designates an event indicating that the MUC support for server side message
+    // moderation has changed.
+    MUC_MESSAGE_MODERATION_SUPPORTED_CHANGED = 'xmpp.muc_message_moderation_supported_changed',
 
     // Designates an event indicating that the MUC role of a participant has
     // changed.
