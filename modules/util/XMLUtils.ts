@@ -115,6 +115,59 @@ export function getChildren(element: Element): Element[] {
 }
 
 /**
+ * Gets the first child of a node which is an element (optionally, which has a given tag name), skipping text and
+ * other non-element nodes.
+ *
+ * Use this instead of `firstElementChild`: on React Native the DOM is provided by xmldom, which implements
+ * `firstChild`/`childNodes` but not the element-traversal accessors (`firstElementChild`, `lastElementChild`, etc.).
+ *
+ * @param node - The parent node.
+ * @param tagName - If given, only an element with this tag name qualifies.
+ * @returns The first matching child element, or null.
+ */
+export function getFirstChildElement(node: Node | null | undefined, tagName?: string): Element | null {
+    if (!node) {
+        return null;
+    }
+    const childNodes = node.childNodes;
+
+    for (let i = 0; i < childNodes.length; i++) {
+        const child = childNodes[i];
+
+        if (child.nodeType === 1 && (tagName === undefined || (child as Element).tagName === tagName)) {
+            return child as Element;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Gets the last child of a node which is an element (optionally, which has a given tag name), skipping text and
+ * other non-element nodes. See {@link getFirstChildElement} for why this exists.
+ *
+ * @param node - The parent node.
+ * @param tagName - If given, only an element with this tag name qualifies.
+ * @returns The last matching child element, or null.
+ */
+export function getLastChildElement(node: Node | null | undefined, tagName?: string): Element | null {
+    if (!node) {
+        return null;
+    }
+    const childNodes = node.childNodes;
+
+    for (let i = childNodes.length - 1; i >= 0; i--) {
+        const child = childNodes[i];
+
+        if (child.nodeType === 1 && (tagName === undefined || (child as Element).tagName === tagName)) {
+            return child as Element;
+        }
+    }
+
+    return null;
+}
+
+/**
  * Checks if any elements match the selector within the given element.
  * @param element - The element or document to search within.
  * @param selector - CSS selector string.
