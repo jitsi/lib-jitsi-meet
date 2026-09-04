@@ -45,7 +45,7 @@ import Listenable from './modules/util/Listenable';
 import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
-import { findAll, findFirst, getAttribute } from './modules/util/XMLUtils';
+import { findAll, findFirst, getAttribute, getFirstChildElement } from './modules/util/XMLUtils';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -2338,7 +2338,7 @@ export default class JitsiConference extends Listenable {
             this._pendingTranslationRequests.delete(id);
         }
 
-        const condition = findFirst(stanza, 'error')?.firstElementChild?.localName;
+        const condition = getFirstChildElement(findFirst(stanza, 'error'))?.localName;
         const error = (Object.values(JitsiAudioTranslationErrors) as string[]).includes(condition ?? '')
             ? condition as JitsiAudioTranslationErrors
             : JitsiAudioTranslationErrors.UNKNOWN;

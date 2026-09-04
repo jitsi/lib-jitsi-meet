@@ -29,7 +29,7 @@ import SDPUtil from '../sdp/SDPUtil';
 import Statistics from '../statistics/statistics';
 import AsyncQueue, { ClearedQueueError } from '../util/AsyncQueue';
 import { TraceParentExtension } from '../util/OTel';
-import { exists, findAll, findFirst, getAttribute } from '../util/XMLUtils';
+import { exists, findAll, findFirst, getAttribute, getLastChildElement } from '../util/XMLUtils';
 
 import JingleSession from './JingleSession';
 import { JingleSessionState } from './JingleSessionState';
@@ -1329,10 +1329,11 @@ export default class JingleSessionPC extends JingleSession {
             localSDP.transportToJingle(idx, transportInfo);
 
             // transportToJingle() leaves the cursor back on <content>, so tag the <transport> it just appended
-            // directly rather than through the builder.
-            const transportEl = transportInfo.node?.lastElementChild;
+            // directly rather than through the builder. Not via lastElementChild: the xmldom DOM used on React
+            // Native does not implement it.
+            const transportEl = getLastChildElement(transportInfo.node, 'transport');
 
-            if (transportEl?.tagName === 'transport') {
+            if (transportEl) {
                 transportEl.setAttribute('ice-generation', String(generation));
             } else {
                 logger.warn(`${this} ${ICE_RESTART_LOG_PREFIX} gen=${generation}: could not tag the transport `

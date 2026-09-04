@@ -1,4 +1,4 @@
-import { stripXMLInvalidChars } from './XMLUtils';
+import { getFirstChildElement, getLastChildElement, parseXML, stripXMLInvalidChars } from './XMLUtils';
 
 describe('stripXMLInvalidChars', () => {
     it('strips the XML-invalid C0 control characters', () => {
@@ -33,5 +33,54 @@ describe('stripXMLInvalidChars', () => {
 
     it('handles the empty string', () => {
         expect(stripXMLInvalidChars('')).toBe('');
+    });
+});
+
+describe('getFirstChildElement / getLastChildElement', () => {
+    // Text nodes between the elements, so that firstChild/lastChild are not elements.
+    const parent = parseXML(
+        '<parent> <first a="1"/> text <middle/> <transport ufrag="x"><fingerprint>abc</fingerprint></transport> tail '
+        + '</parent>').documentElement;
+
+    it('skip non-element nodes', () => {
+        expect(getFirstChildElement(parent)?.tagName).toBe('first');
+        expect(getLastChildElement(parent)?.tagName).toBe('transport');
+    });
+
+    it('filter by tag name', () => {
+        expect(getFirstChildElement(parent, 'middle')?.tagName).toBe('middle');
+        expect(getLastChildElement(parent, 'first')?.getAttribute('a')).toBe('1');
+        expect(getFirstChildElement(parent, 'nope')).toBeNull();
+        expect(getLastChildElement(parent, 'nope')).toBeNull();
+    });
+
+    it('only look at direct children', () => {
+        expect(getFirstChildElement(parent, 'fingerprint')).toBeNull();
+        expect(getLastChildElement(parent, 'fingerprint')).toBeNull();
+    });
+
+    it('return null for a missing node or a node with no element children', () => {
+        expect(getFirstChildElement(null)).toBeNull();
+        expect(getLastChildElement(undefined)).toBeNull();
+        const empty = parseXML('<parent> just text </parent>').documentElement;
+
+        expect(getFirstChildElement(empty)).toBeNull();
+        expect(getLastChildElement(empty)).toBeNull();
+    });
+
+    it('do not depend on the element-traversal accessors', () => {
+        // On React Native (xmldom) these do not exist; the helpers must work from childNodes alone.
+        const bare = Object.create(null);
+
+        bare.childNodes = [
+            { nodeType: 3 },
+            { nodeType: 1, tagName: 'a' },
+            { nodeType: 8 },
+            { nodeType: 1, tagName: 'b' },
+            { nodeType: 3 }
+        ];
+        expect(getFirstChildElement(bare as unknown as Node)?.tagName).toBe('a');
+        expect(getLastChildElement(bare as unknown as Node)?.tagName).toBe('b');
+        expect(getLastChildElement(bare as unknown as Node, 'a')?.tagName).toBe('a');
     });
 });
