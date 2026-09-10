@@ -1,6 +1,7 @@
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { VideoType } from '../../service/RTC/VideoType';
 import { MockPeerConnection, MockRTC } from '../RTC/MockClasses';
+import browser from '../browser';
 import { nextTick } from '../util/TestUtils';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { MockChatRoom, MockStropheConnection } from '../xmpp/MockClasses';
@@ -446,6 +447,49 @@ describe('Codec Selection', () => {
             qualityController.codecController.selectPreferredCodec(p2pSession);
 
             expect(p2pSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9' ], 'vp9');
+        });
+    });
+
+    describe('When AV1 decode is disabled for Firefox', () => {
+        beforeEach(() => {
+            spyOn(browser, 'isFirefox').and.returnValue(true);
+        });
+
+        it('keeps AV1 in the list by default, at the end', () => {
+            qualityController = new QualityController(conference, {
+                jvb: { preferenceOrder: [ 'AV1', 'VP9', 'VP8' ] },
+                p2p: {}
+            });
+
+            const order = qualityController.codecController.getCodecPreferenceList('jvb');
+
+            expect(order).toContain(CodecMimeType.AV1);
+            expect(order[order.length - 1]).toBe(CodecMimeType.AV1);
+        });
+
+        it('removes AV1 from the list, even when config.js asks for it', () => {
+            qualityController = new QualityController(conference, {
+                jvb: {
+                    disableAV1DecodeForFF: true,
+                    preferenceOrder: [ 'AV1', 'VP9', 'VP8' ]
+                },
+                p2p: {}
+            });
+
+            const order = qualityController.codecController.getCodecPreferenceList('jvb');
+
+            expect(order).not.toContain(CodecMimeType.AV1);
+            expect(order).toContain(CodecMimeType.VP9);
+        });
+
+        it('does not change the p2p list', () => {
+            qualityController = new QualityController(conference, {
+                jvb: { disableAV1DecodeForFF: true },
+                p2p: { preferenceOrder: [ 'AV1', 'VP8' ] }
+            });
+
+            expect(qualityController.codecController.getCodecPreferenceList('p2p'))
+                .toContain(CodecMimeType.AV1);
         });
     });
 });
