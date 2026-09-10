@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.6",
+    "@matrix-org/olm": "3.2.15",
     "@babel/preset-env": "7.25.9",
     "@babel/preset-typescript": "7.25.9",
     "@jitsi/eslint-config": "6.0.4",
