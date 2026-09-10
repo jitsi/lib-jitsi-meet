@@ -331,6 +331,10 @@ export class OlmAdapter extends Listenable {
             this._olmAccount = new Olm.Account();
             this._olmAccount.create();
 
+            // A single, reusable utility for sha256 and ed25519 signature verification. It is
+            // stateless and only used from synchronous code paths, so one instance is enough.
+            this._olmUtility = new Olm.Utility();
+
             this._idKeys = _safeJsonParse(this._olmAccount.identity_keys());
 
             logger.debug(`Olm ${Olm.get_library_version().join('.')} initialized`);
@@ -491,6 +495,11 @@ export class OlmAdapter extends Listenable {
             this._olmAccount.free();
             this._olmAccount = undefined;
         }
+
+        if (this._olmUtility) {
+            this._olmUtility.free();
+            this._olmUtility = undefined;
+        }
     }
 
     /**
@@ -523,6 +532,30 @@ export class OlmAdapter extends Listenable {
 
                 this._sendError(participant, 'Session already established');
             } else {
+                // Authenticate the curve25519 identity/one-time keys against the sender's ed25519
+                // key before using them. This binds the keys that derive the media encryption keys
+                // to the identity that SAS verification checks, closing the door on a relay that
+                // substitutes the curve25519 keys while forwarding the genuine ed25519 key.
+                const senderEd25519 = this._getParticipantEd25519(participant);
+
+                if (!senderEd25519) {
+                    logger.warn(`Missing ed25519 key for participant ${pId}, cannot verify session-init`);
+                    this._sendError(participant, E2EEErrors.E2EE_SESSION_MISSING_KEY);
+
+                    return;
+                }
+
+                if (!this._verifyKeySignature(
+                        senderEd25519,
+                        { idKey: msg.data.idKey,
+                            otKey: msg.data.otKey },
+                        msg.data.signature)) {
+                    logger.error(`Invalid key signature in session-init from participant ${pId}`);
+                    this._sendError(participant, E2EEErrors.E2EE_SESSION_INVALID_KEY_SIGNATURE);
+
+                    return;
+                }
+
                 // Create a session for communicating with this participant.
 
                 const session = new Olm.Session();
@@ -530,12 +563,21 @@ export class OlmAdapter extends Listenable {
                 session.create_outbound(this._olmAccount, msg.data.idKey, msg.data.otKey);
                 olmData.session = session;
 
+                // Remember the authenticated curve25519 key so SAS verification can bind to it.
+                olmData.curve25519 = msg.data.idKey;
+
+                // Sign our own curve25519 identity key so the initiator can authenticate the
+                // session in the other direction as well.
+                const signature = this._signKeys({ idKey: this._idKeys.curve25519 });
+
                 // Send ACK
                 const ack = {
                     [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                     olm: {
                         data: {
                             ciphertext: this._encryptKeyInfo(session),
+                            idKey: this._idKeys.curve25519,
+                            signature,
                             uuid: msg.data.uuid
                         },
                         type: OLM_MESSAGE_TYPES.SESSION_ACK
@@ -556,9 +598,44 @@ export class OlmAdapter extends Listenable {
             } else if (msg.data.uuid === olmData.pendingSessionUuid) {
                 const { ciphertext } = msg.data;
                 const d = this._reqs.get(msg.data.uuid);
+
+                // Authenticate the responder's curve25519 identity key against their ed25519 key
+                // before establishing the inbound session, mirroring the check done on session-init.
+                const senderEd25519 = this._getParticipantEd25519(participant);
+
+                if (!senderEd25519) {
+                    logger.warn(`Missing ed25519 key for participant ${pId}, cannot verify session-ack`);
+                    this._sendError(participant, E2EEErrors.E2EE_SESSION_MISSING_KEY);
+
+                    if (d) {
+                        d.reject(new Error(E2EEErrors.E2EE_SESSION_MISSING_KEY));
+                    }
+
+                    return;
+                }
+
+                if (!this._verifyKeySignature(
+                        senderEd25519,
+                        { idKey: msg.data.idKey },
+                        msg.data.signature)) {
+                    logger.error(`Invalid key signature in session-ack from participant ${pId}`);
+                    this._sendError(participant, E2EEErrors.E2EE_SESSION_INVALID_KEY_SIGNATURE);
+
+                    if (d) {
+                        d.reject(new Error(E2EEErrors.E2EE_SESSION_INVALID_KEY_SIGNATURE));
+                    }
+
+                    return;
+                }
+
                 const session = new Olm.Session();
 
-                session.create_inbound(this._olmAccount, ciphertext.body);
+                // Use create_inbound_from so the session is only established if the prekey message
+                // actually originates from the authenticated curve25519 identity key.
+                session.create_inbound_from(this._olmAccount, msg.data.idKey, ciphertext.body);
+
+                // Remember the authenticated curve25519 key so SAS verification can bind to it.
+                olmData.curve25519 = msg.data.idKey;
 
                 // Remove OT keys that have been used to setup this session.
                 this._olmAccount.remove_one_time_keys(session);
@@ -884,8 +961,8 @@ export class OlmAdapter extends Listenable {
                 return;
             }
 
-            if (!olmData.ed25519) {
-                logger.warn('SAS verification error: Missing ed25519 key');
+            if (!olmData.ed25519 || !olmData.curve25519) {
+                logger.warn('SAS verification error: Missing key');
 
                 this.eventEmitter.emit(
                     OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
@@ -896,9 +973,44 @@ export class OlmAdapter extends Listenable {
                 return;
             }
 
+            // The curve25519 key is the one that actually derives the media keys, so it must be
+            // covered by the MAC. If it were absent, verification would collapse to the ed25519
+            // key alone (which plays no part in the Olm session) and a relay could interpose
+            // itself while the SAS emoji/numbers still matched.
+            const macKeyIds = Object.keys(mac);
+
+            if (!macKeyIds.some(keyId => keyId.startsWith('curve25519:'))
+                    || !macKeyIds.some(keyId => keyId.startsWith('ed25519:'))) {
+                logger.error('SAS verification error: MAC does not cover the required keys');
+                this.eventEmitter.emit(
+                    OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                    pId,
+                    false,
+                    E2EEErrors.E2EE_SAS_MAC_MISMATCH);
+
+                return;
+            }
+
             for (const [ keyInfo, computedMac ] of Object.entries(mac)) {
+                let keyValue;
+
+                if (keyInfo.startsWith('ed25519:')) {
+                    keyValue = olmData.ed25519;
+                } else if (keyInfo.startsWith('curve25519:')) {
+                    keyValue = olmData.curve25519;
+                } else {
+                    logger.error(`SAS verification error: unexpected key id ${keyInfo}`);
+                    this.eventEmitter.emit(
+                        OlmAdapterEvents.PARTICIPANT_VERIFICATION_COMPLETED,
+                        pId,
+                        false,
+                        E2EEErrors.E2EE_SAS_MAC_MISMATCH);
+
+                    return;
+                }
+
                 const ourComputedMac = sas.calculate_mac(
-                    olmData.ed25519,
+                    keyValue,
                     baseInfo + keyInfo
                 );
 
@@ -1080,13 +1192,23 @@ export class OlmAdapter extends Listenable {
         // Mark the OT keys (one really) as published so they are not reused.
         this._olmAccount.mark_keys_as_published();
 
+        const idKey = this._idKeys.curve25519;
+
+        // Sign the curve25519 identity key and one-time key with our ed25519 key so the receiver
+        // can bind them to the ed25519 key that SAS verification authenticates. Without this, a
+        // malicious relay could substitute the curve25519 keys (which actually derive the media
+        // keys) while relaying the genuine ed25519 key, defeating SAS verification.
+        const signature = this._signKeys({ idKey,
+            otKey });
+
         const uuid = uuidv4();
         const init = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
             olm: {
                 data: {
-                    idKey: this._idKeys.curve25519,
+                    idKey,
                     otKey,
+                    signature,
                     uuid
                 },
                 type: OLM_MESSAGE_TYPES.SESSION_INIT
@@ -1132,6 +1254,16 @@ export class OlmAdapter extends Listenable {
             baseInfo + deviceKeyId);
         keyList.push(deviceKeyId);
 
+        // Also MAC the curve25519 identity key. This is the key that actually derives the media
+        // encryption keys through the Olm session, so binding it to the SAS ensures verification
+        // covers the key that matters rather than only the ed25519 identity key.
+        const curveKeyId = `curve25519:${pId}`;
+
+        mac[curveKeyId] = sas.calculate_mac(
+            this._idKeys.curve25519,
+            baseInfo + curveKeyId);
+        keyList.push(curveKeyId);
+
         const keys = sas.calculate_mac(
             keyList.sort().join(','),
             baseInfo + OLM_KEY_VERIFICATION_MAC_KEY_IDS
@@ -1153,15 +1285,63 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
+     * Returns the ed25519 identity key advertised by the given participant in presence.
+     * This is the key SAS verification authenticates, so it is used as the trust anchor when
+     * verifying signatures over a participant's curve25519 keys.
+     *
+     * @param {JitsiParticipant} participant - The participant.
+     * @returns {string|undefined} - The ed25519 key, or undefined if not yet available.
+     * @private
+     */
+    _getParticipantEd25519(participant) {
+        const olmData = this._getParticipantOlmData(participant);
+
+        return olmData.ed25519 || participant.getProperty('e2ee.idKey.ed25519');
+    }
+
+    /**
+     * Signs the given keys object with our ed25519 identity key.
+     *
+     * @param {object} keys - The keys to sign (e.g. the curve25519 identity and one-time keys).
+     * @returns {string} - The signature over the JSON serialization of the keys.
+     * @private
+     */
+    _signKeys(keys) {
+        return this._olmAccount.sign(JSON.stringify(keys));
+    }
+
+    /**
+     * Verifies an ed25519 signature over the given keys object.
+     *
+     * @param {string} ed25519 - The ed25519 key that is expected to have produced the signature.
+     * @param {object} keys - The signed keys object. It must be serialized identically to the way
+     * it was serialized when signing (same property insertion order).
+     * @param {string} signature - The signature to verify.
+     * @returns {boolean} - Whether the signature is valid.
+     * @private
+     */
+    _verifyKeySignature(ed25519, keys, signature) {
+        if (!ed25519 || !signature) {
+            return false;
+        }
+
+        try {
+            // ed25519_verify throws if the signature does not verify.
+            this._olmUtility.ed25519_verify(ed25519, JSON.stringify(keys), signature);
+
+            return true;
+        } catch (e) {
+            logger.warn('Olm key signature verification failed', e);
+
+            return false;
+        }
+    }
+
+    /**
      * Computes the commitment.
      */
     _computeCommitment(pubKey, data) {
-        const olmUtil = new Olm.Utility();
-        const commitment = olmUtil.sha256(pubKey + JSON.stringify(data));
-
-        olmUtil.free();
-
-        return commitment;
+        return this._olmUtility.sha256(pubKey + JSON.stringify(data));
     }
 }
 

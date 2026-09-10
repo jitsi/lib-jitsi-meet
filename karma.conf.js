@@ -2,6 +2,20 @@
 // Generated on Wed Dec 07 2016 14:40:28 GMT-0800 (PST)
 
 module.exports = function(config) {
+    // Reuse the shared webpack config, but stub out Node core modules. Some browser libraries used
+    // by the tests (e.g. the Olm build loaded by OlmAdapter.spec.js) contain guarded `require`s for
+    // 'crypto'/'fs'/'path' that only run under Node; webpack 5 still tries to resolve them at build
+    // time, so we resolve them to empty modules for the test bundle.
+    const webpackConfig = require('./webpack-shared-config')(false /* minimize */, false /* analyzeBundle */);
+
+    webpackConfig.resolve = webpackConfig.resolve || {};
+    webpackConfig.resolve.fallback = {
+        ...webpackConfig.resolve.fallback,
+        crypto: false,
+        fs: false,
+        path: false
+    };
+
     config.set({
         // enable / disable watching file and executing tests whenever
         // any file changes
@@ -62,6 +76,6 @@ module.exports = function(config) {
         // if true, Karma captures browsers, runs the tests and exits
         singleRun: true,
 
-        webpack: require('./webpack-shared-config')(false /* minimize */, false /* analyzeBundle */)
+        webpack: webpackConfig
     });
 };
