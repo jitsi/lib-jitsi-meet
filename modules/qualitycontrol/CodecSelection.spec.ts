@@ -42,6 +42,14 @@ describe('Codec Selection', () => {
         conference.jvbJingleSession = jingleSession;
     });
 
+    afterEach(() => {
+        // Dispose the controller after every test so its debounced codec-selection timer, scheduled
+        // on USER_JOINED with a real 1s timeout in the blocks that do not use jasmine.clock(), does
+        // not fire later and call setVideoCodecs on a torn-down session.
+        qualityController?.dispose();
+        qualityController = undefined;
+    });
+
     describe('when codec preference list is used in config.js', () => {
         beforeEach(() => {
             options = {
