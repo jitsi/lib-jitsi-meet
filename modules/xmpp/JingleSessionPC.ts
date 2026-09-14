@@ -1063,7 +1063,6 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        logger.debug(`${this} _sendIceCandidates count: ${candidates?.length}`);
         const cand = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { action: 'transport-info',
