@@ -235,8 +235,6 @@ const SDPUtil = {
             case 'tcptype':
                 candidate.tcptype = elems[i + 1];
                 break;
-            default: // TODO
-                logger.debug(`not translating "${elems[i]}" = "${elems[i + 1]}"`);
             }
         }
         candidate.network = '1';

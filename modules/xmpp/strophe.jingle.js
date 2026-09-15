@@ -13,6 +13,8 @@ import { handleStropheError } from './StropheErrorHandler';
 
 const logger = getLogger('xmpp:strophe.jingle');
 
+const OMITTED_CANDIDATE_ATTRIBUTES = [ 'ip', 'rel-addr' ];
+
 // XXX Strophe is build around the idea of chaining function calls so allow long
 // function call chains.
 /* eslint-disable newline-per-chained-call */
@@ -35,7 +37,9 @@ function _parseIceCandidates(transport) {
         for (let i = 0; i < attributes.length; i++) {
             const attr = attributes[i];
 
-            candidateAttrs.push(`${attr.name}: ${attr.value}`);
+            if (!OMITTED_CANDIDATE_ATTRIBUTES.includes(attr.name)) {
+                candidateAttrs.push(`${attr.name}: ${attr.value}`);
+            }
         }
         parseCandidates.push(candidateAttrs.join(' '));
     });

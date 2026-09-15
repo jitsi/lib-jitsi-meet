@@ -1063,7 +1063,6 @@ export default class JingleSessionPC extends JingleSession {
             return;
         }
 
-        logger.debug(`${this} _sendIceCandidates count: ${candidates?.length}`);
         const cand = $iq({ to: this.remoteJid,
             type: 'set' })
             .c('jingle', { action: 'transport-info',
@@ -2024,7 +2023,7 @@ export default class JingleSessionPC extends JingleSession {
         const iceCandidates = this._parseIceCandidates(findAll(elem, ':scope>content>transport>candidate'));
 
         if (!iceCandidates.length) {
-            logger.error(`${this} No ICE candidates to add ?`, elem[0]?.outerHTML);
+            logger.error(`${this} No ICE candidates to add ?`);
 
             return;
         }
