@@ -3696,6 +3696,16 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Whether the deployment supports audio translation, i.e. the audio-translation component was advertised
+     * via service discovery. Translation requests are dropped when it is not.
+     *
+     * @returns {boolean}
+     */
+    public isAudioTranslationSupported(): boolean {
+        return Boolean(this.xmpp.audioTranslationComponentAddress);
+    }
+
+    /**
      * Enables (or disables, when null) receiving translated audio for every remote
      * speaker in the given language.
      *
