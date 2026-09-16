@@ -469,6 +469,77 @@ describe('ChatRoom', () => {
             expect(emitterSpy.calls.argsFor(2)[7]).toEqual(expectedIdentity);
         });
 
+        it('parses identity with video-hidden-from-recorder when feature is enabled', () => {
+            const xmpp: IMockXMPP = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            const roomWithFeature = new ChatRoom(
+                {} as XmppConnection,
+                'jid',
+                'password',
+                xmpp as any,
+                { hiddenFromRecorderFeatureEnabled: true });
+            const emitterSpyWithFeature = spyOn(roomWithFeature.eventEmitter, 'emit');
+
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<x xmlns=\'http://jabber.org/protocol/muc#user\'>' +
+                        '<item jid=\'fulljid\'/>' +
+                    '</x>' +
+                    '<identity>' +
+                        '<user>' +
+                            '<id>user-id</id>' +
+                            '<name>User Name</name>' +
+                            '<video-hidden-from-recorder>true</video-hidden-from-recorder>' +
+                        '</user>' +
+                    '</identity>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            const expectedIdentity = {
+                user: {
+                    id: 'user-id',
+                    name: 'User Name',
+                    'video-hidden-from-recorder': 'true'
+                }
+            };
+
+            roomWithFeature.onPresence(pres);
+            expect(emitterSpyWithFeature.calls.argsFor(2)[7]).toEqual(expectedIdentity);
+        });
+
+        it('excludes video-hidden-from-recorder when feature is disabled', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<x xmlns=\'http://jabber.org/protocol/muc#user\'>' +
+                        '<item jid=\'fulljid\'/>' +
+                    '</x>' +
+                    '<identity>' +
+                        '<user>' +
+                            '<id>user-id</id>' +
+                            '<name>User Name</name>' +
+                            '<video-hidden-from-recorder>true</video-hidden-from-recorder>' +
+                        '</user>' +
+                    '</identity>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            const expectedIdentity = {
+                user: {
+                    id: 'user-id',
+                    name: 'User Name'
+                }
+            };
+
+            room.onPresence(pres);
+            expect(emitterSpy.calls.argsFor(2)[7]).toEqual(expectedIdentity);
+        });
+
         it('parses bot correctly', () => {
             const expectedBotType = 'some_bot_type';
             const presStr = '' +
