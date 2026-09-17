@@ -630,6 +630,16 @@ export default class RTC extends Listenable {
     }
 
     /**
+     * Returns the pan/tilt/zoom support detected for the given camera device during the last device enumeration.
+     *
+     * @param {string} deviceId - The id of the 'videoinput' device.
+     * @returns {{ pan: boolean, tilt: boolean, zoom: boolean }}
+     */
+    static getCameraPTZCapabilities(deviceId) {
+        return RTCUtils.getCameraPTZCapabilities(deviceId);
+    }
+
+    /**
      * Returns event data for device to be reported to stats.
      * @returns {MediaDeviceInfo} device.
      */

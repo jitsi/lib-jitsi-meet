@@ -8,6 +8,7 @@ import {
     TRACK_NO_STREAM_FOUND
 } from '../../JitsiTrackErrors';
 import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import { CameraControlType } from '../../service/RTC/CameraControlType';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
@@ -74,6 +75,16 @@ export interface IAudioConstraints {
     echoCancellation?: boolean;
     noiseSuppression?: boolean;
 }
+
+export interface ICameraControlRange {
+    max: number;
+    min: number;
+    step: number;
+}
+
+export type ICameraControls = Partial<Record<CameraControlType, number>>;
+
+export type ICameraControlCapabilities = Partial<Record<CameraControlType, ICameraControlRange>>;
 
 /**
  * Represents a single media track(either audio or video).
@@ -340,6 +351,21 @@ export default class JitsiLocalTrack extends JitsiTrack {
 
         // FIXME: Should we report all of those events
         Statistics.sendAnalytics(createNoDataFromSourceEvent(this.getType(), value));
+    }
+
+    /**
+     * Returns the camera MediaStreamTrack that pan/tilt/zoom must be read from and applied to. When a stream effect
+     * (e.g. virtual background) is active, {@link this.track} is the effect's output track (a canvas/insertable-streams
+     * capture) which has no pan/tilt/zoom; the actual camera is the source that feeds the effect and lives in
+     * {@link this._originalStream}. Panning/zooming that source flows through to the composited output.
+     *
+     * @private
+     * @returns {Optional<MediaStreamTrack>} - The camera source track, or undefined if unavailable.
+     */
+    private _getCameraSourceTrack(): Optional<MediaStreamTrack> {
+        const stream = this._effectEnabled ? this._originalStream : this.stream;
+
+        return stream?.getVideoTracks()[0] ?? this.track;
     }
 
     /**
@@ -1161,5 +1187,103 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 audioAnalyser._trackAdded(this);
             }
         }
+    }
+
+    /**
+     * Returns the pan/tilt/zoom ranges supported by the underlying camera, read from the live camera
+     * MediaStreamTrack.getCapabilities(). A key is present only when the camera exposes that control (which also
+     * requires the panTiltZoom permission to have been granted at getUserMedia time for pan/tilt). When a stream
+     * effect is active the ranges are read from the camera source feeding the effect, not the effect output.
+     *
+     * @returns {ICameraControlCapabilities} - The supported ranges. Empty when the track is not a camera track or the
+     * camera exposes no pan/tilt/zoom controls.
+     */
+    getCameraControlCapabilities(): ICameraControlCapabilities {
+        if (!this.isVideoTrack() || this.videoType !== VideoType.CAMERA) {
+            return {};
+        }
+
+        const capabilities = this._getCameraSourceTrack()?.getCapabilities?.() ?? {};
+        const result: ICameraControlCapabilities = {};
+
+        for (const key of Object.values(CameraControlType)) {
+            const range = (capabilities as any)[key];
+
+            if (range && typeof range.min === 'number' && typeof range.max === 'number') {
+                result[key] = {
+                    max: range.max,
+                    min: range.min,
+                    step: typeof range.step === 'number' ? range.step : 1
+                };
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Returns the current pan/tilt/zoom values of the underlying camera, read from the live camera
+     * MediaStreamTrack.getSettings() (the camera source feeding the effect when one is active).
+     *
+     * @returns {ICameraControls} - The current values. A key is present only when the camera reports it.
+     */
+    getCameraControlSettings(): ICameraControls {
+        if (!this.isVideoTrack() || this.videoType !== VideoType.CAMERA) {
+            return {};
+        }
+
+        const settings = this._getCameraSourceTrack()?.getSettings?.() ?? {};
+        const result: ICameraControls = {};
+
+        for (const key of Object.values(CameraControlType)) {
+            const value = (settings as any)[key];
+
+            if (typeof value === 'number') {
+                result[key] = value;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Applies pan/tilt/zoom values to the underlying camera. Unlike {@link applyConstraints}, this is a lightweight
+     * operation: it calls MediaStreamTrack.applyConstraints() directly on the existing camera track and does not
+     * re-acquire the stream or renegotiate, since pan/tilt/zoom do not change the encoded stream. When a stream effect
+     * (e.g. virtual background) is active the values are applied to the camera source feeding the effect - applying
+     * them to the effect's canvas output would silently no-op, since advanced constraints it cannot satisfy are
+     * ignored rather than rejected. Only the provided controls are applied; the rest are left unchanged. The caller is
+     * responsible for clamping the values to the ranges reported by {@link getCameraControlCapabilities}.
+     *
+     * @param {ICameraControls} controls - The pan/tilt/zoom values to apply.
+     * @returns {Promise<void>} - Resolves when the constraints have been applied, rejects if the browser rejects them
+     * (e.g. the value is out of range or the page is not visible).
+     */
+    setCameraControl(controls: ICameraControls): Promise<void> {
+        if (!this.isVideoTrack() || this.videoType !== VideoType.CAMERA) {
+            return Promise.reject(new Error('Camera control is only supported on camera video tracks'));
+        }
+
+        const cameraTrack = this._getCameraSourceTrack();
+
+        if (!cameraTrack) {
+            return Promise.reject(new Error('No camera track to apply the control to'));
+        }
+
+        const control: ICameraControls = {};
+
+        for (const key of Object.values(CameraControlType)) {
+            if (typeof controls[key] === 'number') {
+                control[key] = controls[key];
+            }
+        }
+
+        if (!Object.keys(control).length) {
+            return Promise.resolve();
+        }
+
+        logger.debug(`setCameraControl for track ${this}: ${JSON.stringify(control)}`);
+
+        return cameraTrack.applyConstraints({ advanced: [ control ] } as MediaTrackConstraints);
     }
 }

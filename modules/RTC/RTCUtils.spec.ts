@@ -128,4 +128,89 @@ describe('RTCUtils', () => {
                 jasmine.anything());
         });
     });
+
+    describe('camera PTZ capability probing', () => {
+        /* eslint-disable require-jsdoc */
+        const enumerate = (devices: any[]): Promise<void> => {
+            if (!navigator.mediaDevices) {
+                (navigator as any).mediaDevices = {};
+            }
+            spyOn(navigator.mediaDevices, 'enumerateDevices').and.returnValue(Promise.resolve(devices));
+
+            return new Promise(resolve => (RTCUtils as any).enumerateDevices(() => resolve()));
+        };
+        /* eslint-enable require-jsdoc */
+
+        it('records pan/tilt/zoom support read from InputDeviceInfo.getCapabilities()', async () => {
+            await enumerate([
+                {
+                    deviceId: 'ptz-cam',
+                    kind: 'videoinput',
+                    getCapabilities: () => ({
+                        pan: { max: 1, min: 0, step: 1 },
+                        tilt: { max: 1, min: 0, step: 1 },
+                        zoom: { max: 4, min: 1, step: 1 }
+                    })
+                }
+            ]);
+
+            expect(RTCUtils.getCameraPTZCapabilities('ptz-cam')).toEqual({ pan: true,
+                tilt: true,
+                zoom: true });
+        });
+
+        it('reports a zoom-only camera and a plain camera correctly', async () => {
+            await enumerate([
+                { deviceId: 'zoom-cam', kind: 'videoinput', getCapabilities: () => ({ zoom: { max: 4, min: 1 } }) },
+                { deviceId: 'plain-cam', kind: 'videoinput', getCapabilities: () => ({}) }
+            ]);
+
+            expect(RTCUtils.getCameraPTZCapabilities('zoom-cam')).toEqual({ pan: false,
+                tilt: false,
+                zoom: true });
+            expect(RTCUtils.getCameraPTZCapabilities('plain-cam')).toEqual({ pan: false,
+                tilt: false,
+                zoom: false });
+        });
+
+        it('treats a camera without getCapabilities() as having no PTZ support', async () => {
+            await enumerate([ { deviceId: 'legacy-cam', kind: 'videoinput' } ]);
+
+            expect(RTCUtils.getCameraPTZCapabilities('legacy-cam')).toEqual({ pan: false,
+                tilt: false,
+                zoom: false });
+        });
+
+        it('does not throw when getCapabilities() throws and records no support', async () => {
+            await enumerate([
+                {
+                    deviceId: 'bad-cam',
+                    kind: 'videoinput',
+                    getCapabilities: () => {
+                        throw new Error('boom');
+                    }
+                }
+            ]);
+
+            expect(RTCUtils.getCameraPTZCapabilities('bad-cam')).toEqual({ pan: false,
+                tilt: false,
+                zoom: false });
+        });
+
+        it('ignores non-videoinput devices', async () => {
+            await enumerate([
+                { deviceId: 'mic', kind: 'audioinput', getCapabilities: () => ({ zoom: { max: 4, min: 1 } }) }
+            ]);
+
+            expect(RTCUtils.getCameraPTZCapabilities('mic')).toEqual({ pan: false,
+                tilt: false,
+                zoom: false });
+        });
+
+        it('returns all-false for an unknown device id', () => {
+            expect(RTCUtils.getCameraPTZCapabilities('does-not-exist')).toEqual({ pan: false,
+                tilt: false,
+                zoom: false });
+        });
+    });
 });
