@@ -85,6 +85,13 @@ interface IInternalOptions {
 const TOKEN_REFRESH = 'token_refresh';
 
 /**
+ * How long to wait for the WebSocket keep-alive HTTP request to complete before aborting it. The keep-alive is a GET
+ * for a tiny resource, so anything longer than this means the request is stuck (for example on a pooled HTTP
+ * connection that was silently dropped by a NAT) and waiting on it would stall the whole keep-alive loop.
+ */
+const WS_KEEP_ALIVE_REQUEST_TIMEOUT = 10 * 1000;
+
+/**
  * Adds one more status to Strophe.Status enum.
  */
 enum ExtendedStatus {
@@ -105,6 +112,7 @@ export default class XmppConnection extends Listenable {
     private _oneSuccessfulConnect: boolean;
     private _status: Strophe.Status;
     private _wsKeepAlive: Optional<ReturnType<typeof setTimeout>>;
+    private _wsKeepAliveStopped: boolean;
 
     /**
      * @internal
@@ -215,6 +223,8 @@ export default class XmppConnection extends Listenable {
 
         // tracks whether this is the initial connection or a reconnect
         this._oneSuccessfulConnect = false;
+
+        this._wsKeepAliveStopped = true;
     }
 
     /**
@@ -436,7 +446,7 @@ export default class XmppConnection extends Listenable {
                 return;
             }
 
-            clearTimeout(this._wsKeepAlive);
+            this._stopWSKeepAlive();
         }
 
         targetCallback(status, condition, element);
@@ -474,7 +484,7 @@ export default class XmppConnection extends Listenable {
      */
     disconnect(...args: Parameters<Strophe.Connection['disconnect']>): void {
         this._resumeTask.cancel();
-        clearTimeout(this._wsKeepAlive);
+        this._stopWSKeepAlive();
         this._clearDeferredIQs();
         this._stropheConn.disconnect(...args);
     }
@@ -546,22 +556,57 @@ export default class XmppConnection extends Listenable {
         // if websocketKeepAlive is not set keepAlive is disabled
         if (this._usesWebsocket && websocketKeepAlive > 0) {
             this._wsKeepAlive || logger.info(`WebSocket keep alive interval: ${websocketKeepAlive}ms`);
-            clearTimeout(this._wsKeepAlive);
-
-            const interval = forcedTimeout
-                ?? (/* base */ websocketKeepAlive + /* jitter */ (Math.random() * 60 * 1000));
-
-            logger.debug(`Scheduling next WebSocket keep-alive in ${interval}ms`);
-
-            this._wsKeepAlive = setTimeout(
-                () => this._keepAliveAndCheckShard()
-                    .then(() => this._maybeStartWSKeepAlive()),
-                interval);
+            this._wsKeepAliveStopped = false;
+            this._scheduleWSKeepAlive(forcedTimeout);
         }
     }
 
     /**
-     * Do a http GET to the shard and if shard change will throw an event.
+     * Schedules the next Websocket keep alive request. Once the request settles (successfully, with an error or
+     * because it timed out) the next one is scheduled again, unless the keep alive has been stopped in the meantime.
+     *
+     * @param {number|undefined} forcedTimeout - If provided, this timeout will be used instead of
+     * the configured one with added jitter.
+     *
+     * @private
+     * @returns {void}
+     */
+    _scheduleWSKeepAlive(forcedTimeout?: number): void {
+        const { websocketKeepAlive } = this._options;
+
+        clearTimeout(this._wsKeepAlive);
+
+        const interval = forcedTimeout
+            ?? (/* base */ websocketKeepAlive + /* jitter */ (Math.random() * 60 * 1000));
+
+        logger.debug(`Scheduling next WebSocket keep-alive in ${interval}ms`);
+
+        this._wsKeepAlive = setTimeout(
+            () => this._keepAliveAndCheckShard()
+                .finally(() => {
+                    // The connection may have been disconnected while the request was in flight.
+                    if (!this._wsKeepAliveStopped) {
+                        this._scheduleWSKeepAlive();
+                    }
+                }),
+            interval);
+    }
+
+    /**
+     * Stops the Websocket keep alive. Any keep alive request which is in flight will not reschedule the next one.
+     *
+     * @private
+     * @returns {void}
+     */
+    _stopWSKeepAlive(): void {
+        this._wsKeepAliveStopped = true;
+        clearTimeout(this._wsKeepAlive);
+        this._wsKeepAlive = undefined;
+    }
+
+    /**
+     * Do a http GET to the shard and if shard change will throw an event. The request is aborted if it does not
+     * complete within {@link WS_KEEP_ALIVE_REQUEST_TIMEOUT}, so that the returned promise always settles.
      *
      * @private
      * @returns {Promise}
@@ -570,8 +615,20 @@ export default class XmppConnection extends Listenable {
         const { shard, websocketKeepAliveUrl } = this._options;
         const url = websocketKeepAliveUrl ? websocketKeepAliveUrl
             : this.service.replace('wss://', 'https://').replace('ws://', 'http://');
+        const abortController = new AbortController();
+        let timeoutId: Optional<ReturnType<typeof setTimeout>>;
+        const timeout = new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(() => {
+                abortController.abort();
+                reject(new Error(`request timed out after ${WS_KEEP_ALIVE_REQUEST_TIMEOUT}ms`));
+            }, WS_KEEP_ALIVE_REQUEST_TIMEOUT);
+        });
+        const request = fetch(url, {
+            cache: 'no-store',
+            signal: abortController.signal
+        });
 
-        return fetch(url)
+        return Promise.race([ request, timeout ])
             .then(response => {
 
                 // skips header checking if there is no info in options
@@ -592,7 +649,8 @@ export default class XmppConnection extends Listenable {
             })
             .catch(error => {
                 logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
-            });
+            })
+            .finally(() => clearTimeout(timeoutId));
     }
 
     /**
