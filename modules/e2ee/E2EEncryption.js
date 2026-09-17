@@ -76,6 +76,19 @@ export class E2EEncryption {
     }
 
     /**
+     * Sends an encrypted custom message through the OLM channel.
+     * Only available when e2ee.externallyManagedKey is true and OLM is supported.
+     *
+     * @param {string} participantId - Target participant ID, or '' / null for broadcast.
+     * @param {string} type - Application-defined message type.
+     * @param {object} payload - Arbitrary JSON-serializable payload.
+     */
+    sendOlmMessage(participantId, type, payload) {
+        console.log(`[encedo:olm] E2EEncryption.sendOlmMessage to=${participantId} type=${type} hasKeyHandler=${!!this._keyHandler} hasSendCustomMessage=${typeof this._keyHandler?.sendCustomMessage}`);
+        this._keyHandler.sendCustomMessage?.(participantId, type, payload);
+    }
+
+    /**
      * Starts the verification process of the participant
      *
      * @param {Participant} - participant to be verified.

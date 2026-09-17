@@ -582,6 +582,10 @@ export class TPCUtils {
         const parsedSdp = transform.parse(sdp);
         const mLine = parsedSdp.media
             .find(m => m.mid.toString() === this.pc.localTrackTransceiverMids.get(localVideoTrack.rtcId));
+
+        if (!mLine) {
+            return CodecMimeType.VP8;
+        }
         const payload = mLine.payloads.split(' ')[0];
         const { codec } = mLine.rtp.find(rtp => rtp.payload === Number(payload));
 

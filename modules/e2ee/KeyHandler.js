@@ -64,9 +64,12 @@ export class KeyHandler extends Listenable {
      * @returns {void}
      */
     async setEnabled(enabled) {
+        console.log(`[encedo:olm] KeyHandler.setEnabled enabled=${enabled} currentEnabled=${this.enabled} hasEnabling=${!!this._enabling}`);
         this._enabling && await this._enabling;
 
         if (enabled === this.enabled) {
+            console.log(`[encedo:olm] KeyHandler.setEnabled EARLY EXIT (already ${enabled})`);
+
             return;
         }
 
@@ -76,9 +79,12 @@ export class KeyHandler extends Listenable {
 
         // Advertise E2EE support BEFORE establishing sessions so other participants
         // know to establish sessions with us when they see our presence update.
+        console.log(`[encedo:olm] KeyHandler.setEnabled setting local property e2ee.enabled=${enabled}`);
         this.conference.setLocalParticipantProperty('e2ee.enabled', enabled);
 
+        console.log(`[encedo:olm] KeyHandler.setEnabled calling _setEnabled hasMethod=${!!this._setEnabled}`);
         this._setEnabled && await this._setEnabled(enabled);
+        console.log('[encedo:olm] KeyHandler.setEnabled _setEnabled returned');
 
         // Only restart media sessions if E2EE is enabled. If it's later disabled
         // we'll continue to use the existing media sessions with an empty transform.
