@@ -37,6 +37,16 @@ const MIN_LAST_N = 3;
 // Number of consecutive polling cycles (each ~10s) a stream must fail the decoding check before firing the event.
 export const NOT_DECODING_THRESHOLD_CYCLES = 6;
 
+// Cycles on top of NOT_DECODING_THRESHOLD_CYCLES before acting. Reporting is cheap, falling back is not, so the
+// signal is held back longer than the analytics event.
+export const P2P_FALLBACK_HOLD_CYCLES = 3;
+
+export enum P2PFallbackReason {
+    ICE_DISCONNECTED = 'ice-disconnected',
+    MEDIA_QUALITY = 'media-quality',
+    TCP_RELAY = 'tcp-relay'
+}
+
 enum QualityLimitationReason {
     BANDWIDTH = 'bandwidth',
     CPU = 'cpu',
@@ -80,6 +90,7 @@ export interface IInboundVideoStats {
 
 interface INotDecodingTracker {
     consecutiveCycles: number;
+    isFallbackSignalled: boolean;
     isIssueActive: boolean;
     participantId: string;
 }
@@ -169,7 +180,13 @@ export class QualityController {
             });
         this._conference.on(
                 JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED,
-                () => this._sendVideoController.configureConstraintsForLocalSources());
+                () => {
+                    this._sendVideoController.configureConstraintsForLocalSources();
+
+                    // Counters are keyed by SSRC alone, so without this the cycles accumulated on a previous
+                    // session would carry over to a reused SSRC and trip the fallback early.
+                    this._notDecodingVideoTracker.clear();
+                });
         this._conference.on(
             JitsiConferenceEvents.CONFERENCE_VISITOR_CODECS_CHANGED,
             (codecList: CodecMimeType[]) => this._codecController.updateVisitorCodecs(codecList));
@@ -426,7 +443,7 @@ export class QualityController {
         // Advance counters for SSRCs that are still in the problematic state.
         for (const [ ssrc, { participantId } ] of stats) {
             const tracker = this._notDecodingVideoTracker.get(ssrc)
-                ?? { consecutiveCycles: 0, isIssueActive: false, participantId };
+                ?? { consecutiveCycles: 0, isFallbackSignalled: false, isIssueActive: false, participantId };
 
             tracker.consecutiveCycles++;
 
@@ -438,6 +455,19 @@ export class QualityController {
 
                 RTCStats.sendStatsEntry(RTCStatsEvents.REMOTE_VIDEO_DECODING_EVENT, null, eventData);
                 Statistics.sendAnalytics(AnalyticsEvents.REMOTE_VIDEO_DECODING, eventData);
+            }
+
+            // On p2p the same condition is also the signal that the session is not worth keeping. Acting on it is
+            // the conference's decision.
+            if (activeSession.isP2P
+                    && !tracker.isFallbackSignalled
+                    && tracker.consecutiveCycles >= NOT_DECODING_THRESHOLD_CYCLES + P2P_FALLBACK_HOLD_CYCLES) {
+                tracker.isFallbackSignalled = true;
+                logger.warn(`QualityController - p2p media quality degraded: ssrc=${ssrc}, `
+                    + `participantId=${participantId}`);
+                this._conference.eventEmitter.emit(
+                    JitsiConferenceEvents._P2P_FALLBACK_NEEDED,
+                    P2PFallbackReason.MEDIA_QUALITY);
             }
 
             this._notDecodingVideoTracker.set(ssrc, tracker);

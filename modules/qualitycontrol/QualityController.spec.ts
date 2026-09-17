@@ -6,8 +6,16 @@ import Statistics from '../statistics/statistics';
 import { MockPeerConnection, MockRTC } from '../RTC/MockClasses';
 import { nextTick } from '../util/TestUtils';
 
+import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
+
 import { MockConference, MockLocalTrack } from './MockClasses';
-import { FixedSizeArray, NOT_DECODING_THRESHOLD_CYCLES, QualityController } from './QualityController';
+import {
+    FixedSizeArray,
+    NOT_DECODING_THRESHOLD_CYCLES,
+    P2PFallbackReason,
+    P2P_FALLBACK_HOLD_CYCLES,
+    QualityController
+} from './QualityController';
 
 describe('QualityController', () => {
     let qualityController;
@@ -441,6 +449,54 @@ describe('QualityController', () => {
             // dispose() should not fire any resolution events.
             expect(rtcStatsSpy).not.toHaveBeenCalled();
             expect(analyticsSpy).not.toHaveBeenCalled();
+        });
+
+        describe('p2p fallback signal', () => {
+            const SUSTAINED = NOT_DECODING_THRESHOLD_CYCLES + P2P_FALLBACK_HOLD_CYCLES;
+
+            let fallbackSpy;
+
+            beforeEach(() => {
+                conference.jvbJingleSession = { isP2P: true,
+                    peerconnection: tpc } as any;
+
+                fallbackSpy = jasmine.createSpy('fallback');
+                conference.on(JitsiConferenceEvents._P2P_FALLBACK_NEEDED, fallbackSpy);
+            });
+
+            it(`does not signal at ${SUSTAINED - 1} cycles, one below the sustained threshold`, () => {
+                runBadCycles(SUSTAINED - 1, makeBadStats(BAD_SSRC, PARTICIPANT_1));
+
+                expect(fallbackSpy).not.toHaveBeenCalled();
+            });
+
+            it(`signals once the condition has held for ${SUSTAINED} cycles`, () => {
+                runBadCycles(SUSTAINED, makeBadStats(BAD_SSRC, PARTICIPANT_1));
+
+                expect(fallbackSpy).toHaveBeenCalledOnceWith(P2PFallbackReason.MEDIA_QUALITY);
+            });
+
+            it('signals only once while the condition persists', () => {
+                runBadCycles(SUSTAINED * 3, makeBadStats(BAD_SSRC, PARTICIPANT_1));
+
+                expect(fallbackSpy).toHaveBeenCalledTimes(1);
+            });
+
+            it('does not signal when the active session is not p2p', () => {
+                conference.jvbJingleSession = { isP2P: false,
+                    peerconnection: tpc } as any;
+
+                runBadCycles(SUSTAINED * 2, makeBadStats(BAD_SSRC, PARTICIPANT_1));
+
+                expect(fallbackSpy).not.toHaveBeenCalled();
+            });
+
+            it('still fires the analytics event at the lower threshold', () => {
+                runBadCycles(NOT_DECODING_THRESHOLD_CYCLES, makeBadStats(BAD_SSRC, PARTICIPANT_1));
+
+                expect(analyticsSpy).toHaveBeenCalledTimes(1);
+                expect(fallbackSpy).not.toHaveBeenCalled();
+            });
         });
     });
 });

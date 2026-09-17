@@ -31,7 +31,7 @@ import { E2EEncryption } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import { LiteModeContext } from './modules/litemode/LiteModeContext';
-import { QualityController } from './modules/qualitycontrol/QualityController';
+import { P2PFallbackReason, QualityController } from './modules/qualitycontrol/QualityController';
 import { IReceiverVideoConstraints } from './modules/qualitycontrol/ReceiveVideoController';
 import JibriSession from './modules/recording/JibriSession';
 import RecordingManager, { IRecordingOptions } from './modules/recording/RecordingManager';
@@ -79,6 +79,7 @@ import {
     getSourceNameForJitsiTrack,
     isTranslatedSourceName
 } from './service/RTC/SignalingLayer';
+import { TransportCost } from './service/RTC/TransportCost';
 import { VideoType } from './service/RTC/VideoType';
 import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
 import {
@@ -294,6 +295,7 @@ export default class JitsiConference extends Listenable {
     private _desktopSharingFrameRate?: number;
     private _numberOfParticipantsOnJoin?: number;
     private _delayedIceFailed?: IceFailedHandling;
+    private _p2pFallbackLatched: boolean;
     private _audioAnalyser?: VADAudioAnalyser;
     private _noAudioSignalDetection?: NoAudioSignalDetection;
     private _signalingLayer: SignalingLayerImpl;
@@ -537,6 +539,12 @@ export default class JitsiConference extends Listenable {
          */
         this.p2pJingleSession = null;
 
+        /**
+         * Whether the conference has given up on P2P for the rest of the call.
+         * @type {boolean}
+         */
+        this._p2pFallbackLatched = false;
+
         this.videoSIPGWHandler = new VideoSIPGW(this.room);
         this.recordingManager = new RecordingManager(this.room);
 
@@ -732,6 +740,10 @@ export default class JitsiConference extends Listenable {
 
         this.qualityController = new QualityController(this, qualityOptions);
 
+        this.on(
+            JitsiConferenceEvents._P2P_FALLBACK_NEEDED,
+            (reason: P2PFallbackReason) => this._fallbackFromP2P(reason));
+
         if (!this.statistics) {
             this.statistics = new Statistics(this, {
                 // @ts-ignore
@@ -745,6 +757,9 @@ export default class JitsiConference extends Listenable {
                 'callstats_name': this._statsCurrentId
             });
         }
+
+        this.statistics.addConnectionStatsListener(
+            (tpc: TraceablePeerConnection) => this._checkP2PTransportCost(tpc));
 
         this.eventManager.setupChatRoomListeners();
 
@@ -1433,10 +1448,12 @@ export default class JitsiConference extends Listenable {
         const peerCount = peers.length;
         const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist'
             || p.hasFeature(FEATURE_JIGASI)) !== undefined;
-        const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors
+        const shouldBeInP2P = !this._p2pFallbackLatched
+        && peerCount === 1 && !hasBotPeer && !this._hasVisitors
         && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0;
 
-        logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
+        logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer}, `
+            + `fallbackLatched: ${this._p2pFallbackLatched} => ${shouldBeInP2P}`);
 
         return shouldBeInP2P;
     }
@@ -1444,6 +1461,8 @@ export default class JitsiConference extends Listenable {
     /**
      * Stops the current P2P session.
      * @param {Object} options - Options for stopping P2P.
+     * @param {boolean} options.latchFallback - Whether P2P should stay off for the rest of the call, so that no
+     * later participant change or remote re-invite can re-establish it.
      * @param {string} options.reason - One of the Jingle "reason" element
      * names as defined by https://xmpp.org/extensions/xep-0166.html#def-reason
      * @param {string} options.reasonDescription - Text description that will be
@@ -1452,8 +1471,14 @@ export default class JitsiConference extends Listenable {
      * media will not be resumed on the JVB.
      * @private
      */
-    private _stopP2PSession(options: { reason?: string; reasonDescription?: string; requestRestart?: boolean; } = {}): void {
+    private _stopP2PSession(options: {
+        latchFallback?: boolean;
+        reason?: string;
+        reasonDescription?: string;
+        requestRestart?: boolean;
+    } = {}): void {
         const {
+            latchFallback = false,
             reason = 'success',
             reasonDescription = 'Turning off P2P session',
             requestRestart = false
@@ -1463,6 +1488,10 @@ export default class JitsiConference extends Listenable {
             logger.error('No P2P session to be stopped!');
 
             return;
+        }
+
+        if (latchFallback) {
+            this._p2pFallbackLatched = true;
         }
 
         const wasP2PEstablished = this.isP2PActive();
@@ -1820,6 +1849,60 @@ export default class JitsiConference extends Listenable {
 
 
     /**
+     * Signals a fallback when P2P settled on a TCP relayed path and the JVB has a cheaper one.
+     * @param {TraceablePeerConnection} tpc - The peer connection that reported stats.
+     * @private
+     */
+    private _checkP2PTransportCost(tpc: TraceablePeerConnection): void {
+        if (!this.p2pJingleSession
+                || !this.jvbJingleSession
+                || this.p2pJingleSession.peerconnection !== tpc) {
+            return;
+        }
+
+        const p2pCost = tpc.getSelectedTransportCost();
+        const jvbCost = this.jvbJingleSession.peerconnection?.getSelectedTransportCost();
+
+        // Relative on purpose: abandoning P2P only helps if the bridge has a better path. Undetermined costs are
+        // retried on the next poll.
+        if (typeof p2pCost !== 'number' || typeof jvbCost !== 'number') {
+            return;
+        }
+
+        if (p2pCost === TransportCost.RELAY_TCP && jvbCost < TransportCost.RELAY_TCP) {
+            logger.warn('P2P settled on a TCP relayed path while the JVB has a better one '
+                + `(p2p: ${p2pCost}, jvb: ${jvbCost}), falling back`);
+            this.eventEmitter.emit(JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.TCP_RELAY);
+        }
+    }
+
+    /**
+     * Abandons a P2P session that is no longer fit to carry the call and moves the conference back to the JVB.
+     * @param {P2PFallbackReason} reason - What triggered the fallback.
+     * @private
+     */
+    private _fallbackFromP2P(reason: P2PFallbackReason): void {
+        if (!this.p2pJingleSession) {
+            return;
+        }
+
+        logger.warn(`Falling back to the JVB, reason: ${reason}`);
+
+        // Permanent property to find affected calls later; the event carries the reason to tell the causes apart.
+        Statistics.analytics.addPermanentProperties({ p2pQualityFallback: true });
+        Statistics.sendAnalyticsAndLog(
+            createP2PEvent(AnalyticsEvents.ACTION_P2P_QUALITY_FALLBACK, { reason }));
+
+        // Stopped directly rather than through _maybeStartOrStopP2P, whose stop path is disabled under
+        // config.testing.p2pTestMode.
+        this._stopP2PSession({
+            latchFallback: true,
+            reason: 'connectivity-error',
+            reasonDescription: `P2P ${reason}`
+        });
+    }
+
+    /**
      * Handles CONNECTION_INTERRUPTED event.
      * @param {JingleSessionPC} session - The Jingle session.
      * @private
@@ -1827,6 +1910,13 @@ export default class JitsiConference extends Listenable {
     private _onIceConnectionInterrupted(session: JingleSessionPC): void {
         if (session.isP2P) {
             this.isP2PConnectionInterrupted = true;
+
+            // P2P ICE is not given a chance to recover. Resuming the JVB is local only, so falling back costs
+            // nothing, whereas riding out a disconnect that never recovers costs the whole call.
+            if (this.p2pJingleSession === session) {
+                this.eventEmitter.emit(
+                    JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.ICE_DISCONNECTED);
+            }
         } else {
             this.isJvbConnectionInterrupted = true;
         }
@@ -1856,6 +1946,7 @@ export default class JitsiConference extends Listenable {
 
             }
             this._stopP2PSession({
+                latchFallback: true,
                 reason: 'connectivity-error',
                 reasonDescription: 'ICE FAILED'
             });

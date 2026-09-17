@@ -2,6 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
+import { getTransportCost } from '../../service/RTC/TransportCost';
 import { StatisticsEvents } from '../../service/statistics/Events';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -568,6 +569,8 @@ export default class StatsCollector {
 
                 const remoteUsedCandidate = this.currentStatsReport.get(now.remoteCandidateId);
                 const localUsedCandidate = this.currentStatsReport.get(now.localCandidateId);
+
+                this.peerconnection.setSelectedTransportCost(getTransportCost(localUsedCandidate));
 
                 // RTCIceCandidateStats
                 // https://w3c.github.io/webrtc-stats/#icecandidate-dict*

@@ -576,5 +576,11 @@ export enum JitsiConferenceEvents {
      * An event(library-private) fired when a new media session is added to the conference.
      * @private
      */
-    _MEDIA_SESSION_STARTED = 'conference.media_session.started'
+    _MEDIA_SESSION_STARTED = 'conference.media_session.started',
+
+    /**
+     * An event (library-private) fired when the conference must fall back from P2P to the JVB.
+     * @private
+     */
+    _P2P_FALLBACK_NEEDED = 'conference.p2p.fallback_needed'
 }
