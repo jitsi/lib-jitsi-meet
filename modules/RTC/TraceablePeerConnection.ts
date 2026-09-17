@@ -9,6 +9,7 @@ import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { SignalingEvents } from '../../service/RTC/SignalingEvents';
 import SignalingLayer, { getSourceIndexFromSourceName, isTranslatedSourceName } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
+import { TransportCost } from '../../service/RTC/TransportCost';
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
@@ -165,6 +166,7 @@ export default class TraceablePeerConnection {
     private _localUfrag: string;
     private _pcId: string;
     private _remoteUfrag: string;
+    private _selectedTransportCost: Nullable<TransportCost>;
     private _signalingLayer: SignalingLayer;
     /**
      * @internal
@@ -293,6 +295,8 @@ export default class TraceablePeerConnection {
          * @internal
          */
         this.videoTransferActive = true;
+
+        this._selectedTransportCost = null;
 
         /**
          * The parent instance of RTC service which created this
@@ -3012,6 +3016,25 @@ export default class TraceablePeerConnection {
      */
     getStats(): Promise<RTCStatsReport> {
         return this.peerconnection.getStats();
+    }
+
+    /**
+     * Returns the transport cost of the selected pair as of the last stats poll.
+     *
+     * @returns {Nullable<TransportCost>} The cost, or null if not yet determined.
+     */
+    getSelectedTransportCost(): Nullable<TransportCost> {
+        return this._selectedTransportCost;
+    }
+
+    /**
+     * Records the transport cost observed by RTPStatsCollector.
+     *
+     * @param {Nullable<TransportCost>} cost - The cost of the selected pair.
+     * @returns {void}
+     */
+    setSelectedTransportCost(cost: Nullable<TransportCost>): void {
+        this._selectedTransportCost = cost;
     }
 
     /**

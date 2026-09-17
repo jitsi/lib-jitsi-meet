@@ -89,6 +89,11 @@ export enum AnalyticsEvents {
     ACTION_P2P_FAILED = 'failed',
 
     /**
+     * The "action" value for P2P events which indicates the session was abandoned as unusable.
+     */
+    ACTION_P2P_QUALITY_FALLBACK = 'quality.fallback',
+
+    /**
      * The "action" value for P2P events which indicates that a switch to
      * jitsi-videobridge happened.
      */
