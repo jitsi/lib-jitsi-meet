@@ -85,6 +85,13 @@ interface IInternalOptions {
 const TOKEN_REFRESH = 'token_refresh';
 
 /**
+ * How long to wait for the connection to be resumed with a new token before giving up. Resuming goes through a full
+ * WebSocket handshake, SASL and the XEP-0198 resume exchange, which is a handful of sequential round trips to the
+ * server, so the timeout needs to leave room for clients on high latency links.
+ */
+const TOKEN_REFRESH_TIMEOUT = 10 * 1000;
+
+/**
  * How long to wait for the WebSocket keep-alive HTTP request to complete before aborting it. The keep-alive is a GET
  * for a tiny resource, so anything longer than this means the request is stuck (for example on a pooled HTTP
  * connection that was silently dropped by a NAT) and waiting on it would stall the whole keep-alive loop.
@@ -871,6 +878,12 @@ export default class XmppConnection extends Listenable {
                         clearTimeout(timeoutId);
                         unsubscribe();
                         resolve();
+                    } else if (status === Strophe.Status.ERROR) {
+                        // The server rejected the resume (or the stream errored out), there is nothing left to wait
+                        // for, so fail right away instead of holding the caller until the timeout.
+                        clearTimeout(timeoutId);
+                        unsubscribe();
+                        reject(new Error('Token refresh failed'));
                     }
                 }
             );
@@ -881,7 +894,7 @@ export default class XmppConnection extends Listenable {
             timeoutId = setTimeout(() => {
                 unsubscribe();
                 reject(new Error('Token refresh timed out'));
-            }, 3000);
+            }, TOKEN_REFRESH_TIMEOUT);
         });
     }
 
