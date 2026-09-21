@@ -167,7 +167,10 @@ export class RNKeyHandler {
             index = this._keyIndexCounter;
         }
 
-        this._key = { index, passphrase: encryptionKey };
+        this._key = {
+            index,
+            passphrase: encryptionKey
+        };
 
         for (const [ registryKey, entry ] of this._cryptors) {
             this._enqueueCryptorOperation(registryKey, entry, async () => {
@@ -208,8 +211,8 @@ export class RNKeyHandler {
             cryptorId: undefined,
             kind,
             participantId,
-            type,
-            queue: Promise.resolve()
+            queue: Promise.resolve(),
+            type
         };
 
         this._cryptors.set(registryKey, entry);
