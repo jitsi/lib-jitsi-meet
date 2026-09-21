@@ -2925,11 +2925,15 @@ export default class JingleSessionPC extends JingleSession {
             return Promise.resolve();
         }
 
+        // Recorded before the asynchronous work rather than after it, so that a call arriving while a previous one
+        // is still in flight compares against the state being moved to. Recording it afterwards let a suspend
+        // followed immediately by a resume look like a no-op to the resume, which then returned without doing
+        // anything and left the senders suspended once the suspend finally settled.
+        this.peerconnection.audioTransferActive = active;
+        this.peerconnection.videoTransferActive = active;
+
         return this.peerconnection.setMediaTransferActive(active)
             .then(async () => {
-                this.peerconnection.audioTransferActive = active;
-                this.peerconnection.videoTransferActive = active;
-
                 // Reconfigure the audio and video tracks so that only the correct encodings are active.
                 const promises = [];
 

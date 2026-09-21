@@ -493,6 +493,49 @@ describe('JingleSessionPC', () => {
             expect(Statistics.sendAnalytics).not.toHaveBeenCalled();
         });
     });
+
+    describe('setMediaTransferActive', () => {
+        let calls: boolean[];
+        let pc;
+        let resolvers: (() => void)[];
+
+        beforeEach(() => {
+            calls = [];
+            resolvers = [];
+            pc = {
+                audioTransferActive: true,
+                configureAudioSenderEncodings: () => Promise.resolve(),
+                configureVideoSenderEncodings: () => Promise.resolve(),
+                setMediaTransferActive: (active: boolean) => {
+                    calls.push(active);
+
+                    return new Promise<void>(resolve => resolvers.push(resolve));
+                },
+                videoTransferActive: true
+            };
+            (jingleSession as any).peerconnection = pc;
+        });
+
+        it('does nothing when the transfer state is already the one asked for', async () => {
+            await jingleSession.setMediaTransferActive(true);
+
+            expect(calls).toEqual([]);
+        });
+
+        // A p2p session abandoned right after it comes up suspends and resumes the jvb milliseconds apart.
+        it('does not swallow a resume that arrives while a suspend is still in flight', async () => {
+            const suspend = jingleSession.setMediaTransferActive(false);
+            const resume = jingleSession.setMediaTransferActive(true);
+
+            expect(calls).toEqual([ false, true ]);
+
+            resolvers.forEach(resolve => resolve());
+            await Promise.allSettled([ suspend, resume ]);
+
+            expect(pc.audioTransferActive).toBe(true);
+            expect(pc.videoTransferActive).toBe(true);
+        });
+    });
 });
 
 describe('notifyMySSRCUpdate - P2P source-remove triggers termination', () => {
@@ -870,4 +913,5 @@ describe('JingleSessionPC in-place ICE restart', () => {
             expect(tpc.setRemoteDescription).toHaveBeenCalledTimes(2);
         });
     });
+
 });
