@@ -2925,6 +2925,9 @@ export default class JingleSessionPC extends JingleSession {
             return Promise.resolve();
         }
 
+        const previousAudioActive = this.peerconnection.audioTransferActive;
+        const previousVideoActive = this.peerconnection.videoTransferActive;
+
         // Recorded before the asynchronous work rather than after it, so that a call arriving while a previous one
         // is still in flight compares against the state being moved to. Recording it afterwards let a suspend
         // followed immediately by a resume look like a no-op to the resume, which then returned without doing
@@ -2933,6 +2936,17 @@ export default class JingleSessionPC extends JingleSession {
         this.peerconnection.videoTransferActive = active;
 
         return this.peerconnection.setMediaTransferActive(active)
+            .catch(error => {
+                // Put the recorded state back so that a change which did not take stays retryable, unless a newer
+                // request has since moved it somewhere else, in which case that request owns it.
+                if (this.peerconnection.audioTransferActive === active
+                        && this.peerconnection.videoTransferActive === active) {
+                    this.peerconnection.audioTransferActive = previousAudioActive;
+                    this.peerconnection.videoTransferActive = previousVideoActive;
+                }
+
+                throw error;
+            })
             .then(async () => {
                 // Reconfigure the audio and video tracks so that only the correct encodings are active.
                 const promises = [];
