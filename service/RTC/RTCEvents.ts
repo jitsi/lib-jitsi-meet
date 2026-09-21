@@ -66,6 +66,14 @@ export enum RTCEvents {
     FORWARDED_SOURCES_CHANGED = 'rtc.forwarded_sources_changed',
 
     /**
+     * Per-poll inbound audio stats emitted by the {@code StatsCollector} on each stats cycle. The payload is the
+     * source {@code TraceablePeerConnection} and a {@code Map<ssrc, packetsReceived>} of the cumulative received
+     * packet count for every inbound audio SSRC. Consumed by {@link RemoteAudioWedgeDetector} so it can piggyback on
+     * the existing stats poll instead of running its own {@code getStats()} loop.
+     */
+    INBOUND_AUDIO_STATS = 'rtc.inbound_audio_stats',
+
+    /**
      * Event emitted when {@link RTC.setLastN} method is called to update with the new value set.
      * The first argument is the value passed to {@link RTC.setLastN}.
      */
@@ -123,6 +131,13 @@ export enum RTCEvents {
      * Indicates that sender constraints requested by the bridge for this endpoint have changed.
      */
     SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
+
+    /**
+     * Indicates that a translated audio source started or stopped being sent (forwarded) to this endpoint by
+     * the bridge. The payload is { sourceName, sending, timestamp }; timestamp is an RTP timestamp (48 kHz,
+     * arbitrary origin, wraps at 2^32) — not epoch milliseconds.
+     */
+    TRANSLATED_SOURCE_SENDING_CHANGED = 'rtc.translated_source_sending_changed',
 
     /**
      * Designates an event indicating that some video SSRCs that have already been signaled will now map to new remote

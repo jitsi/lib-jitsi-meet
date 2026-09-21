@@ -146,14 +146,14 @@ export class TrackStreamingStatusImpl {
     _lastFramesDecoded: Nullable<number>;
 
     /**
-     * Timestamp (ms) of the last time framesDecoded was observed to have increased.
+     * Timestamp (ms) of the last time framesDecoded was observed to have changed.
      * Used to measure how long the track has been frozen.
      */
     _lastFramesDecodedAt: Nullable<number>;
 
     /**
      * True when the stats-based logic has concluded the video is currently frozen.
-     * Cleared when framesDecoded resumes advancing.
+     * Cleared when framesDecoded starts moving again.
      */
     _statsTrackFrozen: boolean;
 
@@ -421,9 +421,9 @@ export class TrackStreamingStatusImpl {
      * Used as a freeze-detection fallback on browsers where MediaStreamTrack mute/unmute events are
      * unreliable (Chrome >= M144, Firefox, Safari).
      *
-     * Detection logic: record the timestamp of the last framesDecoded increment. If the counter stops
-     * advancing for longer than the configured frozen timeout, declare the track frozen. Clear the frozen
-     * state as soon as frames start advancing again.
+     * Detection logic: record the timestamp of the last framesDecoded change. If the counter stops moving
+     * for longer than the configured frozen timeout, declare the track frozen. Clear the frozen state as
+     * soon as it moves again.
      *
      * @param data - The CONNECTION_STATS event payload.
      */
@@ -455,8 +455,9 @@ export class TrackStreamingStatusImpl {
             if (this._lastFramesDecodedAt === null) {
                 this._lastFramesDecodedAt = now;
             }
-        } else if (framesDecoded > (this._lastFramesDecoded ?? -1)) {
-            // Frames are advancing — track is healthy.
+        } else if (framesDecoded !== this._lastFramesDecoded) {
+            // The counter restarts from zero when the decoder is re-created on renegotiation, so a decrease
+            // means a restart rather than a stall.
             this._lastFramesDecodedAt = now;
             this._lastFramesDecoded = framesDecoded;
 

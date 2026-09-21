@@ -11,6 +11,7 @@ describe( "/JitsiConnectionErrors members", () => {
         PASSWORD_REQUIRED,
         SERVER_ERROR,
         SHARD_CHANGED_ERROR,
+        TIME_LIMIT_ERROR,
         JitsiConnectionErrors,
         ...others
     } = exported;
@@ -22,6 +23,7 @@ describe( "/JitsiConnectionErrors members", () => {
         expect( OTHER_ERROR ).toBe( 'connection.otherError' );
         expect( PASSWORD_REQUIRED ).toBe( 'connection.passwordRequired' );
         expect( SERVER_ERROR ).toBe( 'connection.serverError' );
+        expect( TIME_LIMIT_ERROR ).toBe( 'connection.timeLimitError' );
 
         expect( JitsiConnectionErrors ).toBeDefined();
 
@@ -32,6 +34,7 @@ describe( "/JitsiConnectionErrors members", () => {
         expect( JitsiConnectionErrors.PASSWORD_REQUIRED ).toBe( 'connection.passwordRequired' );
         expect( JitsiConnectionErrors.SERVER_ERROR ).toBe( 'connection.serverError' );
         expect( JitsiConnectionErrors.SHARD_CHANGED_ERROR ).toBe( 'connection.shardChangedError' );
+        expect( JitsiConnectionErrors.TIME_LIMIT_ERROR ).toBe( 'connection.timeLimitError' );
     } );
 
     it( "unknown members", () => {

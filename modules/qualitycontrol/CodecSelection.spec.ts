@@ -1,6 +1,7 @@
 import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { VideoType } from '../../service/RTC/VideoType';
 import { MockPeerConnection, MockRTC } from '../RTC/MockClasses';
+import browser from '../browser';
 import { nextTick } from '../util/TestUtils';
 import JingleSessionPC from '../xmpp/JingleSessionPC';
 import { MockChatRoom, MockStropheConnection } from '../xmpp/MockClasses';
@@ -39,6 +40,14 @@ describe('Codec Selection', () => {
             /* Signaling layer */ conference._signalingLayer,
             /* options */ { });
         conference.jvbJingleSession = jingleSession;
+    });
+
+    afterEach(() => {
+        // Dispose the controller after every test so its debounced codec-selection timer, scheduled
+        // on USER_JOINED with a real 1s timeout in the blocks that do not use jasmine.clock(), does
+        // not fire later and call setVideoCodecs on a torn-down session.
+        qualityController?.dispose();
+        qualityController = undefined;
     });
 
     describe('when codec preference list is used in config.js', () => {
@@ -401,6 +410,94 @@ describe('Codec Selection', () => {
 
             expect(jingleSession.setVideoCodecs).toHaveBeenCalledTimes(1);
             expect(jingleSession.setVideoCodecs).toHaveBeenCalledWith([ 'av1', 'vp9', 'vp8' ], 'vp9');
+        });
+    });
+
+    describe('When the session is p2p', () => {
+        let p2pSession;
+
+        beforeEach(() => {
+            options = {
+                jvb: {
+                    preferenceOrder: [ 'AV1', 'VP9', 'VP8' ],
+                    screenshareCodec: 'AV1'
+                },
+                p2p: {
+                    preferenceOrder: [ 'VP8', 'VP9' ],
+                    screenshareCodec: 'VP9'
+                }
+            };
+
+            p2pSession = new JingleSessionPC(
+                SID,
+                'peer1',
+                'peer2',
+                connection,
+                { },
+                { },
+                /* isP2P */ true,
+                /* isInitiator */ false);
+
+            p2pSession.initialize(
+                /* ChatRoom */ new MockChatRoom(),
+                /* RTC */ rtc,
+                /* Signaling layer */ conference._signalingLayer,
+                /* options */ { });
+
+            qualityController = new QualityController(conference, options);
+            spyOn(p2pSession, 'setVideoCodecs');
+        });
+
+        it('uses the p2p preference order and not the jvb one', () => {
+            participant1 = new MockParticipant('remote-1');
+            conference.addParticipant(participant1, [ 'vp9', 'vp8' ]);
+
+            qualityController.codecController.selectPreferredCodec(p2pSession);
+
+            expect(p2pSession.setVideoCodecs).toHaveBeenCalledWith([ 'vp8', 'vp9' ], 'vp9');
+        });
+    });
+
+    describe('When AV1 decode is disabled for Firefox', () => {
+        beforeEach(() => {
+            spyOn(browser, 'isFirefox').and.returnValue(true);
+        });
+
+        it('keeps AV1 in the list by default, at the end', () => {
+            qualityController = new QualityController(conference, {
+                jvb: { preferenceOrder: [ 'AV1', 'VP9', 'VP8' ] },
+                p2p: {}
+            });
+
+            const order = qualityController.codecController.getCodecPreferenceList('jvb');
+
+            expect(order).toContain(CodecMimeType.AV1);
+            expect(order[order.length - 1]).toBe(CodecMimeType.AV1);
+        });
+
+        it('removes AV1 from the list, even when config.js asks for it', () => {
+            qualityController = new QualityController(conference, {
+                jvb: {
+                    disableAV1DecodeForFF: true,
+                    preferenceOrder: [ 'AV1', 'VP9', 'VP8' ]
+                },
+                p2p: {}
+            });
+
+            const order = qualityController.codecController.getCodecPreferenceList('jvb');
+
+            expect(order).not.toContain(CodecMimeType.AV1);
+            expect(order).toContain(CodecMimeType.VP9);
+        });
+
+        it('does not change the p2p list', () => {
+            qualityController = new QualityController(conference, {
+                jvb: { disableAV1DecodeForFF: true },
+                p2p: { preferenceOrder: [ 'AV1', 'VP8' ] }
+            });
+
+            expect(qualityController.codecController.getCodecPreferenceList('p2p'))
+                .toContain(CodecMimeType.AV1);
         });
     });
 });

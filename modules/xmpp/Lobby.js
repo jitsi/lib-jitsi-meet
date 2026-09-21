@@ -145,6 +145,46 @@ export default class Lobby {
     }
 
     /**
+     * Retracts a previously sent message in the lobby room.
+     * @param {string} messageId - The id of the message being retracted.
+     * @param {string} [id] - The participant id, if the message was private.
+     * @returns {void}
+     */
+    sendMessageRetraction(messageId, id) {
+        if (this.lobbyRoom) {
+            this.lobbyRoom.sendMessageRetraction(messageId, id);
+        }
+    }
+
+    /**
+     * Adds a message retraction listener to the lobby room.
+     * @param {Function} listener - Called with (messageId, participantId) when a message is retracted.
+     * @returns {Function} Handler returned to be able to remove it later.
+     */
+    addMessageRetractionListener(listener) {
+        if (this.lobbyRoom) {
+            const handler = (participantId, messageId) => {
+                listener(messageId, Strophe.getResourceFromJid(participantId));
+            };
+
+            this.lobbyRoom.on(XMPPEvents.MESSAGE_RETRACTED, handler);
+
+            return handler;
+        }
+    }
+
+    /**
+     * Removes a message retraction handler from the lobby room.
+     * @param {Function} handler - The handler function to remove.
+     * @returns {void}
+     */
+    removeMessageRetractionHandler(handler) {
+        if (this.lobbyRoom) {
+            this.lobbyRoom.off(XMPPEvents.MESSAGE_RETRACTED, handler);
+        }
+    }
+
+    /**
      * Gets the local id for a participant in a lobby room.
      * This is used for lobby room private chat messages.
      *

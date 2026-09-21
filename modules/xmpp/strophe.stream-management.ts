@@ -2,6 +2,8 @@
 
 import { $build, Strophe } from 'strophe.js';
 
+import { getFirstChildElement } from '../util/XMLUtils';
+
 /**
 * StropheJS - Stream Management XEP-0198
 *
@@ -390,9 +392,8 @@ const streamManagement: IStreamManagementPlugin = {
 	},
 
 	_handleResumeFailed: function(elem: Element): boolean {
-		const error = elem && (
-			(elem.firstElementChild && (elem.firstElementChild as Element).tagName)
-			|| (elem.firstChild && (elem.firstChild as Element).tagName));
+		// Not firstElementChild: the xmldom DOM used on React Native does not implement it.
+		const error = getFirstChildElement(elem)?.tagName;
 
 		this._c._changeConnectStatus(Strophe.Status.ERROR, error, elem);
 		this._c._doDisconnect();

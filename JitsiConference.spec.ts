@@ -1,6 +1,9 @@
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
+import JitsiConference from './JitsiConference';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
+import { P2PFallbackReason } from './modules/qualitycontrol/QualityController';
+import { TransportCost } from './service/RTC/TransportCost';
 
 describe('JitsiConference', () => {
     describe('JitsiConferenceEvents message handling', () => {
@@ -265,5 +268,170 @@ describe('JitsiConference', () => {
                 undefined                     // replyToId
             );
         });
+    });
+
+    describe('P2P quality fallback', () => {
+        // The methods under test only touch their own instance state, so they are exercised against a minimal
+        // stand-in rather than a fully constructed conference.
+        const proto = JitsiConference.prototype as any;
+
+        describe('_shouldBeInP2PMode', () => {
+            const makeConference = (latched: boolean) => ({
+                _buildDesiredTranslations: () => new Map(),
+                _hasVisitors: false,
+                _p2pFallbackLatched: latched,
+                _transcribingEnabled: false,
+                getParticipants: () => [ {
+                    getBotType: () => undefined,
+                    hasFeature: () => false
+                } ]
+            });
+
+            it('allows p2p with a single peer before any fallback', () => {
+                expect(proto._shouldBeInP2PMode.call(makeConference(false))).toBe(true);
+            });
+
+            it('blocks p2p once the fallback has latched', () => {
+                expect(proto._shouldBeInP2PMode.call(makeConference(true))).toBe(false);
+            });
+        });
+
+        describe('_onIceConnectionInterrupted', () => {
+            const make = (overrides = {}) => {
+                const session = { isP2P: true };
+
+                return {
+                    conference: {
+                        eventEmitter: { emit: emitSpy },
+                        isP2PActive: () => true,
+                        p2pJingleSession: session,
+                        ...overrides
+                    },
+                    session
+                };
+            };
+
+            let emitSpy;
+
+            beforeEach(() => {
+                emitSpy = jasmine.createSpy('emit');
+            });
+
+            // P2P ICE is not given time to recover: resuming the JVB is local only, so the fallback is immediate.
+            it('signals a fallback as soon as p2p ICE is interrupted', () => {
+                const { conference, session } = make();
+
+                proto._onIceConnectionInterrupted.call(conference, session);
+
+                expect(emitSpy).toHaveBeenCalledWith(
+                    JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.ICE_DISCONNECTED);
+                expect(conference.isP2PConnectionInterrupted).toBe(true);
+            });
+
+            // The fallback is unconditional, so there is no configuration that can turn it off.
+            it('signals even for a conference with no p2p configuration', () => {
+                const { conference, session } = make({ options: { config: {} } });
+
+                proto._onIceConnectionInterrupted.call(conference, session);
+
+                expect(emitSpy).toHaveBeenCalledWith(
+                    JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.ICE_DISCONNECTED);
+            });
+
+            // A terminated session can still emit an interruption after it has been replaced.
+            it('does not signal for a session that is no longer the current one', () => {
+                const { conference, session } = make({ p2pJingleSession: { isP2P: true } });
+
+                proto._onIceConnectionInterrupted.call(conference, session);
+
+                expect(emitSpy).not.toHaveBeenCalledWith(
+                    JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.ICE_DISCONNECTED);
+            });
+
+            it('does not signal for the jvb session', () => {
+                const { conference } = make();
+
+                proto._onIceConnectionInterrupted.call(conference, { isP2P: false });
+
+                expect(emitSpy).not.toHaveBeenCalledWith(
+                    JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.ICE_DISCONNECTED);
+                expect(conference.isJvbConnectionInterrupted).toBe(true);
+            });
+        });
+
+        describe('_checkP2PTransportCost', () => {
+            const { DIRECT, RELAY_TCP, RELAY_UDP } = TransportCost;
+            const make = (p2pCost, jvbCost, overrides = {}) => {
+                const tpc = { getSelectedTransportCost: () => p2pCost };
+
+                return {
+                    conference: {
+                        eventEmitter: { emit: emitSpy },
+                        jvbJingleSession: { peerconnection: { getSelectedTransportCost: () => jvbCost } },
+                        p2pJingleSession: { peerconnection: tpc },
+                        ...overrides
+                    },
+                    tpc
+                };
+            };
+
+            let emitSpy;
+
+            beforeEach(() => {
+                emitSpy = jasmine.createSpy('emit');
+            });
+
+            // Relative on purpose: only worth abandoning p2p when the bridge has a better path. A null cost is the
+            // pre-first-poll and the cannot-determine case, and is retried on the next poll.
+            const costs: [string, Nullable<TransportCost>, Nullable<TransportCost>, boolean][] = [
+                [ 'p2p is tcp relayed and the jvb is direct', RELAY_TCP, DIRECT, true ],
+                [ 'p2p is tcp relayed and the jvb is udp relayed', RELAY_TCP, RELAY_UDP, true ],
+                [ 'both legs are tcp relayed', RELAY_TCP, RELAY_TCP, false ],
+                [ 'the p2p path is not tcp relayed', RELAY_UDP, DIRECT, false ],
+                [ 'the jvb cost is undetermined', RELAY_TCP, null, false ],
+                [ 'the p2p cost is undetermined', null, DIRECT, false ]
+            ];
+
+            costs.forEach(([ name, p2pCost, jvbCost, fallsBack ]) => {
+                it(`${fallsBack ? 'falls back' : 'does not fall back'} when ${name}`, () => {
+                    const { conference, tpc } = make(p2pCost, jvbCost);
+
+                    proto._checkP2PTransportCost.call(conference, tpc);
+
+                    if (fallsBack) {
+                        expect(emitSpy).toHaveBeenCalledOnceWith(
+                            JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.TCP_RELAY);
+                    } else {
+                        expect(emitSpy).not.toHaveBeenCalled();
+                    }
+                });
+            });
+
+            // Guards that short-circuit before either cost is read.
+            const guards: [string, object][] = [
+                [ 'there is no jvb session to compare against', { jvbJingleSession: null } ],
+                [ 'p2p is no longer active', { p2pJingleSession: null } ]
+            ];
+
+            guards.forEach(([ name, overrides ]) => {
+                it(`does not fall back when ${name}`, () => {
+                    const { conference, tpc } = make(RELAY_TCP, DIRECT, overrides);
+
+                    proto._checkP2PTransportCost.call(conference, tpc);
+
+                    expect(emitSpy).not.toHaveBeenCalled();
+                });
+            });
+
+            // The collector reports for every peerconnection, so the jvb's own poll must not be read as p2p's.
+            it('ignores a report from a peer connection that is not the p2p one', () => {
+                const { conference } = make(RELAY_TCP, DIRECT);
+
+                proto._checkP2PTransportCost.call(conference, { getSelectedTransportCost: () => DIRECT });
+
+                expect(emitSpy).not.toHaveBeenCalled();
+            });
+        });
+
     });
 });

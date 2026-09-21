@@ -13,6 +13,8 @@ import { handleStropheError } from './StropheErrorHandler';
 
 const logger = getLogger('xmpp:strophe.jingle');
 
+const OMITTED_CANDIDATE_ATTRIBUTES = [ 'ip', 'rel-addr' ];
+
 // XXX Strophe is build around the idea of chaining function calls so allow long
 // function call chains.
 /* eslint-disable newline-per-chained-call */
@@ -35,7 +37,9 @@ function _parseIceCandidates(transport) {
         for (let i = 0; i < attributes.length; i++) {
             const attr = attributes[i];
 
-            candidateAttrs.push(`${attr.name}: ${attr.value}`);
+            if (!OMITTED_CANDIDATE_ATTRIBUTES.includes(attr.name)) {
+                candidateAttrs.push(`${attr.name}: ${attr.value}`);
+            }
         }
         parseCandidates.push(candidateAttrs.join(' '));
     });
@@ -220,7 +224,10 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
         switch (action) {
         case 'session-initiate': {
-            logger.info('(TIME) received session-initiate:\t', now);
+            const bridgeSessionId = getAttribute(
+                findFirst(jingleElement, ':scope>bridge-session[*|xmlns="http://jitsi.org/protocol/focus"]'), 'id');
+
+            logger.info(`(TIME) received session-initiate:\t${now}, bridgeSessionId=${bridgeSessionId}`);
 
             isP2P && logger.debug(`Received ${action} from ${fromJid}`);
             const pcConfig = isP2P ? this.p2pIceConfig : this.jvbIceConfig;
@@ -260,9 +267,20 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         }
         case 'transport-info': {
-            const candidates = _parseIceCandidates(findFirst(iq, 'jingle>content>transport'));
+            const transportElement = findFirst(iq, 'jingle>content>transport');
+            const candidates = _parseIceCandidates(transportElement);
 
             logger.debug(`Received ${action} from ${fromJid} for candidates=${candidates.join(', ')}`);
+
+            // A transport tagged with an ice-generation is the transport of a new ICE agent that the bridge
+            // created in response to an in-place ICE restart request. It replaces the remote ICE credentials
+            // and its candidates have to be added only after the offer/answer completes, so it is applied as a
+            // single atomic operation instead of going through the generic candidate handling.
+            if (transportElement?.getAttribute('ice-generation')) {
+                sess.onBridgeIceRestartTransport(transportElement);
+                break;
+            }
+
             this.eventEmitter.emit(XMPPEvents.TRANSPORT_INFO, sess, jingleElement);
             break;
         }

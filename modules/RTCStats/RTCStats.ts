@@ -5,6 +5,7 @@ import traceInit from '@jitsi/rtcstats/trace-ws';
 import JitsiConference from '../../JitsiConference';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 import JitsiConnection from '../../JitsiConnection';
+import { COMMIT_HASH } from '../../version';
 import Settings from '../settings/Settings';
 import EventEmitter from '../util/EventEmitter';
 
@@ -13,6 +14,19 @@ import { RTCStatsEvents } from './RTCStatsEvents';
 import { ITraceOptions } from './interfaces';
 
 const logger = getLogger('analytics:RTCStats');
+
+/**
+ * Cap on stats entries buffered while the trace module is not connected. Bounds memory when a client
+ * never connects the trace (e.g. rtcstats disabled); pre-connect entries are rare so this is ample.
+ */
+const MAX_PENDING_STATS_ENTRIES = 100;
+
+/** A stats entry buffered while the trace was disconnected, replayed once it connects. */
+interface IPendingStatsEntry {
+    data: Optional<any>;
+    pcId: Optional<string>;
+    statsType: RTCStatsEvents;
+}
 
 /**
  * RTCStats Singleton that is initialized only once for the lifetime of the app, subsequent calls to init will be
@@ -24,6 +38,7 @@ const logger = getLogger('analytics:RTCStats');
 class RTCStats {
     private _defaultLogCollector: any = null;
     private _initialized: boolean = false;
+    private _pendingStatsEntries: IPendingStatsEntry[] = [];
     private _startedWithNewConnection: boolean = true;
     private _trace: any = null;
     public events: EventEmitter = new EventEmitter();
@@ -84,6 +99,7 @@ class RTCStats {
 
         this.sendIdentity({
             confName: name,
+            libJitsiMeetVersion: COMMIT_HASH,
             ...options
         });
 
@@ -178,6 +194,7 @@ class RTCStats {
                 displayName,
                 endpointId,
                 isBreakoutRoom,
+                libJitsiMeetVersion: COMMIT_HASH,
                 localId,
                 meetingUniqueId
             };
@@ -225,6 +242,28 @@ class RTCStats {
         this.reset();
         this._trace = traceInit(traceOptionsComplete);
         this._trace.connect(isBreakoutRoom);
+
+        // Replay entries buffered while the trace was down so pre-join events aren't dropped.
+        this._flushPendingStatsEntries();
+    }
+
+    /**
+     * Replays the stats entries that sendStatsEntry buffered while the trace was not connected, in the
+     * order they occurred. Called right after the trace connects.
+     *
+     * @returns {void}
+     */
+    _flushPendingStatsEntries(): void {
+        if (!this._trace || this._pendingStatsEntries.length === 0) {
+            return;
+        }
+
+        const pending = this._pendingStatsEntries;
+
+        this._pendingStatsEntries = [];
+        for (const entry of pending) {
+            this._trace.statsEntry(entry.statsType, entry.pcId, entry.data);
+        }
     }
 
     /**
@@ -261,7 +300,18 @@ class RTCStats {
      * @returns {void}
      */
     sendStatsEntry(statsType: RTCStatsEvents, pcId?: Optional<string>, data?: Optional<any>): void {
-        this._trace?.statsEntry(statsType, pcId, data);
+        if (this._trace) {
+            this._trace.statsEntry(statsType, pcId, data);
+
+            return;
+        }
+
+        // Not connected yet (e.g. a pre-join getUserMedia failure): buffer and replay on connect rather
+        // than drop, mirroring how logs are retained via the log collector. Cap so a client that never
+        // connects can't grow this unbounded, keeping the earliest entries which carry the root cause.
+        if (this._pendingStatsEntries.length < MAX_PENDING_STATS_ENTRIES) {
+            this._pendingStatsEntries.push({ data, pcId, statsType });
+        }
     }
 
     /**

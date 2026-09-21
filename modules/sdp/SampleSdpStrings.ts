@@ -506,6 +506,50 @@ const videoLineP2pFF = ''
 + 'a=ssrc:984899560 cname:peDGrDD6WsxUOki/\r\n'
 + 'a=rtcp-mux\r\n';
 
+// A video mline that advertises both low and high profile variants of VP9 and H264. VP9 payload type 98 is shaped
+// the way Firefox signals it, i.e. without a 'profile-id' parameter, and H264 payload type 102 omits
+// 'profile-level-id'. Both default to the low profile of the respective codec.
+const multiProfileVideoMLine = ''
++ 'm=video 9 RTP/SAVPF 45 46 98 99 100 101 96 97 108 109 114 115 102 103\r\n'
++ 'c=IN IP4 0.0.0.0\r\n'
++ 'a=rtpmap:45 AV1/90000\r\n'
++ 'a=rtpmap:46 rtx/90000\r\n'
++ 'a=rtpmap:98 VP9/90000\r\n'
++ 'a=rtpmap:99 rtx/90000\r\n'
++ 'a=rtpmap:100 VP9/90000\r\n'
++ 'a=rtpmap:101 rtx/90000\r\n'
++ 'a=rtpmap:96 VP8/90000\r\n'
++ 'a=rtpmap:97 rtx/90000\r\n'
++ 'a=rtpmap:108 H264/90000\r\n'
++ 'a=rtpmap:109 rtx/90000\r\n'
++ 'a=rtpmap:114 H264/90000\r\n'
++ 'a=rtpmap:115 rtx/90000\r\n'
++ 'a=rtpmap:102 H264/90000\r\n'
++ 'a=rtpmap:103 rtx/90000\r\n'
++ 'a=rtcp:9 IN IP4 0.0.0.0\r\n'
++ 'a=fmtp:45 level-idx=5;profile=0;tier=0\r\n'
++ 'a=fmtp:46 apt=45\r\n'
++ 'a=fmtp:98 max-fs=12288;max-fr=60\r\n'
++ 'a=fmtp:99 apt=98\r\n'
++ 'a=fmtp:100 profile-id=2\r\n'
++ 'a=fmtp:101 apt=100\r\n'
++ 'a=fmtp:96 max-fs=12288;max-fr=60\r\n'
++ 'a=fmtp:97 apt=96\r\n'
++ 'a=fmtp:108 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\n'
++ 'a=fmtp:109 apt=108\r\n'
++ 'a=fmtp:114 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f\r\n'
++ 'a=fmtp:115 apt=114\r\n'
++ 'a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1\r\n'
++ 'a=fmtp:103 apt=102\r\n'
++ 'a=setup:passive\r\n'
++ 'a=mid:video\r\n'
++ 'a=sendrecv\r\n'
++ 'a=ice-ufrag:adPg\r\n'
++ 'a=ice-pwd:Xsr05Mq8S7CR44DAnusZE26F\r\n'
++ 'a=fingerprint:sha-256 6A:39:DE:11:24:AD:2E:4E:63:D6:69:D3:85:05:53:C7:3C:38:A4:B7:91:74:C0:91:44:FC:94:63:7F:01:AB:A9\r\n'
++ 'a=ssrc:984899560 cname:peDGrDD6WsxUOki/\r\n'
++ 'a=rtcp-mux\r\n';
+
 // An sdp video mline with 3 simulcast streams
 const simulcastVideoMLineNoRtxSdp = ''
 + 'm=video 9 RTP/SAVPF 100\r\n'
@@ -555,6 +599,9 @@ const rtxVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + rtxVideoMLineSdp + b
 // A full sdp string representing a client doing a single video stream with multiple codec options
 const multiCodecVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + multiCodecVideoMLine + baseDataMLineSdp;
 
+// A full sdp string representing a client that advertises multiple profiles for VP9 and H264
+const multiProfileVideoSdpStr = baseSessionSdp + baseAudioMLineSdp + multiProfileVideoMLine + baseDataMLineSdp;
+
 // A full sdp string representing a client doing a single video stream with flexfec
 const flexFecSdpStr = baseSessionSdp + baseAudioMLineSdp + flexFecVideoMLineSdp + baseDataMLineSdp;
 
@@ -585,6 +632,10 @@ export default {
 
     get multiCodecVideoSdp(): transform.SessionDescription {
         return transform.parse(multiCodecVideoSdpStr);
+    },
+
+    get multiProfileVideoSdp(): transform.SessionDescription {
+        return transform.parse(multiProfileVideoSdpStr);
     },
 
     get plainVideoSdp(): transform.SessionDescription {

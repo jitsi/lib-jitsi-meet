@@ -47,6 +47,17 @@ export enum RTCStatsEvents {
     GET_USER_MEDIA_ERROR_EVENT = 'getUserMediaError',
 
     /**
+     * Event that indicates that an in-place ICE restart completed successfully, i.e. the renegotiation completed
+     * and the new local transport was signalled.
+     */
+    ICE_RESTART_APPLIED_EVENT = 'iceRestartApplied',
+
+    /**
+     * Event that indicates that an in-place ICE restart was requested.
+     */
+    ICE_RESTART_REQUESTED_EVENT = 'iceRestartRequested',
+
+    /**
      * Event that indicates that the JVB media session is restarted because of ICE failure.
      */
     JVB_ICE_RESTARTED_EVENT = 'jvbIceRestarted',

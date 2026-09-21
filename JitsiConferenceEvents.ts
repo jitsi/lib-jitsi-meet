@@ -7,6 +7,20 @@ export enum JitsiConferenceEvents {
     AUDIO_INPUT_STATE_CHANGE = 'conference.audio_input_state_changed',
 
     /**
+     * Event fired when the audio-translation component rejects a translation request (e.g. subscription limit
+     * reached, target speaker not in the room). The payload carries the affected endpoint ids and the error
+     * condition so the UI can notify the user and revert the optimistic language selection.
+     */
+    AUDIO_TRANSLATION_FAILED = 'conference.audio_translation_failed',
+
+    /**
+     * Event fired when the set of remote participants translating the local participant's audio changes. The
+     * audio-translation component pushes this per-sender (only to the participant being translated), so the
+     * payload is the array of endpoint ids currently listening to a translation of the local participant.
+     */
+    AUDIO_TRANSLATION_LISTENERS_CHANGED = 'conference.audio_translation_listeners_changed',
+
+    /**
      * Event indicates that the permission for unmuting audio has changed based on the number of audio senders in the
      * call and the audio sender limit configured in Jicofo.
      */
@@ -88,6 +102,14 @@ export enum JitsiConferenceEvents {
      * Event fired when the bandwidth estimation stats are received from the bridge.
      */
     BRIDGE_BWE_STATS_RECEIVED = 'conference.bridgeBweStatsReceived',
+
+    /**
+     * Event fired when jicofo signals that this client does not advertise capabilities that the deployment requires.
+     * The payload is an object with an 'action' field ('reject' or 'warn') and a 'features' field, which lists the
+     * missing capabilities. With 'reject' the client is not invited to the conference, i.e. it can not send or receive
+     * media, but it stays in the room and can still use the features which do not need a media session (e.g. chat).
+     */
+    CLIENT_REQUIREMENTS_NOT_MET = 'conference.client_requirements_not_met',
 
     /**
      * UTC conference timestamp when first participant joined.
@@ -282,9 +304,32 @@ export enum JitsiConferenceEvents {
     MEMBERS_ONLY_CHANGED = 'conference.membersOnlyChanged',
 
     /**
+     * Event fired when the author corrects one of their chat messages (XEP-0308).
+     * Carries the sender, the id of the corrected message, the new text and the
+     * timestamp when the correction comes from the room history.
+     */
+    MESSAGE_CORRECTED = 'conference.message_corrected',
+
+    /**
+     * Event fired when a chat message is moderated. The room is the authority for
+     * this, so the event carries only the message id and the optional reason.
+     */
+    MESSAGE_MODERATED = 'conference.message_moderated',
+
+    /**
+     * Indicates whether the room handles message moderation and editing server side.
+     */
+    MESSAGE_MODERATION_SUPPORTED_CHANGED = 'conference.messageModerationSupported',
+
+    /**
      * New text message was received.
      */
     MESSAGE_RECEIVED = 'conference.messageReceived',
+
+    /**
+     * Event indicates that a message was retracted
+    */
+    MESSAGE_RETRACTED = 'conference.messageRetracted',
 
     /**
      * Event fired when the conference metadata is updated.
@@ -452,6 +497,13 @@ export enum JitsiConferenceEvents {
     TRANSCRIPTION_STATUS_CHANGED = 'conference.transcriptionStatusChanged',
 
     /**
+     * Indicates that a translated audio source started or stopped being forwarded to the local endpoint. The
+     * listener receives { sourceName, sending, timestamp }; timestamp is an RTP timestamp (48 kHz, wraps at
+     * 2^32) — not epoch ms.
+     */
+    TRANSLATED_SOURCE_SENDING_CHANGED = 'conference.translatedSourceSendingChanged',
+
+    /**
      * A new user joined the conference.
      */
     USER_JOINED = 'conference.userJoined',
@@ -524,5 +576,11 @@ export enum JitsiConferenceEvents {
      * An event(library-private) fired when a new media session is added to the conference.
      * @private
      */
-    _MEDIA_SESSION_STARTED = 'conference.media_session.started'
+    _MEDIA_SESSION_STARTED = 'conference.media_session.started',
+
+    /**
+     * An event (library-private) fired when the conference must fall back from P2P to the JVB.
+     * @private
+     */
+    _P2P_FALLBACK_NEEDED = 'conference.p2p.fallback_needed'
 }

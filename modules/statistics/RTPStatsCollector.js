@@ -1,6 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
+import { getTransportCost } from '../../service/RTC/TransportCost';
 import { StatisticsEvents } from '../../service/statistics/Events';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -546,6 +548,10 @@ export default class StatsCollector {
         const byteSentStats = {};
         const encodedTimeStatsPerSsrc = new Map();
 
+        // Cumulative packetsReceived per inbound audio SSRC, collected during the pass below and emitted once so the
+        // RemoteAudioWedgeDetector can run off this poll instead of a separate getStats() loop.
+        const inboundAudioPacketsBySsrc = new Map();
+
         this.currentStatsReport.forEach(now => {
             const before = this.previousStatsReport ? this.previousStatsReport.get(now.id) : null;
 
@@ -563,6 +569,8 @@ export default class StatsCollector {
 
                 const remoteUsedCandidate = this.currentStatsReport.get(now.remoteCandidateId);
                 const localUsedCandidate = this.currentStatsReport.get(now.localCandidateId);
+
+                this.peerconnection.setSelectedTransportCost(getTransportCost(localUsedCandidate));
 
                 // RTCIceCandidateStats
                 // https://w3c.github.io/webrtc-stats/#icecandidate-dict*
@@ -630,6 +638,10 @@ export default class StatsCollector {
 
                 if (!packetsNow || packetsNow < 0) {
                     packetsNow = 0;
+                }
+
+                if (now.type === 'inbound-rtp' && (now.kind === MediaType.AUDIO || now.mediaType === MediaType.AUDIO)) {
+                    inboundAudioPacketsBySsrc.set(ssrc, packetsNow);
                 }
 
                 if (before) {
@@ -777,6 +789,11 @@ export default class StatsCollector {
         if (encodedTimeStatsPerSsrc.size) {
             this.eventEmitter.emit(StatisticsEvents.ENCODE_TIME_STATS, this.peerconnection, encodedTimeStatsPerSsrc);
         }
+
+        // Emitted on the RTC event bus (not the statistics one) so RemoteAudioWedgeDetector, which is scoped to a
+        // peerconnection, can consume it directly without threading through the conference-level stats plumbing.
+        this.peerconnection.eventEmitter.emit(
+            RTCEvents.INBOUND_AUDIO_STATS, this.peerconnection, inboundAudioPacketsBySsrc);
 
         this._processAndEmitReport();
     }

@@ -42,6 +42,19 @@ function makeAudioFrame() {
 }
 
 /**
+ * generates an empty audio frame, as produced by the opus encoder when DTX is enabled.
+ */
+function makeEmptyAudioFrame() {
+    return {
+        data: new ArrayBuffer(0),
+        type: undefined, // type is undefined for audio frames.
+        getMetadata: () => {
+            return { synchronizationSource: 123 };
+        }
+    };
+}
+
+/**
  * generates a dummy video frame
  */
 function makeVideoFrame() {
@@ -110,6 +123,58 @@ describe('E2EE Context', () => {
             };
 
             sender.encodeFunction(makeVideoFrame(), sendController);
+        });
+
+        it('passes an empty audio frame through', () => {
+            const enqueued = [];
+
+            sendController = {
+                enqueue: encodedFrame => enqueued.push(encodedFrame)
+            };
+
+            const frame = makeEmptyAudioFrame();
+
+            expect(() => sender.encodeFunction(frame, sendController)).not.toThrow();
+            expect(enqueued).toEqual([ frame ]);
+            expect(frame.data.byteLength).toEqual(0);
+        });
+
+        it('does not break the transform stream on an empty audio frame', async () => {
+            const transformStream = new TransformStream({
+                transform: sender.encodeFunction.bind(sender)
+            });
+            const writer = transformStream.writable.getWriter();
+            const reader = transformStream.readable.getReader();
+
+            // Not awaited, the writes only settle as the frames are read out of the stream.
+            writer.write(makeEmptyAudioFrame());
+            writer.write(makeAudioFrame());
+
+            // The empty frame is passed through unmodified.
+            expect((await reader.read()).value.data.byteLength).toEqual(0);
+
+            // The stream must still be usable for the frames that follow.
+            expect((await reader.read()).value.data.byteLength).toEqual(audioBytes.length + 30);
+        });
+    });
+
+    describe('decode function', () => {
+        beforeEach(async () => {
+            await receiver.setKey(key, 0);
+        });
+
+        it('passes an empty audio frame through', async () => {
+            const enqueued = [];
+
+            receiveController = {
+                enqueue: encodedFrame => enqueued.push(encodedFrame)
+            };
+
+            const frame = makeEmptyAudioFrame();
+
+            await receiver.decodeFunction(frame, receiveController);
+
+            expect(enqueued).toEqual([ frame ]);
         });
     });
 

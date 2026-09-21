@@ -75,6 +75,11 @@ export enum XMPPEvents {
 
     CHAT_ERROR_RECEIVED = 'xmpp.chat_error_received',
 
+    /**
+     * Jicofo signaled that this client does not advertise capabilities that the deployment requires.
+     */
+    CLIENT_REQUIREMENTS_RECEIVED = 'xmpp.client_requirements_received',
+
     // The conference properties (as advertised by jicofo) have changed
     CONFERENCE_PROPERTIES_CHANGED = 'xmpp.conference_properties_changed',
 
@@ -196,9 +201,23 @@ export enum XMPPEvents {
      */
     MEETING_ID_SET = 'xmpp.meeting_id_set',
 
+    /**
+     * Event fired when a message is corrected by its author (XEP-0308).
+     */
+    MESSAGE_CORRECTED = 'xmpp.message_corrected',
+
+    /**
+     * Event fired when a message is moderated.
+     */
+    MESSAGE_MODERATED = 'xmpp.message_moderated',
+
     // Designates an event indicating that an XMPP message in the MUC was
     // received.
     MESSAGE_RECEIVED = 'xmpp.message_received',
+
+    // Designates an event indicating that an XMPP message in the MUC was
+    // retracted.
+    MESSAGE_RETRACTED = 'xmpp.message_retracted',
 
     // Designates an event indicating that a participant was denied access to a conference from the lobby XMPP MUC.
     MUC_DENIED_ACCESS = 'xmpp.muc_denied access',
@@ -238,6 +257,10 @@ export enum XMPPEvents {
 
     // Designates an event indicating that a participant left the XMPP MUC.
     MUC_MEMBER_LEFT = 'xmpp.muc_member_left',
+
+    // Designates an event indicating that the MUC support for server side message
+    // moderation has changed.
+    MUC_MESSAGE_MODERATION_SUPPORTED_CHANGED = 'xmpp.muc_message_moderation_supported_changed',
 
     // Designates an event indicating that the MUC role of a participant has
     // changed.
@@ -351,6 +374,13 @@ export enum XMPPEvents {
      * Event fired when we receive a message related to room metadata.
      */
     ROOM_METADATA_UPDATED = 'xmpp.room-metadata.updated',
+
+    /**
+     * Indicates that the room cannot be joined because it has reached the time limit
+     * configured for it on the server (mod_time_restricted replies to the join presence
+     * with a 'cancel'/'resource-constraint' error once the limit is hit).
+     */
+    ROOM_TIME_LIMIT_ERROR = 'xmpp.room_time_limit_error',
 
     // Designates an event indicating that we sent an XMPP message to the MUC.
     SENDING_CHAT_MESSAGE = 'xmpp.sending_chat_message',

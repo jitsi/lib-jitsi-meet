@@ -14,7 +14,7 @@ import Settings from '../settings/Settings';
 import EventEmitterForwarder from '../util/EventEmitterForwarder';
 import Listenable from '../util/Listenable';
 import { getJitterDelay } from '../util/Retry';
-import { exists, findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
+import { exists, findAll, findFirst, getAttribute, getText, stripXMLInvalidChars } from '../util/XMLUtils';
 
 import AVModeration from './AVModeration';
 import BreakoutRooms from './BreakoutRooms';
@@ -70,6 +70,78 @@ export interface IChatRoomOptions {
     hiddenDomain?: string;
     hiddenFromRecorderFeatureEnabled?: boolean;
     statsId?: string;
+}
+
+/**
+ * What the server did about the capabilities which this client does not advertise.
+ */
+export enum ClientRequirementsAction {
+
+    /**
+     * The client is not invited to the conference, so it can not send or receive media. It stays in the room and can
+     * still use the features which do not need a media session (e.g. chat).
+     */
+    REJECT = 'reject',
+
+    /**
+     * The client is invited as usual, but a capability which the deployment expects is missing.
+     */
+    WARN = 'warn'
+}
+
+/**
+ * How severe a missing capability is.
+ */
+export enum MissingFeatureLevel {
+
+    /**
+     * The client is not invited to the conference.
+     */
+    HARD = 'hard',
+
+    /**
+     * The client is invited, but the deployment expects the capability.
+     */
+    SOFT = 'soft'
+}
+
+/**
+ * A capability which this client does not advertise, but the deployment requires.
+ */
+export interface IMissingFeature {
+
+    /**
+     * Text (in English) from the server, which describes how to add support for the capability.
+     */
+    details?: string;
+
+    /**
+     * The XMPP feature (the disco#info 'var'), e.g. 'http://jitsi.org/ssrc-rewriting-1'.
+     */
+    feature: string;
+
+    /**
+     * How severe the missing capability is. With [MissingFeatureLevel.HARD] the client is not invited.
+     */
+    level: MissingFeatureLevel;
+
+    /**
+     * A stable symbolic name for the capability, e.g. 'SSRC_REWRITING_V1'.
+     */
+    name?: string;
+
+    /**
+     * A URL with more information.
+     */
+    url?: string;
+}
+
+/**
+ * The capabilities which this client does not advertise, and what the server did about it.
+ */
+export interface IClientRequirements {
+    action: ClientRequirementsAction;
+    features: IMissingFeature[];
 }
 
 // Presence map structure
@@ -265,6 +337,7 @@ export default class ChatRoom extends Listenable {
     public transcriptionStatus: string;
     public membersOnlyEnabled?: boolean;
     public visitorsSupported?: boolean;
+    public messageModerationSupported?: boolean;
 
     /* eslint-disable max-params */
 
@@ -637,6 +710,16 @@ export default class ChatRoom extends Listenable {
             if (visitorsSupported !== this.visitorsSupported) {
                 this.visitorsSupported = visitorsSupported;
                 this.eventEmitter.emit(XMPPEvents.MUC_VISITORS_SUPPORTED_CHANGED, visitorsSupported);
+            }
+
+            const messageModerationEl = findFirst(result,
+                ':scope>query>x[type="result"]>field[var="muc#roominfo_messageModerationEnabled"]>value');
+            const messageModerationSupported = getText(messageModerationEl) === '1';
+
+            if (messageModerationSupported !== this.messageModerationSupported) {
+                this.messageModerationSupported = messageModerationSupported;
+                this.eventEmitter.emit(
+                    XMPPEvents.MUC_MESSAGE_MODERATION_SUPPORTED_CHANGED, messageModerationSupported);
             }
 
             this.initialDiscoRoomInfoReceived = true;
@@ -1084,6 +1167,11 @@ export default class ChatRoom extends Listenable {
                 this.eventEmitter.emit(XMPPEvents.PHONE_NUMBER_CHANGED);
                 break;
             }
+            case 'etherpad':
+                if (member.isFocus) {
+                    this._processNode(node, from);
+                }
+                break;
             default: {
                 if (node.tagName.startsWith('jitsi_participant_')) {
                     participantProperties
@@ -1099,7 +1187,9 @@ export default class ChatRoom extends Listenable {
         const participantId = Strophe.getResourceFromJid(from);
 
         for (const [ key, value ] of participantProperties) {
-            this.participantPropertyListener(participantId, key, value);
+            // Not every room has a listener. For example the lobby room does not, and an exception here would make
+            // Strophe remove all the handlers of the connection.
+            this.participantPropertyListener?.(participantId, key, value);
         }
 
         // Trigger status message update if necessary
@@ -1128,20 +1218,29 @@ export default class ChatRoom extends Listenable {
      * @param message
      * @param elementName
      * @param replyToId
+     * @param messageId - Optional explicit stanza id
      */
-    public sendMessage(message: string, elementName: string, replyToId?: string): void {
-        const msg = $msg({
+    public sendMessage(message: string, elementName: string, replyToId?: string, messageId?: string): void {
+        const attrs: Record<string, string> = {
             to: this.roomjid,
             type: 'groupchat'
-        });
+        };
+
+        if (messageId) {
+            attrs.id = messageId;
+        }
+
+        const msg = $msg(attrs);
+
+        const cleanMessage = stripXMLInvalidChars(message);
 
         // We are adding the message in a packet extension. If this element
         // is different from 'body', we add a custom namespace.
         // e.g. for 'json-message' extension of message stanza.
         if (elementName === 'body') {
-            msg.c(elementName, {}, message);
+            msg.c(elementName, {}, cleanMessage);
         } else {
-            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message);
+            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, cleanMessage);
         }
 
         if (replyToId) {
@@ -1149,7 +1248,7 @@ export default class ChatRoom extends Listenable {
         }
 
         this.connection.send(msg);
-        this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, message);
+        this.eventEmitter.emit(XMPPEvents.SENDING_CHAT_MESSAGE, cleanMessage);
     }
 
     /**
@@ -1186,30 +1285,150 @@ export default class ChatRoom extends Listenable {
      * @param elementName
      * @param useDirectJid
      * @param replyToId
+     * @param messageId
      */
-    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false, replyToId?: string): void {
+    public sendPrivateMessage(id: string, message: string, elementName: string, useDirectJid: boolean = false, replyToId?: string, messageId?: string): void {
         const targetJid = useDirectJid ? id : `${this.roomjid}/${id}`;
-        const msg = $msg({ to: targetJid,
-            type: 'chat' });
+        const attrs: Record<string, string> = { to: targetJid, type: 'chat' };
+
+        if (messageId) {
+            attrs.id = messageId;
+        }
+        const msg = $msg(attrs);
+
+        const cleanMessage = stripXMLInvalidChars(message);
 
         // We are adding the message in packet. If this element is different
         // from 'body', we add our custom namespace for the same.
         // e.g. for 'json-message' message extension.
         if (elementName === 'body') {
-            msg.c(elementName, message).up();
+            msg.c(elementName, cleanMessage).up();
         } else {
-            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, message)
+            msg.c(elementName, { xmlns: 'http://jitsi.org/jitmeet' }, cleanMessage)
                 .up();
         }
 
         if (replyToId) {
             msg.c('reply', { to: replyToId });
         }
-
         this.connection.send(msg);
         this.eventEmitter.emit(
-            XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, message);
+            XMPPEvents.SENDING_PRIVATE_CHAT_MESSAGE, cleanMessage);
     }
+
+    /**
+     * Retracts a previously sent message.
+     *
+     * @param {string} messageId - The id of the message being retracted.
+     * @param {string} receiverId - The receiver if the message was private.
+     * @param {boolean} useDirectJid - Whether receiverId is already a JID.
+     */
+    /**
+     * Sends a correction of a previously sent message (XEP-0308). The correction is
+     * an ordinary message carrying the new body, plus a <replace/> naming the message
+     * it corrects, so it is archived and replayed to anyone joining later.
+     *
+     * @param {string} messageId - The id of the message being corrected.
+     * @param {string} message - The new text.
+     * @param {string} [receiverId] - Set for a private message, the recipient.
+     * @param {boolean} [useDirectJid=false] - Whether receiverId is a full jid.
+     */
+    public sendMessageCorrection(
+            messageId: string,
+            message: string,
+            receiverId?: string,
+            useDirectJid: boolean = false): void {
+
+        if (!messageId) {
+            logger.warn('sendMessageCorrection: no messageId provided');
+
+            return;
+        }
+
+        let msg;
+
+        if (receiverId) {
+            const targetJid = useDirectJid
+                ? receiverId
+                : `${this.roomjid}/${receiverId}`;
+
+            msg = $msg({
+                to: targetJid,
+                type: 'chat'
+            });
+        } else {
+            msg = $msg({
+                to: this.roomjid,
+                type: 'groupchat'
+            });
+        }
+
+        msg.c('body')
+        .t(stripXMLInvalidChars(message))
+        .up()
+        .c('replace', {
+            id: messageId,
+            xmlns: 'urn:xmpp:message-correct:0'
+        })
+        .up()
+        .c('store', {
+            xmlns: 'urn:xmpp:hints'
+        })
+        .up();
+
+        this.connection.send(msg);
+    }
+
+    public sendMessageRetraction(
+            messageId: string,
+            receiverId?: string,
+            useDirectJid: boolean = false): void {
+
+        if (!messageId) {
+            logger.warn('sendMessageRetraction: no messageId provided');
+
+            return;
+        }
+
+        let msg;
+
+        if (receiverId) {
+            const targetJid = useDirectJid
+                ? receiverId
+                : `${this.roomjid}/${receiverId}`;
+
+            msg = $msg({
+                to: targetJid,
+                type: 'chat'
+            });
+        } else {
+            msg = $msg({
+                to: this.roomjid,
+                type: 'groupchat'
+            });
+        }
+
+        msg.c('retract', {
+            id: messageId,
+            xmlns: 'urn:xmpp:message-retract:1'
+        })
+        .up()
+        .c('fallback', {
+            for: 'urn:xmpp:message-retract:1',
+            xmlns: 'urn:xmpp:fallback:0'
+        })
+        .up()
+        .c('body')
+        .t('I retracted a previous message, but it\'s unsupported by your client.')
+        .up()
+        .c('store', {
+            xmlns: 'urn:xmpp:hints'
+        })
+        .up();
+
+        this.connection.send(msg);
+    }
+
     /* eslint-enable max-params */
 
     /**
@@ -1217,7 +1436,7 @@ export default class ChatRoom extends Listenable {
      * @param subject
      */
     public setSubject(subject: string): void {
-        const valueToProcess = subject ? subject.trim() : subject;
+        const valueToProcess = subject ? stripXMLInvalidChars(subject.trim()) : subject;
 
         if (valueToProcess === this.subject) {
             // subject already set to the new value
@@ -1228,6 +1447,38 @@ export default class ChatRoom extends Listenable {
             type: 'groupchat' });
 
         msg.c('subject', valueToProcess);
+        this.subject = valueToProcess;
+        this.connection.send(msg);
+    }
+
+    /**
+     * Sends a moderation request to retract a message.
+     *
+     * @param {string} messageId - The id of the message to moderate.
+     * @param {string} [reason] - Optional moderation reason.
+     */
+    public moderateMessage(messageId: string, reason?: string): void {
+        const msg = $msg({
+            to: this.roomjid,
+            type: 'groupchat'
+        });
+
+        msg.c('apply-to', {
+            id: messageId,
+            xmlns: 'urn:xmpp:fasten:0'
+        })
+            .c('moderated', {
+                xmlns: 'urn:xmpp:message-moderate:1'
+            })
+            .c('retract', {
+                xmlns: 'urn:xmpp:message-retract:1'
+            })
+            .up();
+
+        if (reason) {
+            msg.c('reason', {}, reason).up();
+        }
+
         this.connection.send(msg);
     }
 
@@ -1463,17 +1714,88 @@ export default class ChatRoom extends Listenable {
             // e.g. - subtitles should not be displayed if delayed.
             if (parsedJson && stamp === null) {
                 this.eventEmitter.emit(XMPPEvents.JSON_MESSAGE_RECEIVED,
-                    from, parsedJson);
+                    from, parsedJson, stamp !== null);
 
                 return;
             }
+        }
+
+        const applyToEl = findFirst(msg, ':scope>apply-to[*|xmlns="urn:xmpp:fasten:0"]');
+
+        if (applyToEl) {
+            const moderatedEl = findFirst(applyToEl, ':scope>moderated[*|xmlns="urn:xmpp:message-moderate:1"]');
+
+            if (moderatedEl) {
+                const retractEl = findFirst(moderatedEl, ':scope>retract[*|xmlns="urn:xmpp:message-retract:1"]');
+
+                if (retractEl) {
+                    // Moderation is applied by the room, which sends it from the bare room
+                    // jid. A stanza that still carries a resource is an occupant's own
+                    // request, relayed because the room is not handling moderation, and
+                    // there is nothing here that can stand in for the room's decision.
+                    if (Strophe.getResourceFromJid(from)) {
+                        logger.warn(`Ignoring message moderation relayed from an occupant: ${from}`);
+
+                        return true;
+                    }
+
+                    const messageId = getAttribute(applyToEl, 'id');
+                    const reason = getText(findFirst(moderatedEl, 'reason'));
+
+                    this.eventEmitter.emit(XMPPEvents.MESSAGE_MODERATED, messageId, reason);
+
+                    return true;
+                }
+            }
+        }
+
+        const replaceEl = findFirst(msg, ':scope>replace[*|xmlns="urn:xmpp:message-correct:0"]');
+
+        if (replaceEl) {
+            const correctedMessageId = getAttribute(replaceEl, 'id');
+            const newText = getText(findFirst(msg, ':scope>body'));
+
+            if (!correctedMessageId || !newText) {
+                logger.warn('MESSAGE_CORRECTED: missing corrected message id or body');
+
+                return true;
+            }
+
+            this.eventEmitter.emit(XMPPEvents.MESSAGE_CORRECTED,
+                from, correctedMessageId, newText, stamp);
+
+            return true;
+        }
+
+        const retractEl = findFirst(msg, ':scope>retract[*|xmlns="urn:xmpp:message-retract:1"]');
+
+        if (retractEl) {
+            const retractedMessageId = getAttribute(retractEl, 'id');
+
+            if (!retractedMessageId) {
+                logger.warn('MESSAGE_RETRACTED: missing retracted message id');
+
+                return true;
+
+            }
+
+            this.eventEmitter.emit(XMPPEvents.MESSAGE_RETRACTED,
+                from, retractedMessageId);
+
+            return true;
         }
 
         if (txt) {
             const messageId = getAttribute(msg, 'id') || uuidv4();
             const replyToId = this._parseReplyMessage(msg);
             const displayNameEl = findFirst(msg, ':scope>display-name[*|xmlns="http://jitsi.org/protocol/display-name"]');
-            const isVisitorMessage = getAttribute(displayNameEl, 'source') === 'visitor';
+
+            // The visitors-relay component (mod_visitors.lua / mod_fmuc.lua) always rewrites the message's "from" to
+            // the bare room JID before delivering it to main-room occupants. An ordinary occupant's own message
+            // always arrives with "from" set to their own full occupant JID instead (server-controlled, not settable
+            // by the client). So the display-name/addresses extension is only honored for a message that actually
+            // went through the visitor relay.
+            const isVisitorMessage = getAttribute(displayNameEl, 'source') === 'visitor' && from === this.roomjid;
 
             if (type === 'chat') {
                 let displayName;
@@ -1493,7 +1815,6 @@ export default class ChatRoom extends Listenable {
                         }
                     }
                 }
-
                 this.eventEmitter.emit(XMPPEvents.PRIVATE_MESSAGE_RECEIVED,
                         from, txt, this.myroomjid, stamp, messageId, displayName, isVisitorMessage, originalFrom, replyToId);
             } else if (type === 'groupchat') {
@@ -1558,7 +1879,12 @@ export default class ChatRoom extends Listenable {
                 // a race where we have sent a conference request to jicofo and jicofo was about to leave or just left
                 // because of no participants in the room, and we tried to create the room, without having
                 // permissions for that (only jicofo creates rooms)
-                if (txt === 'Room creation is restricted') {
+                if (txt === 'Room creation is restricted'
+                    // or case when using jwt, where we connected and then lost connection and restored it
+                    // and failed to join the call before jicofo leaves,
+                    // or send a conference-request and got a connection problem before joining but jicofo already left
+                    || exists(pres,
+                        ':scope>error[type="cancel"]>room-does-not-exist[*|xmlns="http://jitsi.org/jitmeet"]')) {
                     type = AUTH_ERROR_TYPES.ROOM_CREATION_RESTRICTION;
 
                     if (!this.options.disableRoomCreationRetry) {
@@ -1613,6 +1939,13 @@ export default class ChatRoom extends Listenable {
 
                 this.eventEmitter.emit(XMPPEvents.ROOM_CONNECT_NOT_ALLOWED_ERROR, type, txt);
             }
+        } else if (exists(pres,
+            ':scope>error[type="cancel"]>resource-constraint[*|xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"]')) {
+            // The room reached the time limit configured on the server (mod_time_restricted
+            // destroyed it and now refuses to let it be re-created), so this is a dead end -
+            // there is nothing to retry and no credentials that would help.
+            logger.warn('Room time limit reached', pres);
+            this.eventEmitter.emit(XMPPEvents.ROOM_TIME_LIMIT_ERROR);
         } else if (exists(pres, ':scope>error>service-unavailable')) {
             logger.warn('Maximum users limit for the room has been reached',
                 pres);
@@ -2240,6 +2573,78 @@ export default class ChatRoom extends Listenable {
             logger.warn('Ignoring a mute request which does not explicitly '
                 + 'specify a positive mute command.');
         }
+    }
+
+    /**
+     * Handle a client-requirements IQ from the focus. It signals that this client does not advertise capabilities
+     * that the deployment requires. With an action of 'reject' the client is not invited to the conference, so it can
+     * not send or receive media, but it stays in the room and can still use the features which do not need a media
+     * session (e.g. chat).
+     *
+     * @param iq The received iq.
+     * @internal
+     */
+    onClientRequirements(iq: Element): void {
+        const from = iq.getAttribute('from');
+
+        if (from !== this.focusMucJid) {
+            logger.warn(`Ignored client requirements from non focus peer: ${from}`);
+
+            return;
+        }
+
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const requirements = findFirst(iq, ':scope>client-requirements[*|xmlns="jitsi:client-requirements"]');
+
+        if (!requirements) {
+            return;
+        }
+
+        // Ignore an action that we do not know, so that a client which does not understand a future action does not
+        // act on it.
+        const action = getAttribute(requirements, 'action') as ClientRequirementsAction;
+
+        if (!Object.values(ClientRequirementsAction).includes(action)) {
+            logger.warn(`Ignored client requirements with an unexpected action: ${action}`);
+
+            return;
+        }
+
+        // The 'var' and 'level' attributes are required. Ignore an element without them, because a consumer can not
+        // do anything with it.
+        const features: IMissingFeature[] = [];
+
+        findAll(requirements, ':scope>missing-feature').forEach(element => {
+            const feature = getAttribute(element, 'var');
+            const level = getAttribute(element, 'level') as MissingFeatureLevel;
+
+            if (!feature || !Object.values(MissingFeatureLevel).includes(level)) {
+                logger.warn('Ignored a missing-feature element with no var or an unexpected level: '
+                    + `${feature}, ${level}`);
+
+                return;
+            }
+
+            features.push({
+                details: getAttribute(element, 'details') ?? undefined,
+                feature,
+                level,
+                name: getAttribute(element, 'name') ?? undefined,
+                url: getAttribute(element, 'url') ?? undefined
+            });
+        });
+
+        if (!features.length) {
+            logger.warn('Ignored client requirements with no valid missing-feature elements.');
+
+            return;
+        }
+
+        logger.warn(`Received client requirements: action=${action}, features=${JSON.stringify(features)}`);
+        this.eventEmitter.emit(XMPPEvents.CLIENT_REQUIREMENTS_RECEIVED, {
+            action,
+            features
+        });
     }
 
     /**

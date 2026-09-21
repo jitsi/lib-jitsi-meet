@@ -291,6 +291,14 @@ export class Context {
             return controller.enqueue(encodedFrame);
         }
 
+        // Opus emits empty frames when DTX is enabled. There is nothing to encrypt and the frame has no
+        // header to leave in the clear, so pass it through. Reading a header that is not there throws a
+        // RangeError, which errors the TransformStream and stops the pipeline for all the frames that
+        // follow.
+        if (encodedFrame.data.byteLength < UNENCRYPTED_BYTES[encodedFrame.type]) {
+            return controller.enqueue(encodedFrame);
+        }
+
         const keyIndex = this._currentKeyIndex;
         const currentKey = this._cryptoKeyRing[keyIndex] as ICryptoKeyData | false;
 
@@ -354,6 +362,12 @@ export class Context {
      */
     public async decodeFunction(encodedFrame: IEncodedFrame, controller: ITransformStreamDefaultController): Promise<void> {
         if (!this._enabled) {
+            return controller.enqueue(encodedFrame);
+        }
+
+        // Empty frames (opus DTX) are sent unencrypted, they carry no data. Pass them through, otherwise
+        // they are dropped here because there is no key index to read.
+        if (encodedFrame.data.byteLength < UNENCRYPTED_BYTES[encodedFrame.type]) {
             return controller.enqueue(encodedFrame);
         }
 

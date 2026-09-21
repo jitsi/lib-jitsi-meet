@@ -115,6 +115,59 @@ export function getChildren(element: Element): Element[] {
 }
 
 /**
+ * Gets the first child of a node which is an element (optionally, which has a given tag name), skipping text and
+ * other non-element nodes.
+ *
+ * Use this instead of `firstElementChild`: on React Native the DOM is provided by xmldom, which implements
+ * `firstChild`/`childNodes` but not the element-traversal accessors (`firstElementChild`, `lastElementChild`, etc.).
+ *
+ * @param node - The parent node.
+ * @param tagName - If given, only an element with this tag name qualifies.
+ * @returns The first matching child element, or null.
+ */
+export function getFirstChildElement(node: Node | null | undefined, tagName?: string): Element | null {
+    if (!node) {
+        return null;
+    }
+    const childNodes = node.childNodes;
+
+    for (let i = 0; i < childNodes.length; i++) {
+        const child = childNodes[i];
+
+        if (child.nodeType === 1 && (tagName === undefined || (child as Element).tagName === tagName)) {
+            return child as Element;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Gets the last child of a node which is an element (optionally, which has a given tag name), skipping text and
+ * other non-element nodes. See {@link getFirstChildElement} for why this exists.
+ *
+ * @param node - The parent node.
+ * @param tagName - If given, only an element with this tag name qualifies.
+ * @returns The last matching child element, or null.
+ */
+export function getLastChildElement(node: Node | null | undefined, tagName?: string): Element | null {
+    if (!node) {
+        return null;
+    }
+    const childNodes = node.childNodes;
+
+    for (let i = childNodes.length - 1; i >= 0; i--) {
+        const child = childNodes[i];
+
+        if (child.nodeType === 1 && (tagName === undefined || (child as Element).tagName === tagName)) {
+            return child as Element;
+        }
+    }
+
+    return null;
+}
+
+/**
  * Checks if any elements match the selector within the given element.
  * @param element - The element or document to search within.
  * @param selector - CSS selector string.
@@ -153,4 +206,34 @@ export function findFirst(element: Element | Document, selector: string): Elemen
 
         return null;
     }
+}
+
+/**
+ * Matches the characters that are not allowed in an XML 1.0 document. Sending
+ * such characters (e.g. the START OF TEXT control character U+0002) in a
+ * message produces a malformed stanza which makes the server terminate the
+ * stream, dropping everyone from the meeting.
+ *
+ * The pattern is the inverse of the characters allowed by the XML 1.0
+ * specification:
+ *
+ *     #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+ *
+ * Encoding the allowed ranges (rather than denying a list of forbidden ones)
+ * keeps every permitted code point intact - including astral characters such
+ * as emoji, which are represented as surrogate pairs - while stripping lone
+ * surrogates (U+D800-U+DFFF), which are invalid in XML 1.0. The unicode flag
+ * makes the pattern operate on whole code points instead of surrogate halves.
+ */
+// eslint-disable-next-line no-control-regex
+const INVALID_XML_CHARS_REGEXP = /[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+
+/**
+ * Removes the characters that are not allowed in an XML 1.0 document from the
+ * given string.
+ * @param text - The text to sanitize.
+ * @returns The text without the XML-invalid characters.
+ */
+export function stripXMLInvalidChars(text: string): string {
+    return text.replace(INVALID_XML_CHARS_REGEXP, '');
 }

@@ -1,7 +1,8 @@
 import { getLogger } from '@jitsi/logger';
 import { isEqual } from 'lodash-es';
-import { Strophe } from 'strophe.js';
+import { $msg, Strophe } from 'strophe.js';
 
+import { JitsiAudioTranslationErrors } from './JitsiAudioTranslationErrors';
 import * as JitsiConferenceErrors from './JitsiConferenceErrors';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
@@ -30,7 +31,7 @@ import { E2EEncryption } from './modules/e2ee/E2EEncryption';
 import E2ePing from './modules/e2eping/e2eping';
 import FeatureFlags from './modules/flags/FeatureFlags';
 import { LiteModeContext } from './modules/litemode/LiteModeContext';
-import { QualityController } from './modules/qualitycontrol/QualityController';
+import { P2PFallbackReason, QualityController } from './modules/qualitycontrol/QualityController';
 import { IReceiverVideoConstraints } from './modules/qualitycontrol/ReceiveVideoController';
 import JibriSession from './modules/recording/JibriSession';
 import RecordingManager, { IRecordingOptions } from './modules/recording/RecordingManager';
@@ -44,7 +45,7 @@ import Listenable from './modules/util/Listenable';
 import { isValidNumber, safeSubtract } from './modules/util/MathUtil';
 import RandomUtil from './modules/util/RandomUtil';
 import { getJitterDelay } from './modules/util/Retry';
-import { findAll, findFirst, getAttribute } from './modules/util/XMLUtils';
+import { findAll, findFirst, getAttribute, getFirstChildElement } from './modules/util/XMLUtils';
 import ComponentsVersions from './modules/version/ComponentsVersions';
 import JitsiVideoSIPGWSession from './modules/videosipgw/JitsiVideoSIPGWSession';
 import VideoSIPGW from './modules/videosipgw/VideoSIPGW';
@@ -65,11 +66,20 @@ import XMPP, {
 } from './modules/xmpp/xmpp';
 import { BridgeVideoType } from './service/RTC/BridgeVideoType';
 import { CodecMimeType } from './service/RTC/CodecMimeType';
+import { IceRestartReason } from './service/RTC/IceRestartReason';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
-import { IReceiverAudioSubscriptionMessage } from './service/RTC/ReceiverAudioSubscription';
+import {
+    ILegacyReceiverAudioSubscriptionMessage,
+    IReceiverAudioSubscriptionMessage
+} from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
-import { getMediaTypeFromSourceName, getSourceNameForJitsiTrack } from './service/RTC/SignalingLayer';
+import {
+    getMediaTypeFromSourceName,
+    getSourceNameForJitsiTrack,
+    isTranslatedSourceName
+} from './service/RTC/SignalingLayer';
+import { TransportCost } from './service/RTC/TransportCost';
 import { VideoType } from './service/RTC/VideoType';
 import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
 import {
@@ -91,6 +101,9 @@ export interface IConferenceOptions {
             rtcstatsEndpoint?: string;
         };
         applicationName?: string;
+        audioTranslation?: {
+            enabled?: boolean;
+        };
         avgRtpStatsN?: number;
         channelLastN?: number;
         confID?: string;
@@ -104,6 +117,7 @@ export interface IConferenceOptions {
         e2eping?: {
             enabled?: boolean;
         };
+        enableIceRestart?: boolean;
         enableNoAudioDetection?: boolean;
         enableNoisyMicDetection?: boolean;
         enableTalkWhileMuted?: boolean;
@@ -127,6 +141,7 @@ export interface IConferenceOptions {
         statisticsId?: string;
         testing?: {
             allowMultipleTracks?: boolean;
+            disableAV1DecodeForFF?: boolean;
             enableAV1ForFF?: boolean;
             enableFirefoxP2p?: boolean;
             forceInitiator?: boolean;
@@ -181,11 +196,23 @@ export interface IStopSessionOptions {
 const logger = getLogger('core:JitsiConference');
 
 /**
+ * How long (ms) to keep an in-flight translation request around for error correlation. The component only
+ * replies on failure, so a request with no reply within this window is assumed to have succeeded.
+ */
+const TRANSLATION_REQUEST_TIMEOUT = 15000;
+
+/**
  * How long since Jicofo is supposed to send a session-initiate, before
  * {@link ACTION_JINGLE_SI_TIMEOUT} analytics event is sent (in ms).
  * @type {number}
  */
 const JINGLE_SI_TIMEOUT: number = 5000;
+
+/**
+ * How long (ms) to wait for ICE to recover after an in-place ICE restart (triggered by an ICE failure) before
+ * falling back to a session restart.
+ */
+const JVB_ICE_RESTART_RECOVERY_TIMEOUT = 15000;
 
 /**
  * Default source language for transcribing the local participant.
@@ -268,9 +295,49 @@ export default class JitsiConference extends Listenable {
     private _desktopSharingFrameRate?: number;
     private _numberOfParticipantsOnJoin?: number;
     private _delayedIceFailed?: IceFailedHandling;
+    private _p2pFallbackLatched: boolean;
     private _audioAnalyser?: VADAudioAnalyser;
     private _noAudioSignalDetection?: NoAudioSignalDetection;
     private _signalingLayer: SignalingLayerImpl;
+
+    /**
+     * The default language remote audio is translated into for every speaker, or null when off.
+     * Per-participant overrides in {@link _participantTranslationLanguages} take precedence over this.
+     */
+    private _receiverTranslationLanguage: string | null = null;
+
+    /**
+     * Per-participant translation overrides (endpointId -> language, or null to explicitly disable for
+     * that speaker). An entry present here wins over {@link _receiverTranslationLanguage}; an absent entry
+     * inherits the default. Set via {@link setParticipantTranslationLanguage}.
+     */
+    private _participantTranslationLanguages: Map<string, string | null> = new Map();
+
+    /**
+     * Translation requests last advertised to the audio-translation module (endpointId -> language),
+     * used to send only the delta on roster changes.
+     */
+    private _translationRequests: Map<string, string> = new Map();
+
+    /**
+     * In-flight translation-request deltas keyed by stanza id. The component only replies on failure
+     * (success is silent), so this maps an error reply back to the endpoints the failed request touched.
+     */
+    private _pendingTranslationRequests: Map<string, { [endpointId: string]: string; }> = new Map();
+
+    /**
+     * The registered Strophe handler for translation-request error replies, or undefined when not registered.
+     * Stored so it can be removed from the (connection-scoped) handler list on {@link leave}.
+     */
+    private _translationErrorHandler?: ReturnType<Strophe.Connection['addHandler']>;
+
+    // Stored so the (connection-scoped) translation-listeners handler can be removed on leave().
+    private _translationListenersHandler?: ReturnType<Strophe.Connection['addHandler']>;
+
+    /**
+     * Monotonic counter used to mint translation-request stanza ids for error correlation.
+     */
+    private _translationRequestSeq = 0;
     private _conferenceJoinAnalyticsEventSent?: number;
     private _e2eEncryption?: E2EEncryption;
     private _liteModeContext?: LiteModeContext;
@@ -472,6 +539,12 @@ export default class JitsiConference extends Listenable {
          */
         this.p2pJingleSession = null;
 
+        /**
+         * Whether the conference has given up on P2P for the rest of the call.
+         * @type {boolean}
+         */
+        this._p2pFallbackLatched = false;
+
         this.videoSIPGWHandler = new VideoSIPGW(this.room);
         this.recordingManager = new RecordingManager(this.room);
 
@@ -640,6 +713,7 @@ export default class JitsiConference extends Listenable {
         const qualityOptions = {
             enableAdaptiveMode: config.videoQuality?.enableAdaptiveMode,
             jvb: {
+                disableAV1DecodeForFF: config.testing?.disableAV1DecodeForFF,
                 disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
                 enableAV1ForFF: config.testing?.enableAV1ForFF,
                 preferenceOrder: browser.isMobileDevice()
@@ -666,6 +740,10 @@ export default class JitsiConference extends Listenable {
 
         this.qualityController = new QualityController(this, qualityOptions);
 
+        this.on(
+            JitsiConferenceEvents._P2P_FALLBACK_NEEDED,
+            (reason: P2PFallbackReason) => this._fallbackFromP2P(reason));
+
         if (!this.statistics) {
             this.statistics = new Statistics(this, {
                 // @ts-ignore
@@ -679,6 +757,9 @@ export default class JitsiConference extends Listenable {
                 'callstats_name': this._statsCurrentId
             });
         }
+
+        this.statistics.addConnectionStatsListener(
+            (tpc: TraceablePeerConnection) => this._checkP2PTransportCost(tpc));
 
         this.eventManager.setupChatRoomListeners();
 
@@ -774,6 +855,13 @@ export default class JitsiConference extends Listenable {
         rtc.addListener(RTCEvents.DATA_CHANNEL_OPEN, () => {
             for (const localTrack of this.rtc.localTracks) {
                 localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
+            }
+
+            // (Re)establish the audio subscription on the bridge whenever the channel opens. Defaults to ALL
+            // until translation is enabled, at which point the Include list is sent instead. Only when the
+            // audio-translation feature is enabled — otherwise leave the bridge's default subscription untouched.
+            if (this.options.config.audioTranslation?.enabled) {
+                this.qualityController.audioController.resendSubscription();
             }
         });
     }
@@ -1360,10 +1448,12 @@ export default class JitsiConference extends Listenable {
         const peerCount = peers.length;
         const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist'
             || p.hasFeature(FEATURE_JIGASI)) !== undefined;
-        const shouldBeInP2P = peerCount === 1 && !hasBotPeer && !this._hasVisitors
-        && !this._hasVisitors && !this._transcribingEnabled;
+        const shouldBeInP2P = !this._p2pFallbackLatched
+        && peerCount === 1 && !hasBotPeer && !this._hasVisitors
+        && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0;
 
-        logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer} => ${shouldBeInP2P}`);
+        logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer}, `
+            + `fallbackLatched: ${this._p2pFallbackLatched} => ${shouldBeInP2P}`);
 
         return shouldBeInP2P;
     }
@@ -1371,6 +1461,8 @@ export default class JitsiConference extends Listenable {
     /**
      * Stops the current P2P session.
      * @param {Object} options - Options for stopping P2P.
+     * @param {boolean} options.latchFallback - Whether P2P should stay off for the rest of the call, so that no
+     * later participant change or remote re-invite can re-establish it.
      * @param {string} options.reason - One of the Jingle "reason" element
      * names as defined by https://xmpp.org/extensions/xep-0166.html#def-reason
      * @param {string} options.reasonDescription - Text description that will be
@@ -1379,8 +1471,14 @@ export default class JitsiConference extends Listenable {
      * media will not be resumed on the JVB.
      * @private
      */
-    private _stopP2PSession(options: { reason?: string; reasonDescription?: string; requestRestart?: boolean; } = {}): void {
+    private _stopP2PSession(options: {
+        latchFallback?: boolean;
+        reason?: string;
+        reasonDescription?: string;
+        requestRestart?: boolean;
+    } = {}): void {
         const {
+            latchFallback = false,
             reason = 'success',
             reasonDescription = 'Turning off P2P session',
             requestRestart = false
@@ -1390,6 +1488,10 @@ export default class JitsiConference extends Listenable {
             logger.error('No P2P session to be stopped!');
 
             return;
+        }
+
+        if (latchFallback) {
+            this._p2pFallbackLatched = true;
         }
 
         const wasP2PEstablished = this.isP2PActive();
@@ -1747,6 +1849,60 @@ export default class JitsiConference extends Listenable {
 
 
     /**
+     * Signals a fallback when P2P settled on a TCP relayed path and the JVB has a cheaper one.
+     * @param {TraceablePeerConnection} tpc - The peer connection that reported stats.
+     * @private
+     */
+    private _checkP2PTransportCost(tpc: TraceablePeerConnection): void {
+        if (!this.p2pJingleSession
+                || !this.jvbJingleSession
+                || this.p2pJingleSession.peerconnection !== tpc) {
+            return;
+        }
+
+        const p2pCost = tpc.getSelectedTransportCost();
+        const jvbCost = this.jvbJingleSession.peerconnection?.getSelectedTransportCost();
+
+        // Relative on purpose: abandoning P2P only helps if the bridge has a better path. Undetermined costs are
+        // retried on the next poll.
+        if (typeof p2pCost !== 'number' || typeof jvbCost !== 'number') {
+            return;
+        }
+
+        if (p2pCost === TransportCost.RELAY_TCP && jvbCost < TransportCost.RELAY_TCP) {
+            logger.warn('P2P settled on a TCP relayed path while the JVB has a better one '
+                + `(p2p: ${p2pCost}, jvb: ${jvbCost}), falling back`);
+            this.eventEmitter.emit(JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.TCP_RELAY);
+        }
+    }
+
+    /**
+     * Abandons a P2P session that is no longer fit to carry the call and moves the conference back to the JVB.
+     * @param {P2PFallbackReason} reason - What triggered the fallback.
+     * @private
+     */
+    private _fallbackFromP2P(reason: P2PFallbackReason): void {
+        if (!this.p2pJingleSession) {
+            return;
+        }
+
+        logger.warn(`Falling back to the JVB, reason: ${reason}`);
+
+        // Permanent property to find affected calls later; the event carries the reason to tell the causes apart.
+        Statistics.analytics.addPermanentProperties({ p2pQualityFallback: true });
+        Statistics.sendAnalyticsAndLog(
+            createP2PEvent(AnalyticsEvents.ACTION_P2P_QUALITY_FALLBACK, { reason }));
+
+        // Stopped directly rather than through _maybeStartOrStopP2P, whose stop path is disabled under
+        // config.testing.p2pTestMode.
+        this._stopP2PSession({
+            latchFallback: true,
+            reason: 'connectivity-error',
+            reasonDescription: `P2P ${reason}`
+        });
+    }
+
+    /**
      * Handles CONNECTION_INTERRUPTED event.
      * @param {JingleSessionPC} session - The Jingle session.
      * @private
@@ -1754,6 +1910,13 @@ export default class JitsiConference extends Listenable {
     private _onIceConnectionInterrupted(session: JingleSessionPC): void {
         if (session.isP2P) {
             this.isP2PConnectionInterrupted = true;
+
+            // P2P ICE is not given a chance to recover. Resuming the JVB is local only, so falling back costs
+            // nothing, whereas riding out a disconnect that never recovers costs the whole call.
+            if (this.p2pJingleSession === session) {
+                this.eventEmitter.emit(
+                    JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.ICE_DISCONNECTED);
+            }
         } else {
             this.isJvbConnectionInterrupted = true;
         }
@@ -1783,6 +1946,7 @@ export default class JitsiConference extends Listenable {
 
             }
             this._stopP2PSession({
+                latchFallback: true,
                 reason: 'connectivity-error',
                 reasonDescription: 'ICE FAILED'
             });
@@ -1790,11 +1954,16 @@ export default class JitsiConference extends Listenable {
             // Use an exponential backoff timer for ICE restarts.
             const jitterDelay = getJitterDelay(this._iceRestarts, 1000 /* min. delay */);
 
-            this._delayedIceFailed = new IceFailedHandling(this);
             setTimeout(() => {
-                logger.error(`triggering ice restart after ${jitterDelay} `);
-                this._delayedIceFailed.start();
                 this._iceRestarts++;
+                if (this.isIceRestartSupported()) {
+                    logger.info(`Attempting an in-place ICE restart after ${jitterDelay}`);
+                    this._restartJvbIceWithFallback();
+                } else {
+                    logger.error(`triggering ice restart after ${jitterDelay} `);
+                    this._delayedIceFailed = new IceFailedHandling(this);
+                    this._delayedIceFailed.start();
+                }
             }, jitterDelay);
         } else if (this.jvbJingleSession === session) {
             logger.warn('ICE failed, force reloading the conference after failed attempts to re-establish ICE');
@@ -1807,6 +1976,34 @@ export default class JitsiConference extends Listenable {
                     }));
             this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, JitsiConferenceErrors.ICE_FAILED);
         }
+    }
+
+    /**
+     * Attempts an in-place ICE restart of the JVB session, falling back to the legacy session restart
+     * (session-terminate with a restart request, handled by Jicofo with a re-invite) if the request fails or if
+     * ICE doesn't recover within a timeout.
+     *
+     * @private
+     * @returns {void}
+     */
+    private _restartJvbIceWithFallback(): void {
+        const fallback = (message: string) => {
+            logger.warn(`${message}, falling back to a session restart`);
+            this._delayedIceFailed = new IceFailedHandling(this);
+            this._delayedIceFailed.start();
+        };
+
+        this.restartJvbIce(IceRestartReason.ICE_FAILED)
+            .then(() => {
+                setTimeout(() => {
+                    const iceState = this.jvbJingleSession?.getIceConnectionState();
+
+                    if (iceState !== 'connected' && iceState !== 'completed') {
+                        fallback(`ICE not recovered (state=${iceState}) after an in-place ICE restart`);
+                    }
+                }, JVB_ICE_RESTART_RECOVERY_TIMEOUT);
+            })
+            .catch(error => fallback(`In-place ICE restart request failed (${error?.message ?? error})`));
     }
 
     /**
@@ -2088,6 +2285,277 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Whether translation is active for any speaker, via the default language or a per-participant override.
+     *
+     * @returns {boolean}
+     */
+    private _isReceiverTranslationActive(): boolean {
+        return Boolean(this._receiverTranslationLanguage)
+            || Array.from(this._participantTranslationLanguages.values()).some(language => language !== null);
+    }
+
+    /**
+     * Resolves the effective translation language for a speaker: the per-participant override if one is set
+     * (which may be null to disable), otherwise the default language.
+     *
+     * @param {string} endpointId - The speaker's endpoint id.
+     * @returns {string|null}
+     */
+    private _resolveTranslationLanguage(endpointId: string): string | null {
+        if (this._participantTranslationLanguages.has(endpointId)) {
+            return this._participantTranslationLanguages.get(endpointId) ?? null;
+        }
+
+        return this._receiverTranslationLanguage;
+    }
+
+    /**
+     * Builds the cumulative set of translated speakers: endpointId -> target language, for every remote
+     * participant whose effective language is set. Drives both the request stanza and the audio subscription.
+     *
+     * @returns {Map<string, string>}
+     */
+    private _buildDesiredTranslations(): Map<string, string> {
+        const desired = new Map<string, string>();
+
+        this.getParticipants().forEach(participant => {
+            const endpointId = participant.getId();
+            const language = this._resolveTranslationLanguage(endpointId);
+
+            if (language) {
+                desired.set(endpointId, language);
+            }
+        });
+
+        return desired;
+    }
+
+    /**
+     * Sends only the delta (vs. what was last advertised) of the desired translation
+     * requests to the audio-translation module: endpointId -> language to set, -> '' to cancel.
+     *
+     * @returns {void}
+     */
+    private _updateTranslationRequests(): void {
+        const desired = this._buildDesiredTranslations();
+        const delta: { [endpointId: string]: string; } = {};
+
+        desired.forEach((lang, endpointId) => {
+            if (this._translationRequests.get(endpointId) !== lang) {
+                delta[endpointId] = lang;
+            }
+        });
+        this._translationRequests.forEach((_lang, endpointId) => {
+            if (!desired.has(endpointId)) {
+                delta[endpointId] = '';
+            }
+        });
+
+        if (Object.keys(delta).length === 0) {
+            return;
+        }
+
+        // Only commit the advertised state once the delta has actually been sent. Otherwise a request issued
+        // before the audio-translation component is discovered would be dropped: the desired state would be
+        // recorded as advertised, so subsequent deltas would compare against it and never re-send.
+        if (this._sendTranslationRequestStanza(delta)) {
+            this._translationRequests = desired;
+        }
+    }
+
+    /**
+     * Sends a translation-request delta to the audio-translation module as a JSON map.
+     *
+     * @param {Object} delta - The changed endpointId -> language entries ('' to cancel).
+     * @returns {boolean} Whether the delta was sent (false when no component has been discovered yet).
+     */
+    private _sendTranslationRequestStanza(delta: { [endpointId: string]: string; }): boolean {
+        const componentAddress = this.xmpp.audioTranslationComponentAddress;
+
+        if (!componentAddress) {
+            logger.warn('Cannot request audio translation: no audio-translation component discovered.');
+
+            return false;
+        }
+
+        this._registerTranslationErrorHandler(componentAddress);
+
+        // Tag the request so a (failure-only) error reply from the component can be mapped back to it.
+        const id = `audio-translation-${++this._translationRequestSeq}`;
+
+        this._pendingTranslationRequests.set(id, delta);
+
+        // The component stays silent on success, so drop the pending entry after a grace period.
+        window.setTimeout(() => this._pendingTranslationRequests.delete(id), TRANSLATION_REQUEST_TIMEOUT);
+
+        const message = $msg({ id,
+            to: componentAddress });
+
+        message.c('audio-translation', { xmlns: 'http://jitsi.org/jitmeet' })
+            .t(JSON.stringify(delta))
+            .up();
+
+        this.xmpp.connection.send(message);
+
+        return true;
+    }
+
+    /**
+     * Registers (once) the handler for `<message type='error'>` replies from the audio-translation
+     * component, so request failures can be surfaced to the UI.
+     *
+     * @param {string} componentAddress - The audio-translation component JID.
+     * @returns {void}
+     */
+    private _registerTranslationErrorHandler(componentAddress: string): void {
+        if (this._translationErrorHandler) {
+            return;
+        }
+        this._translationErrorHandler = this.xmpp.connection.addHandler(
+            this._onTranslationRequestError.bind(this), null, 'message', 'error', null, componentAddress);
+    }
+
+    /**
+     * Handles an error reply from the audio-translation component: maps it back to the failed request via
+     * the stanza id and emits {@link JitsiConferenceEvents.AUDIO_TRANSLATION_FAILED} with the affected
+     * endpoints and the error condition. Returns true to keep the Strophe handler registered.
+     *
+     * @param {Element} stanza - The `<message type='error'>` stanza.
+     * @returns {boolean}
+     */
+    private _onTranslationRequestError(stanza: Element): boolean {
+        const id = getAttribute(stanza, 'id');
+        const requests = id ? this._pendingTranslationRequests.get(id) : undefined;
+
+        if (id) {
+            this._pendingTranslationRequests.delete(id);
+        }
+
+        const condition = getFirstChildElement(findFirst(stanza, 'error'))?.localName;
+        const error = (Object.values(JitsiAudioTranslationErrors) as string[]).includes(condition ?? '')
+            ? condition as JitsiAudioTranslationErrors
+            : JitsiAudioTranslationErrors.UNKNOWN;
+        const endpointIds = requests ? Object.keys(requests) : [];
+
+        logger.warn(`Audio translation request failed (${error}) for [${endpointIds.join(', ')}]`);
+        this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_TRANSLATION_FAILED, {
+            endpointIds,
+            error,
+            requests
+        });
+
+        return true;
+    }
+
+    /**
+     * Registers (once) the handler for translation-listeners pushes from the audio-translation component.
+     * Registered on join and independent of whether the local participant ever requests a translation, since
+     * the notification is about other participants translating this participant's audio.
+     *
+     * @returns {void}
+     */
+    private _registerTranslationListenersHandler(): void {
+        const componentAddress = this.xmpp.audioTranslationComponentAddress;
+
+        if (this._translationListenersHandler || !componentAddress) {
+            return;
+        }
+        this._translationListenersHandler = this.xmpp.connection.addHandler(
+            this._onTranslationListenersChanged.bind(this), null, 'message', null, null, componentAddress);
+    }
+
+    /**
+     * Handles a translation-listeners push from the audio-translation component and emits
+     * {@link JitsiConferenceEvents.AUDIO_TRANSLATION_LISTENERS_CHANGED} with the endpoint ids currently
+     * listening to a translation of the local participant. Returns true to keep the handler registered.
+     *
+     * @param {Element} stanza - The message stanza from the component.
+     * @returns {boolean}
+     */
+    private _onTranslationListenersChanged(stanza: Element): boolean {
+        const child = findFirst(stanza, 'translation-listeners');
+
+        if (!child) {
+            return true; // Another message from the component (e.g. an error reply handled elsewhere).
+        }
+
+        let listeners: string[] = [];
+
+        // A blank body means "no listeners" (an empty list), so only non-empty text is parsed; genuinely
+        // malformed JSON still falls into the catch below and is logged.
+        const text = (child.textContent ?? '').trim();
+
+        if (text) {
+            try {
+                const parsed = JSON.parse(text);
+
+                if (Array.isArray(parsed)) {
+                    listeners = parsed.filter((id): id is string => typeof id === 'string');
+                }
+            } catch (e) {
+                logger.warn('Ignoring malformed translation-listeners payload', e);
+
+                return true;
+            }
+        }
+
+        this.eventEmitter.emit(JitsiConferenceEvents.AUDIO_TRANSLATION_LISTENERS_CHANGED, listeners);
+
+        return true;
+    }
+
+    /**
+     * Subscribes to the cumulative set of translated sources by including them on top of the `all` baseline,
+     * named by convention {endpointId}-a0.{language} so they can be requested before the source is signaled.
+     * Keeping the baseline means the original audio still flows (and can be ducked); an empty include list
+     * (no active translations) clears the opt-in set. Resilient to the source not yet being signaled.
+     *
+     * @returns {void}
+     */
+    private _updateTranslationSubscription(): void {
+        const include = Array.from(
+            this._buildDesiredTranslations(),
+            ([ endpointId, language ]) =>
+                `${getSourceNameForJitsiTrack(endpointId, MediaType.AUDIO, 0)}.${language}`);
+
+        this.qualityController.audioController.setIncludeSources(include);
+    }
+
+    /**
+     * Checks whether an in-place ICE restart of the JVB session can be used: it must be enabled in the client
+     * configuration ('enableIceRestart').
+     *
+     * @returns {boolean}
+     */
+    public isIceRestartSupported(): boolean {
+        return Boolean(this.options.config.enableIceRestart);
+    }
+
+    /**
+     * Triggers an in-place ICE restart of the JVB session: Jicofo is asked to have the bridge create a new ICE
+     * agent with fresh credentials while the old one keeps carrying media (make-before-break). The bridge's new
+     * transport comes back asynchronously as a Jingle 'transport-info' and is applied by
+     * {@link JingleSessionPC.onBridgeIceRestartTransport}, so the promise returned here settling only means that
+     * the request itself was accepted. Trigger from the console: `APP.conference._room.restartJvbIce()`.
+     *
+     * @param {IceRestartReason} reason - Why the restart was triggered, for logs and analytics.
+     * @returns {Promise<void>} - Resolves when Jicofo has accepted the request, rejects otherwise.
+     */
+    public restartJvbIce(reason: IceRestartReason = IceRestartReason.API): Promise<void> {
+        if (!this.isIceRestartSupported()) {
+            return Promise.reject(new Error('ICE restart is not supported (disabled in config)'));
+        }
+
+        const session = this.jvbJingleSession;
+
+        if (!session) {
+            return Promise.reject(new Error('No JVB Jingle session'));
+        }
+
+        return session.restartIce(reason);
+    }
+
+    /**
    * Sends the 'VideoTypeMessage' to the bridge on the bridge channel so that the bridge can make bitrate allocation
    * decisions based on the video type of the local source.
    *
@@ -2288,6 +2756,7 @@ export default class JitsiConference extends Listenable {
      */
     _onMucJoined(): void {
         this._numberOfParticipantsOnJoin = this.getParticipantCount();
+        this._registerTranslationListenersHandler();
         this._maybeStartOrStopP2P();
     }
 
@@ -2577,6 +3046,18 @@ export default class JitsiConference extends Listenable {
         room.removeListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
         room.removeListener(XMPPEvents.SOURCE_REMOVE, this._updateRoomPresence);
 
+        // The translation error-reply handler is registered on the (connection-scoped) Strophe connection, which
+        // outlives this conference, so remove it here to avoid retaining the conference and emitting after leave.
+        if (this._translationErrorHandler) {
+            this.xmpp.connection?.deleteHandler(this._translationErrorHandler);
+            this._translationErrorHandler = undefined;
+        }
+
+        if (this._translationListenersHandler) {
+            this.xmpp.connection?.deleteHandler(this._translationListenersHandler);
+            this._translationListenersHandler = undefined;
+        }
+
         this.eventManager.removeXMPPListeners();
 
         this._signalingLayer.setChatRoom(null);
@@ -2775,11 +3256,12 @@ export default class JitsiConference extends Listenable {
    * @param {string} message - The text message.
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @param {string} [replyToId] - The ID of the message being replied to.
+   * @param {string} [messageId] - Optional explicit id to stamp on the outgoing stanza.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    public sendTextMessage(message: string, elementName: string = 'body', replyToId?: string): void {
+    public sendTextMessage(message: string, elementName: string = 'body', replyToId?: string, messageId?: string): void {
         if (this.room) {
-            this.room.sendMessage(message, elementName, replyToId);
+            this.room.sendMessage(message, elementName, replyToId, messageId);
         }
     }
 
@@ -2796,18 +3278,57 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Sends a message retraction to the other participants in the conference.
+     *
+     * @param {string} messageId - The ID of the message being retracted.
+     * @param {string} [receiverId] - The intended recipient if the message is private.
+     * @param {boolean} [useFullJid=false] - Whether receiverId is already a full JID.
+     */
+    public sendMessageRetraction(messageId: string, receiverId?: string, useFullJid = false): void {
+        if (this.room) {
+            this.room.sendMessageRetraction(messageId, receiverId, useFullJid);
+        }
+    }
+
+    /**
+     * Sends a correction of a message this participant sent earlier (XEP-0308).
+     *
+     * @param {string} messageId - The id of the message being corrected.
+     * @param {string} message - The new text.
+     * @param {string} [receiverId] - Set for a private message, the recipient.
+     * @param {boolean} [useFullJid=false] - Whether receiverId is a full jid.
+     */
+    public sendMessageCorrection(
+            messageId: string, message: string, receiverId?: string, useFullJid = false): void {
+        if (this.room) {
+            this.room.sendMessageCorrection(messageId, message, receiverId, useFullJid);
+        }
+    }
+
+    /**
    * Sends private text message to another participant of the conference.
    * @param {string} id - The ID of the participant to send a private message.
    * @param {string} message - The text message.
    * @param {string} [elementName='body'] - The element name to encapsulate the message.
    * @param {boolean} [useFullJid=false] - Whether to use the full JID.
    * @param {string} [replyToId] - The ID of the message being replied to.
+   * @param {string} [messageId] - The ID to set on the outgoing private message stanza.
    * @deprecated Use 'sendMessage' instead. TODO: this should be private.
    */
-    public sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false, replyToId?: string): void {
+    public sendPrivateTextMessage(id: string, message: string, elementName: string = 'body', useFullJid = false, replyToId?: string, messageId?: string): void {
         if (this.room) {
-            this.room.sendPrivateMessage(id, message, elementName, useFullJid, replyToId);
+            this.room.sendPrivateMessage(id, message, elementName, useFullJid, replyToId, messageId);
         }
+    }
+
+    /**
+     * Sends a moderation request for a message.
+     *
+     * @param {string} messageId - The id of the message.
+     * @param {string} [reason] - Optional moderation reason
+     */
+    public moderateMessage(messageId: string, reason?: string): void {
+        this.room?.moderateMessage(messageId, reason);
     }
 
     /**
@@ -3135,12 +3656,15 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Sets the audio subscription mode for the local user.
+     * Sets the audio subscription mode for the local user. The legacy { mode, list } message is also accepted
+     * for backwards compatibility and normalised to the { all, include, exclude } shape.
      *
-     * @param {IReceiverAudioSubscriptionMessage} message - The audio subscription mode to set.
+     * @param {IReceiverAudioSubscriptionMessage | ILegacyReceiverAudioSubscriptionMessage} message - The audio
+     * subscription to set.
      * @returns {void}
      */
-    public setAudioSubscriptionMode(message: IReceiverAudioSubscriptionMessage): void {
+    public setAudioSubscriptionMode(
+            message: IReceiverAudioSubscriptionMessage | ILegacyReceiverAudioSubscriptionMessage): void {
         this.qualityController.audioController.setAudioSubscriptionMode(message);
     }
 
@@ -3263,6 +3787,97 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Whether the deployment supports audio translation, i.e. the audio-translation component was advertised
+     * via service discovery. Translation requests are dropped when it is not.
+     *
+     * @returns {boolean}
+     */
+    public isAudioTranslationSupported(): boolean {
+        return Boolean(this.xmpp.audioTranslationComponentAddress);
+    }
+
+    /**
+     * Enables (or disables, when null) receiving translated audio for every remote
+     * speaker in the given language.
+     *
+     * @param {string|null} language - The target language (2-letter ISO code), or null to disable.
+     * @returns {void}
+     */
+    public setReceiverTranslationLanguage(language: string | null): void {
+        if (this._receiverTranslationLanguage === language) {
+            return;
+        }
+        this._receiverTranslationLanguage = language;
+
+        // Rebuilds the cumulative request delta and the Include subscription (an empty Include when nothing
+        // is translated clears the opt-in set; the persistent ALL base keeps regular audio flowing).
+        this._updateTranslationRequests();
+        this._updateTranslationSubscription();
+
+        // Translated audio is delivered via the bridge, so P2P must be disabled while it is active.
+        this._maybeStartOrStopP2P();
+    }
+
+    /**
+     * @returns {string|null} the default language remote audio is translated into, or null if off.
+     */
+    public getReceiverTranslationLanguage(): string | null {
+        return this._receiverTranslationLanguage;
+    }
+
+    /**
+     * Enables (or disables, when null) translated audio for a single remote speaker, overriding the default
+     * set via {@link setReceiverTranslationLanguage}. Sends the request-stanza delta and updates the
+     * cumulative audio subscription.
+     *
+     * @param {string} participantId - The speaker's endpoint id.
+     * @param {string|null} language - The target language (2-letter ISO code), or null to disable for this speaker.
+     * @returns {void}
+     */
+    public setParticipantTranslationLanguage(participantId: string, language: string | null): void {
+        const current = this._participantTranslationLanguages.has(participantId)
+            ? this._participantTranslationLanguages.get(participantId) ?? null
+            : undefined;
+
+        if (current === language) {
+            return;
+        }
+        this._participantTranslationLanguages.set(participantId, language);
+
+        this._updateTranslationRequests();
+        this._updateTranslationSubscription();
+
+        // Translated audio is delivered via the bridge, so P2P must be disabled while it is active.
+        this._maybeStartOrStopP2P();
+    }
+
+    /**
+     * @param {string} participantId - The speaker's endpoint id.
+     * @returns {string|null} the effective translation language for the given speaker (the per-participant
+     * override if set, otherwise the default), or null if not translated.
+     */
+    public getParticipantTranslationLanguage(participantId: string): string | null {
+        return this._resolveTranslationLanguage(participantId);
+    }
+
+    /**
+     * Turns off all audio translation: clears the default language and every per-participant override, then
+     * sends the resulting removals and clears the audio subscription's Include set.
+     *
+     * @returns {void}
+     */
+    public clearTranslation(): void {
+        if (this._receiverTranslationLanguage === null && this._participantTranslationLanguages.size === 0) {
+            return;
+        }
+        this._receiverTranslationLanguage = null;
+        this._participantTranslationLanguages.clear();
+
+        this._updateTranslationRequests();
+        this._updateTranslationSubscription();
+    }
+
+    /**
      * Mutes a participant.
      * @param {string} id The id of the participant to mute.
      */
@@ -3335,6 +3950,12 @@ export default class JitsiConference extends Listenable {
             JitsiConferenceEvents.USER_JOINED,
             id,
             participant);
+
+        // Translate the newly-joined speaker too, if translation is active (delta-only).
+        if (this._isReceiverTranslationActive()) {
+            this._updateTranslationRequests();
+            this._updateTranslationSubscription();
+        }
 
         this._updateFeatures(participant);
 
@@ -3415,6 +4036,14 @@ export default class JitsiConference extends Listenable {
         if (participant) {
             this.participants.delete(id);
             this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
+
+            // Drop the departed speaker from translation, including any per-participant override (delta-only).
+            const hadTranslationOverride = this._participantTranslationLanguages.delete(id);
+
+            if (hadTranslationOverride || this._translationRequests.has(id) || this._isReceiverTranslationActive()) {
+                this._updateTranslationRequests();
+                this._updateTranslationSubscription();
+            }
         }
 
         if (this.room !== null) { // Skip if we have left the room already.
@@ -3570,10 +4199,14 @@ export default class JitsiConference extends Listenable {
 
         const emitter = this.eventEmitter;
 
-        track.addEventListener(
+        // Translated tracks have no mute lifecycle (presence/source-info is only signaled for the original
+        // sources), so skip the relay for them.
+        !isTranslatedSourceName(track.getSourceName()) && track.addEventListener(
             JitsiTrackEvents.TRACK_MUTE_CHANGED,
             () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
-        track.isAudioTrack() && track.addEventListener(
+        // Skip translated audio tracks. They share the participant id with the original source and would
+        // otherwise clobber the original speaker's levels on the conference-level event.
+        track.isAudioTrack() && !isTranslatedSourceName(track.getSourceName()) && track.addEventListener(
             JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
             (audioLevel: number, tpc: TraceablePeerConnection) => {
                 const activeTPC = this.getActivePeerConnection();
@@ -3963,19 +4596,46 @@ export default class JitsiConference extends Listenable {
      * Sets a property for the local participant.
      * @param {string} name - The name of the property.
      * @param {string} value - The value of the property.
+     * @param {boolean} [useRawKeys] - Skip the "jitsi_participant_" prefix when true.
      * @returns {void}
      */
-    public setLocalParticipantProperty(name: string, value: string | string[]): void {
-        this.sendCommand(`jitsi_participant_${name}`, { value });
+    public setLocalParticipantProperty(name: string, value: string | string[], useRawKeys = false): void {
+        this.sendCommand(useRawKeys ? name : `jitsi_participant_${name}`, { value });
+    }
+
+    /**
+     * Sets multiple properties for the local participant in a single presence update.
+     * @param {Record<string, string | string[]>} properties - Object of property names to values.
+     * @param {boolean} [useRawKeys] - Skip the "jitsi_participant_" prefix when true.
+     * @returns {void}
+     */
+    public setLocalParticipantProperties(properties: Record<string, string | string[]>, useRawKeys = false): void {
+        if (!this.room) {
+            return;
+        }
+
+        let changed = false;
+
+        for (const name of Object.keys(properties)) {
+            const tagName = useRawKeys ? name : `jitsi_participant_${name}`;
+            const wasChanged = this.room.addOrReplaceInPresence(tagName, { value: properties[name] });
+
+            changed = changed || Boolean(wasChanged);
+        }
+
+        if (changed) {
+            this.room.sendPresence();
+        }
     }
 
     /**
      * Removes a property for the local participant and sends the updated presence.
      * @param {string} name - The name of the property to remove.
+     * @param {boolean} [useRawKeys] - Skip the "jitsi_participant_" prefix when true.
      * @returns {void}
      */
-    public removeLocalParticipantProperty(name: string): void {
-        this.removeCommand(`jitsi_participant_${name}`);
+    public removeLocalParticipantProperty(name: string, useRawKeys = false): void {
+        this.removeCommand(useRawKeys ? name : `jitsi_participant_${name}`);
         if (this.room) {
             this.room.sendPresence();
         }
@@ -3995,11 +4655,13 @@ export default class JitsiConference extends Listenable {
     /**
      * Gets a local participant property.
      * @param {string} name - The name of the property to retrieve.
+     * @param {boolean} [useRawKeys] - Skip the "jitsi_participant_" prefix when true.
      * @returns {string|undefined} The value of the property if it exists, otherwise undefined.
      */
-    public getLocalParticipantProperty(name: string): Optional<string> {
+    public getLocalParticipantProperty(name: string, useRawKeys = false): Optional<string> {
+        const tagName = useRawKeys ? name : `jitsi_participant_${name}`;
         const property = this.room.presMap.nodes.find(prop =>
-            prop.tagName === `jitsi_participant_${name}`
+            prop.tagName === tagName
         );
 
         return property ? property.value : undefined;
@@ -4438,6 +5100,16 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Returns <tt>true</tt> when the room handles message moderation and editing
+     * server side. Clients should only offer those actions when it does.
+     *
+     * @returns {boolean} whether the room applies message moderation.
+     */
+    public isMessageModerationSupported(): boolean {
+        return Boolean(this.room?.messageModerationSupported);
+    }
+
+    /**
      * Enables lobby by moderators
      *
      * @returns {Promise} resolves when lobby room is joined or rejects with the error.
@@ -4542,6 +5214,41 @@ export default class JitsiConference extends Listenable {
         if (this.room) {
             return this.room.getLobby().removeMessageHandler(handler);
         }
+    }
+
+    /**
+     * Sends a message retraction to the lobby room.
+     * @param {string} messageId - The ID of the message being retracted.
+     * @param {string} [id] - The participant id, if the message was private.
+     * @returns {void}
+     */
+    public sendLobbyMessageRetraction(messageId: string, id?: string): void {
+        const lobby = this.room?.getLobby();
+
+        lobby?.sendMessageRetraction(messageId, id);
+    }
+
+    /**
+     * Adds a message retraction listener to the lobby room.
+     * @param {Function} listener - called with (messageId, participantId).
+     * @returns {Optional<EventListener>}
+     */
+    public addLobbyMessageRetractionListener(
+            listener: (messageId: string, participantId: string) => void): Optional<EventListener> {
+        const lobby = this.room?.getLobby();
+
+        return lobby?.addMessageRetractionListener(listener) as Optional<EventListener>;
+    }
+
+    /**
+     * Removes a message retraction handler from the lobby room.
+     * @param {Function} handler - The handler function to remove.
+     * @returns {void}
+     */
+    public removeLobbyMessageRetractionHandler(handler: (messageId: string, participantId: string) => void): void {
+        const lobby = this.room?.getLobby();
+
+        lobby?.removeMessageRetractionHandler(handler);
     }
 
     /**

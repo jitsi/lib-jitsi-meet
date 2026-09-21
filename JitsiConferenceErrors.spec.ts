@@ -10,6 +10,7 @@ describe( "/JitsiConferenceErrors members", () => {
         SETTINGS_ERROR,
         CONFERENCE_DESTROYED,
         CONFERENCE_MAX_USERS,
+        CONFERENCE_TIME_LIMIT,
         CONNECTION_ERROR,
         CONFERENCE_RESTARTED,
         DISPLAY_NAME_REQUIRED,
@@ -42,6 +43,7 @@ describe( "/JitsiConferenceErrors members", () => {
         expect( SETTINGS_ERROR ).toBe( 'conference.settingsError' );
         expect( CONFERENCE_DESTROYED ).toBe( 'conference.destroyed' );
         expect( CONFERENCE_MAX_USERS ).toBe( 'conference.max_users' );
+        expect( CONFERENCE_TIME_LIMIT ).toBe( 'conference.time_limit' );
         expect( CONNECTION_ERROR ).toBe( 'conference.connectionError' );
         expect( DISPLAY_NAME_REQUIRED ).toBe( 'conference.display_name_required' );
         expect( NOT_ALLOWED_ERROR ).toBe( 'conference.connectionError.notAllowed' );
@@ -65,6 +67,7 @@ describe( "/JitsiConferenceErrors members", () => {
         expect( JitsiConferenceErrors.SETTINGS_ERROR ).toBe( 'conference.settingsError' );
         expect( JitsiConferenceErrors.CONFERENCE_DESTROYED ).toBe( 'conference.destroyed' );
         expect( JitsiConferenceErrors.CONFERENCE_MAX_USERS ).toBe( 'conference.max_users' );
+        expect( JitsiConferenceErrors.CONFERENCE_TIME_LIMIT ).toBe( 'conference.time_limit' );
         expect( JitsiConferenceErrors.CONNECTION_ERROR ).toBe( 'conference.connectionError' );
         expect( JitsiConferenceErrors.DISPLAY_NAME_REQUIRED ).toBe( 'conference.display_name_required' );
         expect( JitsiConferenceErrors.NOT_ALLOWED_ERROR ).toBe( 'conference.connectionError.notAllowed' );

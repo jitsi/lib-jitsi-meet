@@ -1,5 +1,6 @@
 import { $iq } from 'strophe.js';
 
+import { MediaType } from '../../service/RTC/MediaType';
 import FeatureFlags from '../flags/FeatureFlags';
 import { expandSourcesFromJson } from '../xmpp/JingleHelperFunctions';
 import { findAll, findFirst } from '../util/XMLUtils';
@@ -1595,6 +1596,135 @@ a=rtcp-mux
 
                 expect(sdp.session).not.toContain('a=cryptex');
             });
+        });
+    });
+
+    describe('addMlineForNewSource', () => {
+        const baseSdp = [
+            'v=0\r\n',
+            'o=- 123 2 IN IP4 127.0.0.1\r\n',
+            's=-\r\n',
+            't=0 0\r\n',
+            'a=group:BUNDLE 0 1\r\n',
+            'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',
+            'c=IN IP4 0.0.0.0\r\n',
+            'a=rtpmap:111 opus/48000/2\r\n',
+            'a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:mid\r\n',
+            'a=mid:0\r\n',
+            'a=sendrecv\r\n',
+            'm=video 9 UDP/TLS/RTP/SAVPF 100\r\n',
+            'c=IN IP4 0.0.0.0\r\n',
+            'a=rtpmap:100 VP8/90000\r\n',
+            'a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:mid\r\n',
+            'a=mid:1\r\n',
+            'a=sendrecv\r\n'
+        ].join('');
+
+        it('uses the supplied mid for the new m-line and the BUNDLE group', () => {
+            const sdp = new SDP(baseSdp);
+
+            sdp.addMlineForNewSource(MediaType.AUDIO, true /* isRemote */, 'a0');
+
+            expect(sdp.raw).toContain('a=mid:a0\r\n');
+            expect(sdp.raw).toContain('a=group:BUNDLE 0 1 a0\r\n');
+
+            // The new m-line is the cloned audio section, set sendonly and carrying the negotiated sdes:mid extension
+            // (so the receiver demuxes the bridge-stamped mid).
+            const newMline = sdp.media[sdp.media.length - 1];
+
+            expect(newMline).toContain('a=mid:a0\r\n');
+            expect(newMline).toContain('a=sendonly\r\n');
+            expect(newMline).toContain('a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:mid\r\n');
+        });
+
+        it('falls back to the m-line index when no mid is supplied', () => {
+            const sdp = new SDP(baseSdp);
+
+            // Two m-lines exist (indices 0 and 1), so the next one defaults to mid "2".
+            sdp.addMlineForNewSource(MediaType.VIDEO, true /* isRemote */);
+
+            expect(sdp.raw).toContain('a=mid:2\r\n');
+            expect(sdp.raw).toContain('a=group:BUNDLE 0 1 2\r\n');
+        });
+    });
+
+    describe('updateRemoteSources source removal', () => {
+        const videoMLine = [
+            'm=video 9 UDP/TLS/RTP/SAVPF 100\r\n',
+            'c=IN IP4 0.0.0.0\r\n',
+            'a=rtpmap:100 VP8/90000\r\n',
+            'a=mid:0\r\n',
+            'a=sendonly\r\n',
+            'a=ssrc:12345 msid:stream track\r\n',
+            'a=ssrc:12345 cname:abcd\r\n',
+            'a=ssrc:123456 msid:other track2\r\n',
+            'a=ssrc-group:FID 12345 67890\r\n'
+        ].join('');
+        const baseSdp = [
+            'v=0\r\n',
+            'o=- 123 2 IN IP4 127.0.0.1\r\n',
+            's=-\r\n',
+            't=0 0\r\n',
+            'a=group:BUNDLE 0\r\n',
+            videoMLine
+        ].join('');
+
+        it('removes only the a=ssrc lines for the exact ssrc, not a prefix-matching one', () => {
+            const sdp = new SDP(baseSdp, true /* isP2P */);
+
+            sdp.updateRemoteSources(new Map([ [ 'src', {
+                groups: [],
+                mediaType: MediaType.VIDEO,
+                ssrcList: [ '12345' ]
+            } ] ]), false /* isAdd */);
+
+            expect(sdp.media[0]).not.toContain('a=ssrc:12345 ');
+
+            // ssrc 123456 shares the "12345" prefix but must survive.
+            expect(sdp.media[0]).toContain('a=ssrc:123456 msid:other track2\r\n');
+        });
+
+        it('removes the a=ssrc-group line for the given semantics', () => {
+            const sdp = new SDP(baseSdp, true /* isP2P */);
+
+            sdp.updateRemoteSources(new Map([ [ 'src', {
+                groups: [ { semantics: 'FID', ssrcs: [ '12345', '67890' ] } ],
+                mediaType: MediaType.VIDEO,
+                ssrcList: [ '12345' ]
+            } ] ]), false /* isAdd */);
+
+            expect(sdp.media[0]).not.toContain('a=ssrc-group:FID');
+        });
+
+        it('matches the ssrc token literally, not as a regex pattern', () => {
+            const metaMLine = [
+                'm=video 9 UDP/TLS/RTP/SAVPF 100\r\n',
+                'c=IN IP4 0.0.0.0\r\n',
+                'a=rtpmap:100 VP8/90000\r\n',
+                'a=mid:0\r\n',
+                'a=sendonly\r\n',
+                'a=ssrc:1.* cname:evil\r\n',
+                'a=ssrc:1234 cname:legit\r\n'
+            ].join('');
+            const sdp = new SDP([
+                'v=0\r\n',
+                'o=- 123 2 IN IP4 127.0.0.1\r\n',
+                's=-\r\n',
+                't=0 0\r\n',
+                'a=group:BUNDLE 0\r\n',
+                metaMLine
+            ].join(''), true /* isP2P */);
+
+            sdp.updateRemoteSources(new Map([ [ 'src', {
+                groups: [],
+                mediaType: MediaType.VIDEO,
+                ssrcList: [ '1.*' ]
+            } ] ]), false /* isAdd */);
+
+            expect(sdp.media[0]).not.toContain('a=ssrc:1.* cname:evil');
+
+            // The 1234 line, which the regex `a=ssrc:1.*` would have matched, must survive - proving literal matching.
+            expect(sdp.media[0]).toContain('a=ssrc:1234 cname:legit\r\n');
         });
     });
 });
