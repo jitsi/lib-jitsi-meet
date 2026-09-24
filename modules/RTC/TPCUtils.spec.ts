@@ -1993,6 +1993,53 @@ describe('TPCUtils', () => {
             });
         });
 
+        describe('for AV1 camera tracks when a stale scalabilityModeEnabled setting is present', () => {
+            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
+            const codec = CodecMimeType.AV1;
+
+            // A stale scalabilityModeEnabled must not suppress the useSimulcast override, which used to leave AV1
+            // encoding a single 720p L1T1 stream capped at the 'low' bitrate.
+            // See https://github.com/jitsi/lib-jitsi-meet/issues/3120.
+            const videoQuality = {
+                av1: {
+                    scalabilityModeEnabled: false,
+                    useSimulcast: true
+                }
+            };
+
+            beforeEach(() => {
+                pc = new MockPeerConnection('1', true, true /* simulcast */);
+                pc.videoTransferActive = true;
+                tpcUtils = new TPCUtils(pc, { videoQuality });
+            });
+
+            afterEach(() => {
+                pc = null;
+                tpcUtils = null;
+            });
+
+            it('runs in simulcast mode with three temporally scalable encodings', () => {
+                height = 720;
+
+                expect(tpcUtils.isRunningInSimulcastMode(codec)).toBe(true);
+
+                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
+                expect(bitrates[0]).toBe(100000);
+                expect(bitrates[1]).toBe(300000);
+                expect(bitrates[2]).toBe(1000000);
+
+                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
+                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[1]).toBe(VideoEncoderScalabilityMode.L1T3);
+                expect(scalabilityModes[2]).toBe(VideoEncoderScalabilityMode.L1T3);
+
+                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
+                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
+                expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor);
+                expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
+            });
+        });
+
         describe('for VP9 camera tracks when simulcast is configured', () => {
             const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
@@ -2118,21 +2165,16 @@ describe('TPCUtils', () => {
             });
         });
 
-        describe('for VP9 camera tracks and scalabilityMode is disabled', () => {
+        describe('for VP9 camera tracks when the scalability mode API is not supported', () => {
             const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
-
-            // Configure VP9 to run in K-SVC mode.
-            const videoQuality = {
-                vp9: {
-                    scalabilityModeEnabled: false
-                }
-            };
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.videoTransferActive = true;
-                tpcUtils = new TPCUtils(pc, { videoQuality });
+                tpcUtils = new TPCUtils(pc);
+                // Emulate a browser without the scalability mode API for this codec.
+                tpcUtils.codecSettings[codec].scalabilityModeEnabled = false;
             });
 
             afterEach(() => {
@@ -2229,21 +2271,16 @@ describe('TPCUtils', () => {
             });
         });
 
-        describe('for VP9 camera tracks and scalabilityMode is disabled', () => {
+        describe('for VP9 camera tracks when the scalability mode API is not supported', () => {
             const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.VP9;
-
-            // Configure VP9 to run in K-SVC mode.
-            const videoQuality = {
-                vp9: {
-                    scalabilityModeEnabled: false
-                }
-            };
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc.videoTransferActive = true;
-                tpcUtils = new TPCUtils(pc, { videoQuality });
+                tpcUtils = new TPCUtils(pc);
+                // Emulate a browser without the scalability mode API for this codec.
+                tpcUtils.codecSettings[codec].scalabilityModeEnabled = false;
             });
 
             afterEach(() => {
@@ -2340,22 +2377,17 @@ describe('TPCUtils', () => {
             });
         });
 
-        describe('for VP9 low fps desktop tracks and scalabilityMode is disabled', () => {
+        describe('for VP9 low fps desktop tracks when the scalability mode API is not supported', () => {
             const track = new MockJitsiLocalTrack(440, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP9;
-
-            // Configure VP9 to run in K-SVC mode.
-            const videoQuality = {
-                vp9: {
-                    scalabilityModeEnabled: false
-                }
-            };
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = true;
                 pc.videoTransferActive = true;
-                tpcUtils = new TPCUtils(pc, { videoQuality });
+                tpcUtils = new TPCUtils(pc);
+                // Emulate a browser without the scalability mode API for this codec.
+                tpcUtils.codecSettings[codec].scalabilityModeEnabled = false;
             });
 
             afterEach(() => {
@@ -2408,22 +2440,17 @@ describe('TPCUtils', () => {
             });
         });
 
-        describe('for VP9 high fps desktop tracks and scalabilityMode is disabled', () => {
+        describe('for VP9 high fps desktop tracks when the scalability mode API is not supported', () => {
             const track = new MockJitsiLocalTrack(560, MediaType.VIDEO, VideoType.DESKTOP);
             const codec = CodecMimeType.VP9;
-
-            // Configure VP9 to run in K-SVC mode.
-            const videoQuality = {
-                vp9: {
-                    scalabilityModeEnabled: false
-                }
-            };
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, true /* simulcast */);
                 pc._capScreenshareBitrate = false;
                 pc.videoTransferActive = true;
-                tpcUtils = new TPCUtils(pc, { videoQuality });
+                tpcUtils = new TPCUtils(pc);
+                // Emulate a browser without the scalability mode API for this codec.
+                tpcUtils.codecSettings[codec].scalabilityModeEnabled = false;
             });
 
             afterEach(() => {
@@ -2476,21 +2503,16 @@ describe('TPCUtils', () => {
             });
         });
 
-        describe('for H.264 camera tracks, scalability mode is disabled', () => {
+        describe('for H.264 camera tracks when the scalability mode API is not supported', () => {
             const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
             const codec = CodecMimeType.H264;
-
-            // Configure VP9 to run in simulcast mode.
-            const videoQuality = {
-                h264: {
-                    scalabilityModeEnabled: false
-                }
-            };
 
             beforeEach(() => {
                 pc = new MockPeerConnection('1', true, false /* simulcast */);
                 pc.videoTransferActive = true;
-                tpcUtils = new TPCUtils(pc, { videoQuality });
+                tpcUtils = new TPCUtils(pc);
+                // Emulate a browser without the scalability mode API for this codec.
+                tpcUtils.codecSettings[codec].scalabilityModeEnabled = false;
             });
 
             afterEach(() => {
@@ -2554,96 +2576,6 @@ describe('TPCUtils', () => {
 
                 scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
                 expect(scalabilityModes).toBe(undefined);
-            });
-        });
-
-        describe('for VP9 camera tracks when deprecated settings are used for overriding bitrates', () => {
-            const track = new MockJitsiLocalTrack(720, MediaType.VIDEO, VideoType.CAMERA);
-            const codec = CodecMimeType.VP9;
-
-            // Configure VP9 bitrates using the deprecated settings.
-            const videoQuality = {
-                maxbitratesvideo: {
-                    VP9: {
-                        low: 300000,
-                        standard: 600000,
-                        high: 2000000
-                    }
-                }
-            };
-
-            beforeEach(() => {
-                pc = new MockPeerConnection('1', true, true /* simulcast */);
-                pc.videoTransferActive = true;
-                tpcUtils = new TPCUtils(pc, { videoQuality });
-            });
-
-            afterEach(() => {
-                pc = null;
-                tpcUtils = null;
-            });
-
-            it('and requested resolution is 720', () => {
-                height = 720;
-
-                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
-                expect(activeState[0]).toBe(true);
-                expect(activeState[1]).toBe(false);
-                expect(activeState[2]).toBe(false);
-
-                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(bitrates[0]).toBe(2000000);
-
-                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L3T3_KEY);
-
-                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
-            });
-
-            it('and requested resolution is 360', () => {
-                height = 360;
-
-                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
-                expect(activeState[0]).toBe(true);
-                expect(activeState[1]).toBe(false);
-                expect(activeState[2]).toBe(false);
-
-                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(bitrates[0]).toBe(600000);
-
-                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L2T3_KEY);
-
-                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor[0]).toBe(SIM_LAYERS[1].scaleFactor);
-            });
-
-            it('and requested resolution is 180', () => {
-                height = 180;
-
-                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
-                expect(activeState[0]).toBe(true);
-                expect(activeState[1]).toBe(false);
-                expect(activeState[2]).toBe(false);
-
-                bitrates = tpcUtils.calculateEncodingsBitrates(track, codec, height);
-                expect(bitrates[0]).toBe(300000);
-
-                scalabilityModes = tpcUtils.calculateEncodingsScalabilityMode(track, codec, height);
-                expect(scalabilityModes[0]).toBe(VideoEncoderScalabilityMode.L1T3);
-
-                scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, height);
-                expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
-            });
-
-            it('and requested resolution is 0', () => {
-                height = 0;
-
-                activeState = tpcUtils.calculateEncodingsActiveState(track, codec, height);
-                expect(activeState[0]).toBe(false);
-                expect(activeState[1]).toBe(false);
-                expect(activeState[2]).toBe(false);
             });
         });
 
