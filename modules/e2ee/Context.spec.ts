@@ -20,6 +20,7 @@ function hexdump(buffer) {
 /* TODO: more tests
  * - delta frames
  * - frame header is not encrypted
+ * 
  * - different sendCounts
  * - different key length
  * - ratcheting in decodeFunction
@@ -155,6 +156,40 @@ describe('E2EE Context', () => {
             };
 
             sender.encodeFunction(makeDeltaVideoFrame(), sendController);
+        });
+
+        it('leaves the first byte unencrypted for audio frames', done => {
+            const inputFrame = makeAudioFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+
+                    expect(outputBytes[0]).toEqual(inputBytes[0]);
+                    done();
+                }
+            };
+
+            sender.encodeFunction(inputFrame, sendController);
+        });
+
+        it('leaves the first 3 bytes unencrypted for video delta frames', done => {
+            const inputFrame = makeDeltaVideoFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+
+                    for (let i = 0; i < 3; i++) {
+                        expect(outputBytes[i]).toEqual(inputBytes[i]);
+                    }
+                    done();
+                }
+            };
+
+            sender.encodeFunction(inputFrame, sendController);
         });
 
         it('passes an empty audio frame through', () => {
