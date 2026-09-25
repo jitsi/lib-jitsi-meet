@@ -191,7 +191,22 @@ describe('E2EE Context', () => {
 
             sender.encodeFunction(inputFrame, sendController);
         });
+        
+            it('leave the first 10 bytes unencrypted for video keyframe', done => {
+            const inputFrame = makeVideoFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
 
+            sendController ={
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+                    for(let i = 0;i<10;i++){
+                        expect(outputBytes[i]).toEqual(inputBytes[i]);
+                    }
+                    done();
+                }
+            };
+            sender.encodeFunction(inputFrame,sendController);
+        })
         it('passes an empty audio frame through', () => {
             const enqueued = [];
 
