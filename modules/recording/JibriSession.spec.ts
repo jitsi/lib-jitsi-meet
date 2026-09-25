@@ -99,6 +99,16 @@ describe('JibriSession', () => {
 
             expect(session.getStatus()).toBe('pending');
         });
+
+        it('should return off when jicofo reports off even if local status was on', () => {
+            const session = new JibriSession();
+
+            session.setStatus('on');
+            expect(session.getStatus()).toBe('on');
+
+            session.setStatusFromJicofo('off');
+            expect(session.getStatus()).toBe('off');
+        });
     });
 
     describe('_setErrorFromIq', () => {
@@ -441,6 +451,34 @@ describe('JibriSession', () => {
 
             expect(iqString).toContain('action="stop"');
             expect(iqString).toContain('recording_mode="file"');
+        });
+
+        it('should include session_id in IQ when stopping recording with sessionID', async () => {
+            const mockSuccessResponse = document.createElement('iq');
+
+            mockSuccessResponse.setAttribute('type', 'result');
+
+            sendIQSpy.and.callFake((iq: any, successCallback: any) => {
+                successCallback(mockSuccessResponse);
+            });
+
+            await expectAsync(
+                JibriSession.stop({
+                    connection: mockConnection,
+                    focusMucJid: 'focus@conference.example.com',
+                    mode: 'stream',
+                    sessionID: 'test-session-123'
+                })
+            ).toBeResolved();
+
+            expect(sendIQSpy).toHaveBeenCalled();
+
+            const sentIq = sendIQSpy.calls.mostRecent().args[0];
+            const iqString = sentIq.toString();
+
+            expect(iqString).toContain('action="stop"');
+            expect(iqString).toContain('recording_mode="stream"');
+            expect(iqString).toContain('session_id="test-session-123"');
         });
 
         it('should handle error when stopping recording', async () => {
