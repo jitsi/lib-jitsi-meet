@@ -4,7 +4,7 @@ import { Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { SignalingEvents } from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getEndpointIdFromSourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
+import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getEndpointIdFromSourceName, getMediaTypeFromSourceName, isVoiceAgentEndpointId } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -273,7 +273,11 @@ export default class SignalingLayerImpl extends SignalingLayer {
         const lastPresence = this._chatRoom?.getLastPresence(owner);
 
         if (!lastPresence) {
-            logger.warn(`getPeerMediaInfo - no presence stored for: ${owner}`);
+            // Voice-agent endpoints are bridge-injected and publish no MUC presence, so a missing entry is
+            // expected rather than an error; their media state arrives out of band.
+            if (!isVoiceAgentEndpointId(owner)) {
+                logger.warn(`getPeerMediaInfo - no presence stored for: ${owner}`);
+            }
 
             return;
         }

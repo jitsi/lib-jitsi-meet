@@ -110,6 +110,32 @@ export function isTranslatedSourceName(sourceName?: SourceName | null): boolean 
     return typeof sourceName === 'string' && sourceName.includes('.');
 }
 
+/** Reserved endpoint-id namespace for bridge-injected voice agents (mirrors the server-side `agent-` prefix). */
+export const AGENT_ENDPOINT_ID_PREFIX = 'agent-';
+
+/**
+ * Whether an id belongs to a voice agent. Agents are bridge-injected synthetic endpoints in the reserved
+ * `agent-` namespace and, unlike real participants, publish no MUC presence. Their source names
+ * (`agent-<id>-a0`) inherit the prefix, so this matches both endpoint ids and source names.
+ *
+ * @param {string} id - An endpoint id or source name (callers may pass null/undefined).
+ * @returns {boolean}
+ */
+export function isVoiceAgentEndpointId(id?: EndpointId | SourceName | null): boolean {
+    return typeof id === 'string' && id.startsWith(AGENT_ENDPOINT_ID_PREFIX);
+}
+
+/**
+ * Whether a source is bridge-injected (audio translation or voice agent) and therefore never carried in MUC
+ * presence — its media state is signaled out of band, so callers must not expect a presence entry for it.
+ *
+ * @param {SourceName} sourceName - The source name to check (callers may pass null/undefined).
+ * @returns {boolean}
+ */
+export function isSyntheticSourceName(sourceName?: SourceName | null): boolean {
+    return isTranslatedSourceName(sourceName) || isVoiceAgentEndpointId(sourceName);
+}
+
 /**
  * An object that carries the info about specific media type advertised by
  * participant in the signaling channel.
