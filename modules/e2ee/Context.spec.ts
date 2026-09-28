@@ -299,6 +299,30 @@ describe('E2EE Context', () => {
             sender.encodeFunction(makeVideoFrame(), sendController);
         });
 
+        it("works with 16 bytes key material lengths", done => {
+            const key128 = new Uint8Array(16);
+            key128.fill(0xAA);
+            
+            const setupKeys = async () => {
+                await sender.setKey(key128, 0);
+                await receiver.setKey(key128, 0);
+                
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+                        done();
+                    }
+                };
+                sender.encodeFunction(makeAudioFrame(), sendController);
+            };
+            
+            setupKeys();
+        });
+                
+
+        
         it('the receiver ratchets forward', done => {
             receiveController = {
                 enqueue: encodedFrame => {
