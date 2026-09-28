@@ -215,6 +215,13 @@ const JINGLE_SI_TIMEOUT: number = 5000;
 const JVB_ICE_RESTART_RECOVERY_TIMEOUT = 15000;
 
 /**
+ * How many consecutive stats samples must show P2P on a costlier path than the JVB before falling back. ICE keeps
+ * looking for a better pair after the session comes up, so a single sample can still reflect the relayed pair that
+ * got it connected.
+ */
+const P2P_TCP_RELAY_SAMPLES = 2;
+
+/**
  * Default source language for transcribing the local participant.
  */
 const DEFAULT_TRANSCRIPTION_LANGUAGE: string = 'en-US';
@@ -296,6 +303,7 @@ export default class JitsiConference extends Listenable {
     private _numberOfParticipantsOnJoin?: number;
     private _delayedIceFailed?: IceFailedHandling;
     private _p2pFallbackLatched: boolean;
+    private _p2pTcpRelaySamples: number = 0;
     private _audioAnalyser?: VADAudioAnalyser;
     private _noAudioSignalDetection?: NoAudioSignalDetection;
     private _signalingLayer: SignalingLayerImpl;
@@ -1857,6 +1865,8 @@ export default class JitsiConference extends Listenable {
         if (!this.p2pJingleSession
                 || !this.jvbJingleSession
                 || this.p2pJingleSession.peerconnection !== tpc) {
+            this._p2pTcpRelaySamples = 0;
+
             return;
         }
 
@@ -1864,16 +1874,27 @@ export default class JitsiConference extends Listenable {
         const jvbCost = this.jvbJingleSession.peerconnection?.getSelectedTransportCost();
 
         // Relative on purpose: abandoning P2P only helps if the bridge has a better path. Undetermined costs are
-        // retried on the next poll.
+        // retried on the next poll without counting against the streak.
         if (typeof p2pCost !== 'number' || typeof jvbCost !== 'number') {
             return;
         }
 
-        if (p2pCost === TransportCost.RELAY_TCP && jvbCost < TransportCost.RELAY_TCP) {
-            logger.warn('P2P settled on a TCP relayed path while the JVB has a better one '
-                + `(p2p: ${p2pCost}, jvb: ${jvbCost}), falling back`);
-            this.eventEmitter.emit(JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.TCP_RELAY);
+        if (p2pCost !== TransportCost.RELAY_TCP || jvbCost >= TransportCost.RELAY_TCP) {
+            this._p2pTcpRelaySamples = 0;
+
+            return;
         }
+
+        if (++this._p2pTcpRelaySamples < P2P_TCP_RELAY_SAMPLES) {
+            logger.debug(`P2P is on a TCP relayed path (sample ${this._p2pTcpRelaySamples} of `
+                + `${P2P_TCP_RELAY_SAMPLES}), waiting for it to hold`);
+
+            return;
+        }
+
+        logger.warn('P2P settled on a TCP relayed path while the JVB has a better one '
+            + `(p2p: ${p2pCost}, jvb: ${jvbCost}), falling back`);
+        this.eventEmitter.emit(JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.TCP_RELAY);
     }
 
     /**

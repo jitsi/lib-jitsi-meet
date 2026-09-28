@@ -118,11 +118,6 @@ export interface IVideoQuality {
     [CodecMimeType.H264]?: ICodecConfig;
     [CodecMimeType.VP8]?: ICodecConfig;
     [CodecMimeType.VP9]?: ICodecConfig;
-    maxbitratesvideo?: {
-        [codec: string]: {
-            [quality: string]: number;
-        };
-    };
 }
 
 export interface ICodecSettings {

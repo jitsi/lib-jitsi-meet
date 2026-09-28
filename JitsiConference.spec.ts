@@ -366,6 +366,7 @@ describe('JitsiConference', () => {
 
                 return {
                     conference: {
+                        _p2pTcpRelaySamples: 0,
                         eventEmitter: { emit: emitSpy },
                         jvbJingleSession: { peerconnection: { getSelectedTransportCost: () => jvbCost } },
                         p2pJingleSession: { peerconnection: tpc },
@@ -396,6 +397,8 @@ describe('JitsiConference', () => {
                 it(`${fallsBack ? 'falls back' : 'does not fall back'} when ${name}`, () => {
                     const { conference, tpc } = make(p2pCost, jvbCost);
 
+                    // The cost has to hold, so drive enough samples for the streak to complete.
+                    proto._checkP2PTransportCost.call(conference, tpc);
                     proto._checkP2PTransportCost.call(conference, tpc);
 
                     if (fallsBack) {
@@ -405,6 +408,47 @@ describe('JitsiConference', () => {
                         expect(emitSpy).not.toHaveBeenCalled();
                     }
                 });
+            });
+
+            it('does not fall back on the first sample', () => {
+                const { conference, tpc } = make(RELAY_TCP, DIRECT);
+
+                proto._checkP2PTransportCost.call(conference, tpc);
+
+                expect(emitSpy).not.toHaveBeenCalled();
+            });
+
+            // ICE can still be on the pair that got the session connected when the first sample is taken, so a
+            // single reading must not be enough to abandon the session.
+            it('starts the streak over when a sample shows p2p is no longer the costlier path', () => {
+                const { conference, tpc } = make(RELAY_TCP, DIRECT);
+                let p2pCost = RELAY_TCP;
+
+                tpc.getSelectedTransportCost = () => p2pCost;
+
+                proto._checkP2PTransportCost.call(conference, tpc);
+                p2pCost = RELAY_UDP;
+                proto._checkP2PTransportCost.call(conference, tpc);
+                p2pCost = RELAY_TCP;
+                proto._checkP2PTransportCost.call(conference, tpc);
+
+                expect(emitSpy).not.toHaveBeenCalled();
+            });
+
+            it('does not count an undetermined cost against the streak', () => {
+                const { conference, tpc } = make(RELAY_TCP, DIRECT);
+                let p2pCost: Nullable<TransportCost> = RELAY_TCP;
+
+                tpc.getSelectedTransportCost = () => p2pCost;
+
+                proto._checkP2PTransportCost.call(conference, tpc);
+                p2pCost = null;
+                proto._checkP2PTransportCost.call(conference, tpc);
+                p2pCost = RELAY_TCP;
+                proto._checkP2PTransportCost.call(conference, tpc);
+
+                expect(emitSpy).toHaveBeenCalledOnceWith(
+                    JitsiConferenceEvents._P2P_FALLBACK_NEEDED, P2PFallbackReason.TCP_RELAY);
             });
 
             // Guards that short-circuit before either cost is read.

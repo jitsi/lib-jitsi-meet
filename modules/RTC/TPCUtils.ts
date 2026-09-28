@@ -29,9 +29,13 @@ export interface ICodecConfig {
     maxBitratesVideo?: {
         [key: string]: number;
     };
-    scalabilityModeEnabled?: boolean;
     useKSVC?: boolean;
     useSimulcast?: boolean;
+}
+
+// Per-codec settings held internally by the class. scalabilityModeEnabled is derived from the browser capabilities.
+interface ICodecEncodingSettings extends ICodecConfig {
+    scalabilityModeEnabled?: boolean;
 }
 
 export interface ITPCUtilsOptions {
@@ -50,7 +54,7 @@ export class TPCUtils {
     /**
      * @internal
      */
-    codecSettings: IVideoQuality;
+    codecSettings: { [codec in CodecMimeType]?: ICodecEncodingSettings; };
     /**
      * Creates a new instance for a given TraceablePeerConnection
      *
@@ -73,10 +77,7 @@ export class TPCUtils {
         if (videoQualitySettings) {
             for (const codec of VIDEO_CODECS) {
                 const codecConfig = videoQualitySettings[codec];
-                const bitrateSettings = codecConfig?.maxBitratesVideo
-
-                    // Read the deprecated settings for max bitrates.
-                    ?? (videoQualitySettings?.maxbitratesvideo?.[codec.toUpperCase()]);
+                const bitrateSettings = codecConfig?.maxBitratesVideo;
 
                 if (bitrateSettings) {
                     const settings = Object.values(VIDEO_QUALITY_SETTINGS);
@@ -92,17 +93,12 @@ export class TPCUtils {
                     continue; // eslint-disable-line no-continue
                 }
 
-                const scalabilityModeEnabled = this.codecSettings[codec].scalabilityModeEnabled
-                    && (typeof codecConfig.scalabilityModeEnabled === 'undefined'
-                        || codecConfig.scalabilityModeEnabled);
-
-                if (scalabilityModeEnabled) {
+                // useSimulcast/useKSVC only apply when the encoder is driven through the scalability mode API.
+                if (this.codecSettings[codec].scalabilityModeEnabled) {
                     typeof codecConfig.useSimulcast !== 'undefined'
                         && (this.codecSettings[codec].useSimulcast = codecConfig.useSimulcast);
                     typeof codecConfig.useKSVC !== 'undefined'
                         && (this.codecSettings[codec].useKSVC = codecConfig.useKSVC);
-                } else {
-                    this.codecSettings[codec].scalabilityModeEnabled = false;
                 }
             }
         }
@@ -792,7 +788,7 @@ export class TPCUtils {
 
         return videoCodec === CodecMimeType.VP8 // VP8 always
 
-            // For FF: scalabilityModeEnabled is not supported and we have to use simulcast.
+            // For FF: the scalability mode API is not supported and we have to use simulcast.
             // For other browsers we use K-SVC mode for VP9 when no scalability mode is set. Although
             // only one outbound-rtp stream is present, three separate encodings have to be configured.
             || (!this.codecSettings[videoCodec].scalabilityModeEnabled && videoCodec === CodecMimeType.VP9)
