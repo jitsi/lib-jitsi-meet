@@ -202,6 +202,29 @@ describe('XmppConnection', () => {
                 });
         });
 
+        it('does not log the token when a request fails', () => {
+            spyOnProperty(mockStropheConnection, 'service')
+                .and.returnValue('wss://localhost/xmpp-websocket?room=test&token=header.payload.signature');
+            fetchSpy.and.callFake(() => Promise.reject(new TypeError('Failed to fetch')));
+            const errorSpy = spyOn(console, 'error');
+
+            mockStropheConnection.simulateConnectionState(Strophe.Status.CONNECTED);
+
+            return nextTick(INITIAL_KEEP_ALIVE_DELAY)
+                .then(() => {
+                    expect(fetchSpy).toHaveBeenCalledWith(
+                        'https://localhost/xmpp-websocket?room=test&token=header.payload.signature',
+                        jasmine.any(Object));
+
+                    const logs = errorSpy.calls.allArgs().flat()
+                        .filter(arg => typeof arg === 'string')
+                        .join('\n');
+
+                    expect(logs).toContain('https://localhost/xmpp-websocket?room=test&token=[redacted]');
+                    expect(logs).not.toContain('header.payload.signature');
+                });
+        });
+
         it('aborts a request that never settles and keeps sending requests', () => {
             // A fetch which never resolves nor rejects, unless aborted.
             fetchSpy.and.callFake((_url: string, { signal }: RequestInit) => new Promise((_, reject) => {

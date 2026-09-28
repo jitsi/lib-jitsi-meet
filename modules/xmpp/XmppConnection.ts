@@ -15,6 +15,16 @@ import RayoConnectionPlugin from './strophe.rayo';
 const logger = getLogger('xmpp:XmppConnection');
 
 /**
+ * Replaces the value of the token query param in a URL, so that the URL can be logged.
+ *
+ * @param {string} url - The URL.
+ * @returns {string} The URL with the token value replaced.
+ */
+function redactToken(url: string): string {
+    return url.replace(/([?&]token=)[^&#]*/g, '$1[redacted]');
+}
+
+/**
  * Extended ping options interface that includes domain property
  */
 interface IXmppPingOptions extends IPingOptions {
@@ -655,7 +665,7 @@ export default class XmppConnection extends Listenable {
                 }
             })
             .catch(error => {
-                logger.error(`Websocket Keep alive failed for url: ${url}`, { error });
+                logger.error(`Websocket Keep alive failed for url: ${redactToken(url)}`, { error });
             })
             .finally(() => clearTimeout(timeoutId));
     }
