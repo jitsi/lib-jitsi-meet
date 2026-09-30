@@ -17,6 +17,7 @@ import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
 import JingleSessionPC from './modules/xmpp/JingleSessionPC';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
+import { ISyntheticSourceSendingChange } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
 import { AuthenticationEvents } from './service/authentication/AuthenticationEvents';
 import {
@@ -602,8 +603,17 @@ export default class JitsiConferenceEventManager {
             conference.eventEmitter.emit(JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED, bwe);
         });
 
-        rtc.addListener(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, (change: any) => {
-            conference.eventEmitter.emit(JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED, change);
+        rtc.addListener(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, (change: ISyntheticSourceSendingChange) => {
+            // The kind in the event wins, then the one recorded from the sources map.
+            const payload = {
+                ...change,
+                kind: change.kind ?? conference.getSyntheticSourceKind(change.sourceName)
+            };
+
+            conference.eventEmitter.emit(JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED, payload);
+
+            // Deprecated alias, kept until consumers migrate to SYNTHETIC_SOURCE_SENDING_CHANGED.
+            conference.eventEmitter.emit(JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED, payload);
         });
 
         rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,

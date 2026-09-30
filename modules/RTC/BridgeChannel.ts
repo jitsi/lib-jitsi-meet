@@ -6,7 +6,7 @@ import JitsiConference from '../../JitsiConference';
 import { BridgeVideoType } from '../../service/RTC/BridgeVideoType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { IReceiverAudioSubscriptionMessage } from '../../service/RTC/ReceiverAudioSubscription';
-import { SourceName } from '../../service/RTC/SignalingLayer';
+import { ISyntheticSourceSendingChange, SourceName, isSyntheticSourceKind } from '../../service/RTC/SignalingLayer';
 import { createBridgeChannelClosedEvent } from '../../service/statistics/AnalyticsEvents';
 import ReceiverVideoConstraints from '../qualitycontrol/ReceiveVideoController';
 import Statistics from '../statistics/statistics';
@@ -411,13 +411,19 @@ export default class BridgeChannel {
                 if (typeof obj.sourceName === 'string' && typeof obj.sending === 'boolean'
                         && Number.isInteger(obj.timestamp)
                         && obj.timestamp >= 0 && obj.timestamp <= 0xFFFFFFFF) {
-                    logger.info(`SyntheticSourceSendingChangeEvent: ${obj.sourceName} `
-                        + `sending=${obj.sending} ts=${obj.timestamp}`);
-                    emitter.emit(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, {
+                    const change: ISyntheticSourceSendingChange = {
                         sending: obj.sending,
                         sourceName: obj.sourceName,
                         timestamp: obj.timestamp
-                    });
+                    };
+
+                    // Optional; anything but the known kinds is dropped so consumers only ever see valid values.
+                    if (isSyntheticSourceKind(obj.kind)) {
+                        change.kind = obj.kind;
+                    }
+                    logger.info(`SyntheticSourceSendingChangeEvent: ${obj.sourceName} `
+                        + `sending=${obj.sending} kind=${change.kind} ts=${obj.timestamp}`);
+                    emitter.emit(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, change);
                 } else {
                     logger.error(`Invalid SyntheticSourceSendingChangeEvent: ${JSON.stringify(obj)}`);
                 }
