@@ -7,7 +7,7 @@ import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { SignalingEvents } from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { getSourceIndexFromSourceName, isSyntheticSourceName } from '../../service/RTC/SignalingLayer';
+import SignalingLayer, { getSourceIndexFromSourceName } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS, VIDEO_QUALITY_LEVELS } from '../../service/RTC/StandardVideoQualitySettings';
 import { TransportCost } from '../../service/RTC/TransportCost';
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
@@ -1742,7 +1742,7 @@ export default class TraceablePeerConnection {
 
         // Synthetic sources (audio translation, voice agents) are never carried in presence, so peerMediaInfo
         // defaults to muted. They represent actively flowing injected audio, so treat them as unmuted.
-        const muted = isSyntheticSourceName(sourceName) ? false : (peerMediaInfo?.muted ?? true);
+        const muted = this._signalingLayer.isSyntheticSource(sourceName) ? false : (peerMediaInfo?.muted ?? true);
         const trackDetails = {
             mediaType,
             muted,

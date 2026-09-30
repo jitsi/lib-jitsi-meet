@@ -101,4 +101,35 @@ describe('/modules/qualitycontrol/ReceiveAudioController', () => {
                 .toEqual([ 'aaaaaaaa-a0.en', 'agent001-a0' ]);
         });
     });
+
+    describe('hasSyntheticIncludes', () => {
+        it('is false until a service subscribes to synthetic sources', () => {
+            expect(controller.hasSyntheticIncludes()).toBe(false);
+
+            controller.getSyntheticSubscription(SyntheticAudioService.VOICE_AGENTS)
+                .setSources([ 'agent001-a0' ]);
+
+            expect(controller.hasSyntheticIncludes()).toBe(true);
+        });
+
+        it('stays true until every service has cleared its sources', () => {
+            controller.getSyntheticSubscription(SyntheticAudioService.VOICE_AGENTS)
+                .setSources([ 'agent001-a0' ]);
+            controller.getSyntheticSubscription(SyntheticAudioService.AUDIO_TRANSLATION)
+                .setSources([ 'aaaaaaaa-a0.en' ]);
+            controller.getSyntheticSubscription(SyntheticAudioService.VOICE_AGENTS).clear();
+
+            expect(controller.hasSyntheticIncludes()).toBe(true);
+
+            controller.getSyntheticSubscription(SyntheticAudioService.AUDIO_TRANSLATION).clear();
+
+            expect(controller.hasSyntheticIncludes()).toBe(false);
+        });
+
+        it('ignores the base include set', () => {
+            controller.setAudioSubscriptionMode({ all: true, exclude: [], include: [ 'cccccccc-a0' ] });
+
+            expect(controller.hasSyntheticIncludes()).toBe(false);
+        });
+    });
 });

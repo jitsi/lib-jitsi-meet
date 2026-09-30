@@ -138,6 +138,16 @@ export class ReceiverAudioController implements ISyntheticIncludeSink {
     }
 
     /**
+     * Whether any service currently subscribes to synthetic sources, i.e. the subscription sent to the bridge
+     * carries includes beyond the default baseline.
+     *
+     * @returns {boolean}
+     */
+    hasSyntheticIncludes(): boolean {
+        return this._serviceIncludes.size > 0;
+    }
+
+    /**
      * Replaces the set of synthetic sources subscribed for a service and re-sends the effective
      * subscription. Part of {@link ISyntheticIncludeSink}; use
      * {@link SyntheticAudioSubscription#setSources} instead of calling this directly.

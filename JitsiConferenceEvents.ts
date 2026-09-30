@@ -451,8 +451,10 @@ export enum JitsiConferenceEvents {
 
     /**
      * Indicates that a synthetic (bridge-injected) audio source started or stopped sending — e.g. a
-     * translated stream or a voice agent's audio. The listener receives { sourceName, sending, timestamp };
-     * timestamp is an RTP timestamp (48 kHz, wraps at 2^32) — not epoch ms.
+     * translated stream or a voice agent's audio. The listener receives { sourceName, sending, timestamp, kind }:
+     * timestamp is an RTP timestamp (48 kHz, wraps at 2^32) — not epoch ms; kind is 'agent' or 'translation'
+     * when the bridge classified the source (see {@link JitsiConference#getSyntheticSourceKind}) and undefined
+     * otherwise.
      */
     SYNTHETIC_SOURCE_SENDING_CHANGED = 'conference.syntheticSourceSendingChanged',
 

@@ -76,6 +76,7 @@ import {
 } from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import {
+    SyntheticSourceKind,
     getMediaTypeFromSourceName,
     getSourceNameForJitsiTrack,
     isTranslatedSourceName
@@ -866,11 +867,11 @@ export default class JitsiConference extends Listenable {
                 localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
             }
 
-            // (Re)establish the audio subscription on the bridge whenever the channel opens. Defaults to ALL
-            // until translation is enabled, at which point the Include list is sent instead. Only when the
-            // audio-translation feature is enabled — otherwise leave the bridge's default subscription untouched.
-            if (this.options.config.audioTranslation?.enabled) {
-                this.qualityController.audioController.resendSubscription();
+            const audioController = this.qualityController.audioController;
+
+            // A (re)opened channel starts from the bridge default, so any synthetic includes must be re-sent.
+            if (this.options.config.audioTranslation?.enabled || audioController.hasSyntheticIncludes()) {
+                audioController.resendSubscription();
             }
         });
     }
@@ -2571,6 +2572,18 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Returns the kind of a bridge-injected (synthetic) audio source, so applications can tell voice-agent and
+     * translated sources apart without parsing source names.
+     *
+     * @param {string} sourceName - The source name, e.g. from {@link JitsiTrack#getSourceName}.
+     * @returns {Optional<SyntheticSourceKind>} 'agent' or 'translation', or undefined for regular sources and when
+     * the bridge did not signal a kind.
+     */
+    public getSyntheticSourceKind(sourceName: string): Optional<SyntheticSourceKind> {
+        return this._signalingLayer.getSyntheticSourceKind(sourceName);
+    }
+
+    /**
      * Checks whether an in-place ICE restart of the JVB session can be used: it must be enabled in the client
      * configuration ('enableIceRestart').
      *
@@ -4247,15 +4260,20 @@ export default class JitsiConference extends Listenable {
         }
 
         const emitter = this.eventEmitter;
+        const sourceName = track.getSourceName();
+        const kind = this._signalingLayer.getSyntheticSourceKind(sourceName);
+
+        // The bridge-signaled kind wins; the name heuristic only covers bridges that do not send one.
+        const isTranslated = kind ? kind === 'translation' : isTranslatedSourceName(sourceName);
 
         // Translated tracks have no mute lifecycle (presence/source-info is only signaled for the original
         // sources), so skip the relay for them.
-        !isTranslatedSourceName(track.getSourceName()) && track.addEventListener(
+        !isTranslated && track.addEventListener(
             JitsiTrackEvents.TRACK_MUTE_CHANGED,
             () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
         // Skip translated audio tracks. They share the participant id with the original source and would
         // otherwise clobber the original speaker's levels on the conference-level event.
-        track.isAudioTrack() && !isTranslatedSourceName(track.getSourceName()) && track.addEventListener(
+        track.isAudioTrack() && !isTranslated && track.addEventListener(
             JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
             (audioLevel: number, tpc: TraceablePeerConnection) => {
                 const activeTPC = this.getActivePeerConnection();
