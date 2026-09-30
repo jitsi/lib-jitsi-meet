@@ -28,6 +28,7 @@ export interface IStopOptions {
     connection?: XmppConnection;
     focusMucJid: string;
     mode?: string;
+    sessionID?: string;
 }
 
 export interface IQOptions {
@@ -36,6 +37,7 @@ export interface IQOptions {
     broadcastId?: string;
     focusMucJid: string;
     mode?: string;
+    sessionID?: string;
     streamId?: string;
 }
 
@@ -112,6 +114,10 @@ export default class JibriSession {
      * @returns {Optional<string>}
      */
     getStatus(): Optional<string> {
+        if (this._statusFromJicofo === 'off') {
+            return 'off';
+        }
+
         // If _status is not set fallback to the status reported by jicofo.
         if (this._status) {
             return this._status;
@@ -269,15 +275,16 @@ export default class JibriSession {
      * @param {string} [options.mode] - The recording mode of the session.
      * @returns Promise
      */
-    static stop({ connection, focusMucJid, mode }: IStopOptions): Promise<any> {
-        logger.info('Stopping recording session');
+    static stop({ connection, focusMucJid, mode, sessionID }: IStopOptions): Promise<any> {
+        logger.info('Stopping recording session', sessionID);
 
         return new Promise((resolve, reject) => {
             connection?.sendIQ(
                 JibriSession._createIQ({
                     action: 'stop',
                     focusMucJid,
-                    mode
+                    mode,
+                    sessionID
                 }),
                 resolve,
                 (error: any) => {
@@ -303,24 +310,31 @@ export default class JibriSession {
      * @param {string} options.focusMucJid - The JID of the focus participant
      * that controls recording.
      * @param {string} options.mode - The recording mode for the session we create this IQ for.
+     * @param {string} [options.sessionID] - The session ID of the recording session.
      * @param {streamId} options.streamId - Necessary for live streaming, this
      * is the stream key needed to start a live streaming session with the
      * streaming service provider.
      * @returns Object - The XMPP IQ message.
      */
-    static _createIQ({ action, appData, broadcastId, focusMucJid, mode, streamId }: IQOptions) {
-        return $iq({
-            to: focusMucJid,
-            type: 'set'
-        })
-        .c('jibri', {
+    static _createIQ({ action, appData, broadcastId, focusMucJid, mode, sessionID, streamId }: IQOptions) {
+        const attrs: Record<string, any> = {
             'action': action,
             'app_data': appData,
             'recording_mode': mode,
             'streamid': streamId,
             'xmlns': 'http://jitsi.org/protocol/jibri',
             'you_tube_broadcast_id': broadcastId
+        };
+
+        if (sessionID) {
+            attrs.session_id = sessionID;
+        }
+
+        return $iq({
+            to: focusMucJid,
+            type: 'set'
         })
+        .c('jibri', attrs)
         .up();
     }
 
