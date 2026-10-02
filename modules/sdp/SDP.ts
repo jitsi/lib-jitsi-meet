@@ -151,6 +151,7 @@ export default class SDP {
             if (isAdd) {
                 const updatedMsid = this._adjustMsidSemantic(msid, mediaType, idx);
 
+                this.media[idx] += `a=msid:${updatedMsid}\r\n`;
                 ssrcList.forEach(ssrc => {
                     this.media[idx] += `a=ssrc:${ssrc} msid:${updatedMsid}\r\n`;
                 });
@@ -158,6 +159,10 @@ export default class SDP {
                     this.media[idx] += `a=ssrc-group:${group.semantics} ${group.ssrcs.join(' ')}\r\n`;
                 });
             } else {
+                this.media[idx] = this.media[idx]
+                    .split('\r\n')
+                    .filter(line => !line.startsWith('a=msid:'))
+                    .join('\r\n');
                 ssrcList.forEach(ssrc => {
                     this.media[idx] = this._removeLinesWithPrefix(this.media[idx], `a=ssrc:${ssrc}`);
                 });
@@ -333,6 +338,7 @@ export default class SDP {
                 } else {
                     newMline.ssrcs.push(ssrc);
                 }
+                newMline.msid = newMline.ssrcs.find(source => source.attribute === 'msid')?.value;
                 newMedia.push(newMline);
             });
         });
@@ -580,6 +586,7 @@ export default class SDP {
 
         let userSources = '';
         let nonUserSources = '';
+        const userMsids = new Set<string>();
 
         if (desc) {
             // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
@@ -587,6 +594,7 @@ export default class SDP {
                 const ssrc = getAttribute(source, 'ssrc');
                 let isUserSource = true;
                 let sourceStr = '';
+                let sourceMsid: string | undefined;
 
                 findAll(source, ':scope>parameter')
                     .forEach(parameter => {
@@ -598,6 +606,7 @@ export default class SDP {
 
                         if (name === 'msid') {
                             value = this._adjustMsidSemantic(value, media.media, mid);
+                            sourceMsid = value;
                         }
                         if (value?.length) {
                             sourceStr += `:${value}`;
@@ -611,6 +620,9 @@ export default class SDP {
                     });
 
                 if (isUserSource) {
+                    if (sourceMsid) {
+                        userMsids.add(sourceMsid);
+                    }
                     userSources += sourceStr;
                 } else {
                     nonUserSources += sourceStr;
@@ -621,6 +633,10 @@ export default class SDP {
         // Append sources in the correct order, the mixedmslable m-line which has the JVB's SSRC for RTCP termination
         // is expected to be in the first m-line.
         sdp += nonUserSources + userSources;
+
+        if (userMsids.size === 1) {
+            sdp += `a=msid:${[ ...userMsids ][0]}\r\n`;
+        }
 
         return sdp;
     }
@@ -762,7 +778,8 @@ export default class SDP {
                             xmlns: XEP.SOURCE_ATTRIBUTES
                         });
 
-                        const msid = SDPUtil.parseMSIDAttribute(ssrcParameters);
+                        const msid = SDPUtil.parseMSIDAttribute(ssrcParameters)
+                            ?? SDPUtil.filterSpecialChars(SDPUtil.findLine(mediaItem, 'a=msid:')?.substring(7));
 
                         if (msid) {
                             const param = Strophe.xmlElement('parameter', {
@@ -854,7 +871,8 @@ export default class SDP {
                             xmlns: XEP.SOURCE_ATTRIBUTES
                         });
 
-                        const msid = SDPUtil.parseMSIDAttribute(ssrcParameters);
+                        const msid = SDPUtil.parseMSIDAttribute(ssrcParameters)
+                            ?? SDPUtil.filterSpecialChars(SDPUtil.findLine(mediaItem, 'a=msid:')?.substring(7));
 
                         if (msid) {
                             elem.c('parameter').attrs({
