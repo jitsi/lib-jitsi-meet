@@ -68,7 +68,7 @@ export class SDPDiffer {
         let modified = false;
         const diffSourceInfo = this.getNewMedia();
 
-        for (const media of Object.values(diffSourceInfo)) {
+        for (const [ index, media ] of Object.entries(diffSourceInfo)) {
             modified = true;
             modify.c('content', { name: this.isP2P ? media.mid : media.mediaType });
 
@@ -91,7 +91,8 @@ export class SDPDiffer {
                 });
 
                 // Only MSID attribute is sent
-                const msid = SDPUtil.parseMSIDAttribute(ssrcLines);
+                const msid = SDPUtil.parseMSIDAttribute(ssrcLines)
+                    ?? SDPUtil.filterSpecialChars(SDPUtil.findLine(this.othersSdp.media[index], 'a=msid:')?.substring(7));
 
                 if (msid) {
                     modify.c('parameter', { name: 'msid', value: msid }).up();
