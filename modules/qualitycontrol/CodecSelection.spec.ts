@@ -450,12 +450,26 @@ describe('Codec Selection', () => {
         });
     });
 
-    describe('When AV1 decode is disabled for Firefox', () => {
+    describe('When AV1 decode is not supported on Firefox', () => {
         beforeEach(() => {
             spyOn(browser, 'isFirefox').and.returnValue(true);
         });
 
-        it('keeps AV1 in the list by default, at the end', () => {
+        it('removes AV1 from the jvb list on Firefox 156', () => {
+            spyOn(browser, 'isVersionEqualTo').and.returnValue(true);
+            qualityController = new QualityController(conference, {
+                jvb: { preferenceOrder: [ 'AV1', 'VP9', 'VP8' ] },
+                p2p: {}
+            });
+
+            const order = qualityController.codecController.getCodecPreferenceList('jvb');
+
+            expect(order).not.toContain(CodecMimeType.AV1);
+            expect(order).toContain(CodecMimeType.VP9);
+        });
+
+        it('keeps AV1 in the jvb list (demoted to the end) on other Firefox versions', () => {
+            spyOn(browser, 'isVersionEqualTo').and.returnValue(false);
             qualityController = new QualityController(conference, {
                 jvb: { preferenceOrder: [ 'AV1', 'VP9', 'VP8' ] },
                 p2p: {}
@@ -467,24 +481,10 @@ describe('Codec Selection', () => {
             expect(order[order.length - 1]).toBe(CodecMimeType.AV1);
         });
 
-        it('removes AV1 from the list, even when config.js asks for it', () => {
+        it('does not remove AV1 from the p2p list on Firefox 156', () => {
+            spyOn(browser, 'isVersionEqualTo').and.returnValue(true);
             qualityController = new QualityController(conference, {
-                jvb: {
-                    disableAV1DecodeForFF: true,
-                    preferenceOrder: [ 'AV1', 'VP9', 'VP8' ]
-                },
-                p2p: {}
-            });
-
-            const order = qualityController.codecController.getCodecPreferenceList('jvb');
-
-            expect(order).not.toContain(CodecMimeType.AV1);
-            expect(order).toContain(CodecMimeType.VP9);
-        });
-
-        it('does not change the p2p list', () => {
-            qualityController = new QualityController(conference, {
-                jvb: { disableAV1DecodeForFF: true },
+                jvb: {},
                 p2p: { preferenceOrder: [ 'AV1', 'VP8' ] }
             });
 
