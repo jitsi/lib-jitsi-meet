@@ -26,11 +26,15 @@ export default class BrowserCapabilities extends BrowserDetection {
      * @returns {Number}
      */
     _getIOSVersion(): number {
-        if (this.isWebKitBased()) {
-            return Number.parseInt(this.getOSVersion(), 10);
+        if (!this.isWebKitBased()) {
+            return -1;
         }
 
-        return -1;
+        // iOS 26 and later freeze the "CPU iPhone OS XX" UA token (at 18_7), so prefer the Safari Version/ token,
+        // which still tracks the real OS major version, and fall back to the OS token when it is not present.
+        const safariVersion = Number.parseInt(this.getVersion(), 10);
+
+        return Number.isNaN(safariVersion) ? Number.parseInt(this.getOSVersion(), 10) : safariVersion;
     }
 
     /**
