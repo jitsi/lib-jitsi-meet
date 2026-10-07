@@ -141,7 +141,6 @@ export interface IConferenceOptions {
         statisticsId?: string;
         testing?: {
             allowMultipleTracks?: boolean;
-            disableAV1DecodeForFF?: boolean;
             enableAV1ForFF?: boolean;
             enableFirefoxP2p?: boolean;
             forceInitiator?: boolean;
@@ -721,7 +720,6 @@ export default class JitsiConference extends Listenable {
         const qualityOptions = {
             enableAdaptiveMode: config.videoQuality?.enableAdaptiveMode,
             jvb: {
-                disableAV1DecodeForFF: config.testing?.disableAV1DecodeForFF,
                 disabledCodec: _getCodecMimeType(config.videoQuality?.disabledCodec),
                 enableAV1ForFF: config.testing?.enableAV1ForFF,
                 preferenceOrder: browser.isMobileDevice()

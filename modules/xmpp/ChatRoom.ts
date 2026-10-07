@@ -160,6 +160,7 @@ interface IIdentity {
         'hidden-from-recorder'?: string;
         id?: string;
         name?: string;
+        'video-hidden-from-recorder'?: string;
     };
 }
 
@@ -256,30 +257,38 @@ export function filterNodeFromPresenceJSON(pres: IPresenceNode[], nodeName: stri
 const MEMBERS_AFFILIATIONS = [ 'owner', 'admin', 'member' ];
 
 /**
+ * The identity keys which tell a recorder how to treat a participant. They are only added to the identity when the
+ * feature is enabled, because a deployment which does not support them must not expose them to the other clients.
+ */
+const RECORDER_VISIBILITY_KEYS = [ 'hidden-from-recorder', 'video-hidden-from-recorder' ];
+
+/**
  * Process nodes to extract data needed for MUC_JOINED and MUC_MEMBER_JOINED events.
  *
  */
 function extractIdentityInformation(node: IPresenceNode, hiddenFromRecorderFeatureEnabled: boolean): IIdentity {
     const identity: IIdentity = {};
     const userInfo = node.children.find(c => c.tagName === 'user');
-    const HIDDEN_FROM_RECORDER = 'hidden-from-recorder';
 
     if (userInfo) {
         identity.user = {};
 
-        // Add all children from the user node except hidden-from-recorder
+        // Add all children from the user node except the recorder visibility keys
         for (const child of userInfo.children) {
-            if (child.tagName && child.value !== undefined && child.tagName !== HIDDEN_FROM_RECORDER) {
+            if (child.tagName && child.value !== undefined
+                    && !RECORDER_VISIBILITY_KEYS.includes(child.tagName)) {
                 identity.user[child.tagName] = child.value;
             }
         }
 
-        // Separately check if we should add hidden-from-recorder
+        // Separately check if we should add the recorder visibility keys
         if (hiddenFromRecorderFeatureEnabled) {
-            const hiddenFromRecorder = userInfo.children.find(c => c.tagName === HIDDEN_FROM_RECORDER);
+            for (const key of RECORDER_VISIBILITY_KEYS) {
+                const child = userInfo.children.find(c => c.tagName === key);
 
-            if (hiddenFromRecorder) {
-                identity.user[HIDDEN_FROM_RECORDER] = hiddenFromRecorder.value;
+                if (child) {
+                    identity.user[key] = child.value;
+                }
             }
         }
     }

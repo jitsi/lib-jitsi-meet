@@ -305,6 +305,14 @@ export default class JitsiParticipant {
     }
 
     /**
+     * @returns {Boolean} Whether the video of this participant is hidden from the recorder. The audio of the
+     * participant is still recorded. Use {@link isHiddenFromRecorder} to hide a participant completely.
+     */
+    isVideoHiddenFromRecorder(): boolean {
+        return (this._identity as any)?.user?.['video-hidden-from-recorder'] === 'true';
+    }
+
+    /**
      * @returns {Boolean} Whether this participant is a moderator or not.
      */
     isModerator(): boolean {
