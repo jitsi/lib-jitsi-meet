@@ -54,6 +54,50 @@ export default class SendVideoController {
     }
 
     /**
+     * Stores the sender video constraints requested by the remote party of the given session and propagates them if
+     * the session is the active one and they have changed.
+     *
+     * @param {JingleSessionPC} session - The session whose remote party has sent the constraints.
+     * @param {IVideoConstraint} videoConstraints - The sender video constraints.
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _onSessionConstraintsReceived(session: JingleSessionPC, videoConstraints: IVideoConstraint): Promise<void> {
+        const sessionMap = this._sessionSenderConstraints.get(session);
+
+        if (!sessionMap) {
+            return;
+        }
+
+        if (session !== this._conference.getActiveMediaSession()) {
+            // Store constraints for inactive sessions so configureConstraintsForLocalSources picks up
+            // the correct per-session values when this session later becomes active (e.g. JVB -> P2P).
+            const height = Number(videoConstraints.maxHeight);
+
+            if (Number.isFinite(height)) {
+                sessionMap.set(videoConstraints.sourceName, height === -1 ? MAX_LOCAL_RESOLUTION : height);
+            }
+
+            return;
+        }
+
+        const { maxHeight, sourceName } = videoConstraints;
+        const localVideoTracks = this._conference.getLocalVideoTracks() ?? [];
+
+        for (const track of localVideoTracks) {
+            if (track.getSourceName() === sourceName) {
+                const normalizedHeight = maxHeight === -1 ? MAX_LOCAL_RESOLUTION : maxHeight;
+
+                if (sessionMap.get(sourceName) !== normalizedHeight) {
+                    sessionMap.set(sourceName, normalizedHeight);
+                    logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
+                    await this._propagateSendMaxFrameHeight(sourceName);
+                }
+            }
+        }
+    }
+
+    /**
      * Figures out the send video constraint as specified by {@link _selectSendMaxFrameHeight} and sets it on all media
      * sessions for the reasons mentioned in this class description.
      *
@@ -126,49 +170,27 @@ export default class SendVideoController {
         mediaSession.addListener(
             MediaSessionEvents.REMOTE_SOURCE_CONSTRAINTS_CHANGED,
             (session: JingleSessionPC, sourceConstraints: Array<IVideoConstraint>) => {
-                if (session !== this._conference.getActiveMediaSession()) {
-                    // Store constraints for inactive sessions so configureConstraintsForLocalSources picks up
-                    // the correct per-session values when this session later becomes active (e.g. JVB -> P2P).
-                    const sessionMap = this._sessionSenderConstraints.get(session);
-
-                    if (sessionMap) {
-                        for (const { sourceName, maxHeight } of sourceConstraints) {
-                            const height = Number(maxHeight);
-
-                            if (!Number.isFinite(height)) {
-                                continue;
-                            }
-                            sessionMap.set(sourceName, height === -1 ? MAX_LOCAL_RESOLUTION : height);
-                        }
-                    }
-                } else {
-                    sourceConstraints.forEach(constraint => this.onSenderConstraintsReceived(constraint));
-                }
+                sourceConstraints.forEach(constraint => this._onSessionConstraintsReceived(session, constraint));
             });
     }
 
     /**
-     * Propagates the video constraints if they have changed.
+     * Propagates the video constraints received from the bridge if they have changed. They describe what the bridge
+     * wants to receive, so they belong to the JVB session even while the conference is in p2p mode.
      *
      * @param {IVideoConstraint} videoConstraints - The sender video constraints received from the bridge.
      * @returns {Promise<void>}
      */
     async onSenderConstraintsReceived(videoConstraints: IVideoConstraint): Promise<void> {
-        const { maxHeight, sourceName } = videoConstraints;
-        const localVideoTracks = this._conference.getLocalVideoTracks() ?? [];
-        const sessionMap = this._activeSessionMap();
+        const jvbSession = this._conference.jvbJingleSession;
 
-        for (const track of localVideoTracks) {
-            if (track.getSourceName() === sourceName) {
-                const normalizedHeight = maxHeight === -1 ? MAX_LOCAL_RESOLUTION : maxHeight;
+        if (!jvbSession) {
+            logger.debug(`Ignoring sender constraints for source:${videoConstraints.sourceName}, no JVB session`);
 
-                if (sessionMap?.get(sourceName) !== normalizedHeight) {
-                    sessionMap?.set(sourceName, normalizedHeight);
-                    logger.debug(`Sender constraints for source:${sourceName} changed to maxHeight:${maxHeight}`);
-                    await this._propagateSendMaxFrameHeight(sourceName);
-                }
-            }
+            return;
         }
+
+        await this._onSessionConstraintsReceived(jvbSession, videoConstraints);
     }
 
     /**
