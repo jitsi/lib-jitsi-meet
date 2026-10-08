@@ -2,7 +2,7 @@
 
 // Worker for E2EE/Insertable streams.
 
-import { Context } from './Context';
+import { Context, ISharedKeyData } from './Context';
 
 const contexts: Map<string, Context> = new Map(); // Map participant id => context
 
@@ -59,9 +59,9 @@ function handleTransform(
     }
 }
 
-interface IWorkerMessageEvent {
+export interface IWorkerMessageEvent {
     enabled?: boolean;
-    key?: ArrayBuffer | false;
+    key?: ArrayBuffer | ISharedKeyData | false;
     keyIndex?: number;
     operation: string;
     participantId?: string;
@@ -96,6 +96,7 @@ onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
 
         if (sharedKey) {
             sharedContext = new Context({ sharedKey });
+            sharedContext.setEnabled(enabled);
         }
     } else if (operation === 'encode' || operation === 'decode') {
         const { readableStream, writableStream, participantId } = event.data;
@@ -109,17 +110,20 @@ onmessage = (event: MessageEvent<IWorkerMessageEvent>) => {
 
     } else if (operation === 'setEnabled') {
         enabled = event.data.enabled;
+        sharedContext?.setEnabled(enabled);
         contexts.forEach(context => context.setEnabled(enabled));
     } else if (operation === 'setKey') {
         const { participantId, key, keyIndex } = event.data;
 
-        if (!participantId || keyIndex === undefined) {
+        // In shared key mode the key is not bound to a participant.
+        if ((!participantId && !sharedContext) || keyIndex === undefined) {
             throw new Error('Missing required data: participantId or keyIndex');
         }
         const context = getParticipantContext(participantId);
 
         if (key) {
-            context.setKey(new Uint8Array(key), keyIndex);
+            // In shared key mode the key has already been imported by the application, pass it as is.
+            context.setKey(sharedContext ? key : new Uint8Array(key as ArrayBuffer), keyIndex);
         } else {
             context.setKey(false, keyIndex);
         }
