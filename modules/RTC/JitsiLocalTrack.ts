@@ -607,7 +607,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {void}
      */
     private _stopStreamEffect(): void {
-        if (this._streamEffect) {
+        // Guard on _effectEnabled so a repeat call (e.g. dispose after stopStream) can't swap in a null stream.
+        if (this._effectEnabled && this._streamEffect) {
             this._streamEffect.stopEffect();
             this._setStream(this._originalStream);
             this._originalStream = null;
@@ -1028,6 +1029,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._stopStreamInProgress = true;
 
         try {
+            // Stop the effect first so its pipeline isn't left running against a dead stream; this also
+            // releases the original device stream rather than only the effect's output stream.
+            this._stopStreamEffect();
             RTCUtils.stopMediaStream(this.stream);
         } finally {
             this._stopStreamInProgress = false;
