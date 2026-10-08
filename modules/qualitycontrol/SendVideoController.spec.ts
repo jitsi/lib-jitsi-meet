@@ -37,11 +37,13 @@ class MockConference {
     private _activeSession: MockSession | undefined;
     private _sessions: MockSession[];
     private _localTracks: MockLocalVideoTrack[];
+    jvbJingleSession: MockSession | undefined;
 
     constructor() {
         this._activeSession = undefined;
         this._sessions = [];
         this._localTracks = [];
+        this.jvbJingleSession = undefined;
     }
 
     getActiveMediaSession(): MockSession | undefined {
@@ -62,6 +64,10 @@ class MockConference {
 
     addSession(session: MockSession): void {
         this._sessions.push(session);
+
+        if (!session.isP2P) {
+            this.jvbJingleSession = session;
+        }
     }
 
     addLocalTrack(track: MockLocalVideoTrack): void {
@@ -207,6 +213,79 @@ describe('SendVideoController', () => {
 
             expect(jvbSession.setSenderVideoConstraint).toHaveBeenCalledWith(2160, SOURCE);
             expect(p2pSession.setSenderVideoConstraint).toHaveBeenCalledWith(2160, SOURCE);
+        });
+    });
+
+    describe('bridge channel SenderSourceConstraints', () => {
+        beforeEach(() => {
+            conference.setActiveSession(jvbSession);
+            controller.onMediaSessionStarted(jvbSession);
+            controller.onMediaSessionStarted(p2pSession);
+        });
+
+        it('applies the bridge constraint to all sessions when JVB is active', async () => {
+            await controller.onSenderConstraintsReceived({ sourceName: SOURCE, maxHeight: 360 });
+
+            expect(jvbSession.setSenderVideoConstraint).toHaveBeenCalledWith(360, SOURCE);
+            expect(p2pSession.setSenderVideoConstraint).toHaveBeenCalledWith(360, SOURCE);
+        });
+
+        it('does not let the bridge disable a source the p2p peer receives', async () => {
+            conference.setActiveSession(p2pSession);
+            controller.configureConstraintsForLocalSources();
+            await nextTick();
+            jvbSession.setSenderVideoConstraint.calls.reset();
+            p2pSession.setSenderVideoConstraint.calls.reset();
+
+            // Nobody receives the source through the bridge while in p2p, so the bridge asks for 0.
+            await controller.onSenderConstraintsReceived({ sourceName: SOURCE, maxHeight: 0 });
+
+            expect(jvbSession.setSenderVideoConstraint).not.toHaveBeenCalled();
+            expect(p2pSession.setSenderVideoConstraint).not.toHaveBeenCalled();
+
+            // A later re-configuration of the p2p session still uses the local preference, not the bridge's 0.
+            controller.configureConstraintsForLocalSources();
+            await nextTick();
+
+            expect(p2pSession.setSenderVideoConstraint).toHaveBeenCalledWith(2160, SOURCE);
+            expect(p2pSession.setSenderVideoConstraint).not.toHaveBeenCalledWith(0, SOURCE);
+        });
+
+        it('keeps the p2p peer constraint when the bridge sends a different value', async () => {
+            conference.setActiveSession(p2pSession);
+            p2pSession.emitConstraints([ { sourceName: SOURCE, maxHeight: '720' } ]);
+            await nextTick();
+            jvbSession.setSenderVideoConstraint.calls.reset();
+            p2pSession.setSenderVideoConstraint.calls.reset();
+
+            await controller.onSenderConstraintsReceived({ sourceName: SOURCE, maxHeight: 180 });
+            controller.configureConstraintsForLocalSources();
+            await nextTick();
+
+            expect(p2pSession.setSenderVideoConstraint).toHaveBeenCalledWith(720, SOURCE);
+            expect(p2pSession.setSenderVideoConstraint).not.toHaveBeenCalledWith(180, SOURCE);
+        });
+
+        it('applies the bridge constraint received in p2p once JVB becomes active again', async () => {
+            conference.setActiveSession(p2pSession);
+            await controller.onSenderConstraintsReceived({ sourceName: SOURCE, maxHeight: 180 });
+            jvbSession.setSenderVideoConstraint.calls.reset();
+            p2pSession.setSenderVideoConstraint.calls.reset();
+
+            conference.setActiveSession(jvbSession);
+            controller.configureConstraintsForLocalSources();
+            await nextTick();
+
+            expect(jvbSession.setSenderVideoConstraint).toHaveBeenCalledWith(180, SOURCE);
+        });
+
+        it('ignores the bridge constraint when there is no JVB session', async () => {
+            conference.jvbJingleSession = undefined;
+
+            await controller.onSenderConstraintsReceived({ sourceName: SOURCE, maxHeight: 0 });
+
+            expect(jvbSession.setSenderVideoConstraint).not.toHaveBeenCalled();
+            expect(p2pSession.setSenderVideoConstraint).not.toHaveBeenCalled();
         });
     });
 
