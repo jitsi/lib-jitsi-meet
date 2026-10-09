@@ -366,4 +366,34 @@ describe('SignalingLayerImpl', () => {
             expect(signalingLayer.getPeerSourceInfo(endpointId, '12345678-v0')).toBeUndefined();
         });
     });
+    describe('synthetic source kinds', () => {
+        let signalingLayer;
+        let chatRoom;
+
+        beforeEach(() => {
+            signalingLayer = new SignalingLayerImpl();
+            chatRoom = createMockChatRoom();
+            chatRoom.removePresenceListener = () => { /* not tracked by the mock */ };
+            chatRoom.removeEventListener = () => { /* not tracked by the mock */ };
+            signalingLayer.setChatRoom(chatRoom);
+
+            signalingLayer.setSSRCOwner(1111, '12345678', '12345678-a0.en');
+            signalingLayer.setSyntheticSourceKind('12345678-a0.en', 'translation');
+            signalingLayer.setSSRCOwner(2222, 'agent-0dae1739', 'agent-0dae1739-a0');
+            signalingLayer.setSyntheticSourceKind('agent-0dae1739-a0', 'agent');
+        });
+        it('are forgotten with the SSRCs of a participant that leaves', () => {
+            signalingLayer.updateSsrcOwnersOnLeave('12345678');
+
+            expect(signalingLayer.getSSRCOwner(1111)).toBeUndefined();
+            expect(signalingLayer.getSyntheticSourceKind('12345678-a0.en')).toBeUndefined();
+            expect(signalingLayer.getSyntheticSourceKind('agent-0dae1739-a0')).toBe('agent');
+        });
+        it('are forgotten when the chat room is reset', () => {
+            signalingLayer.setChatRoom(null);
+
+            expect(signalingLayer.getSyntheticSourceKind('12345678-a0.en')).toBeUndefined();
+            expect(signalingLayer.getSyntheticSourceKind('agent-0dae1739-a0')).toBeUndefined();
+        });
+    });
 });

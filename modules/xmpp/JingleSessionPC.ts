@@ -8,6 +8,7 @@ import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { isSyntheticSourceKind } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AnalyticsEvents, createAudioWedgeRecoveryEvent, createJingleEvent } from '../../service/statistics/AnalyticsEvents';
@@ -2152,6 +2153,9 @@ export default class JingleSessionPC extends JingleSession {
         this.state = JingleSessionState.ENDED;
         this.establishmentDuration = undefined;
 
+        // Synthetic source kinds are signaled per bridge session; the next JVB session re-signals them.
+        !this.isP2P && this._signalingLayer?.clearSyntheticSourceKinds();
+
         this._audioWedgeDetector?.stop();
         this._audioWedgeDetector = null;
 
@@ -2658,7 +2662,10 @@ export default class JingleSessionPC extends JingleSession {
         const newSsrcs = [];
 
         for (const src of message.mappedSources) {
-            const { owner, source, ssrc } = src;
+            const { kind, owner, source, ssrc } = src;
+
+            // Recorded before the track is created so its mute state never depends on the source name.
+            isSyntheticSourceKind(kind) && this._signalingLayer.setSyntheticSourceKind(source, kind);
             const isNewSsrc = this.peerconnection.addRemoteSsrc(ssrc);
 
             if (isNewSsrc) {
