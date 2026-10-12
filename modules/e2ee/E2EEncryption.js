@@ -3,6 +3,7 @@ import browser from '../browser';
 import { ExternallyManagedKeyHandler } from './ExternallyManagedKeyHandler';
 import { ManagedKeyHandler } from './ManagedKeyHandler';
 import { OlmAdapter } from './OlmAdapter';
+import { RNKeyHandler } from './RNKeyHandler';
 
 /**
  * This module integrates {@link KeyHandler} with {@link JitsiConference} in order to enable E2E encryption.
@@ -17,7 +18,12 @@ export class E2EEncryption {
 
         this._externallyManaged = e2ee.externallyManagedKey;
 
-        if (this._externallyManaged) {
+        if (browser.isReactNative()) {
+            // On React Native only the externally managed (shared key) mode is supported,
+            // implemented on top of the native frame cryptors exposed by react-native-webrtc.
+            // This is guaranteed by the React Native branch of isSupported().
+            this._keyHandler = new RNKeyHandler(conference);
+        } else if (this._externallyManaged) {
             this._keyHandler = new ExternallyManagedKeyHandler(conference);
         } else {
             this._keyHandler = new ManagedKeyHandler(conference);
@@ -32,6 +38,12 @@ export class E2EEncryption {
      */
     static isSupported(config) {
         const { e2ee = {} } = config;
+
+        if (browser.isReactNative()) {
+            // On React Native E2EE is implemented with native frame cryptors (via the
+            // react-native-webrtc fork), which only support the externally managed key mode.
+            return Boolean(e2ee.externallyManagedKey) && !e2ee.disabled && !config.testing?.disableE2EE;
+        }
 
         if (!e2ee.externallyManagedKey && !OlmAdapter.isSupported()) {
             return false;

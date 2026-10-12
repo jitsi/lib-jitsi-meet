@@ -14,6 +14,12 @@ module.exports = (_env, argv) => {
             entry: {
                 'lib-jitsi-meet': './index.js'
             },
+            externals: {
+                // Only ever require()d at runtime on React Native (see
+                // modules/e2ee/RNKeyHandler.js); treat it as an external so the web bundle
+                // neither resolves nor bundles it.
+                'react-native-webrtc': 'commonjs react-native-webrtc'
+            },
             output: { ...config.output,
                 library: 'JitsiMeetJS',
                 libraryTarget: 'umd',
