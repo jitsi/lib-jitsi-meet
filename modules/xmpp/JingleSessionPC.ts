@@ -224,6 +224,7 @@ export interface ITerminateOptions {
  */
 export default class JingleSessionPC extends JingleSession {
     private _bridgeSessionId: Nullable<string>;
+    private _closePromise?: Promise<void>;
     private _cachedOldLocalSdp: Optional<SDP>;
     private _cachedNewLocalSdp: Optional<SDP>;
     private _iceCheckingStartedTimestamp: Nullable<number>;
@@ -2144,11 +2145,24 @@ export default class JingleSessionPC extends JingleSession {
     }
 
     /**
-     * Closes the underlying peerconnection and shuts down the modification queue.
+     * Closes the underlying peerconnection after active modifications finish.
+     * Repeated calls share completion and cannot clear the pending close task.
      *
-     * @returns {void}
+     * @returns Completion of TPC close, or rejection if closure fails.
      */
-    public close(): void {
+    public close(): Promise<void> {
+        if (this._closePromise) {
+            return this._closePromise;
+        }
+        let resolveClose: () => void;
+        let rejectClose: (error: Error) => void;
+
+        this._closePromise = new Promise<void>((resolve, reject) => {
+            resolveClose = resolve;
+            rejectClose = reject;
+        });
+        // Legacy callers do not await close; expose rejection without an unhandled promise.
+        this._closePromise.catch(() => undefined);
         this.state = JingleSessionState.ENDED;
         this.establishmentDuration = undefined;
 
@@ -2176,15 +2190,32 @@ export default class JingleSessionPC extends JingleSession {
         logger.debug(`${this} Queued PC close task`);
         this.modificationQueue.push(finishCallback => {
             // do not try to close if already closed.
-            this.peerconnection && this.peerconnection.close();
-            finishCallback();
-            logger.debug(`${this} PC close task done!`);
+            try {
+                Promise.resolve(this.peerconnection?.close()).then(() => {
+                    finishCallback();
+                    logger.debug(`${this} PC close task done!`);
+                }, finishCallback);
+            } catch (error) {
+                finishCallback(error);
+            }
+        }, error => {
+            if (error) {
+                rejectClose(error);
+            } else {
+                resolveClose();
+            }
         });
 
         logger.debug(`${this} Shutdown modificationQueue!`);
 
         // No more tasks can go in after the close task
         this.modificationQueue.shutdown();
+        // A session terminated before negotiation can still have a paused queue.
+        // clear() removed pending negotiation work; resume only permits closure
+        // after any already-running task has called its completion callback.
+        this.modificationQueue.resume();
+
+        return this._closePromise;
     }
 
     /**

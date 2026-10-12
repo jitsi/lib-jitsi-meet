@@ -935,3 +935,61 @@ describe('JingleSessionPC in-place ICE restart', () => {
     });
 
 });
+
+describe('JingleSessionPC close completion', () => {
+    let session: JingleSessionPC;
+    let close: jasmine.Spy;
+
+    beforeEach(() => {
+        session = new JingleSessionPC('close-probe', 'peer1', 'peer2',
+            new MockStropheConnection(), {}, {}, true, false);
+        close = jasmine.createSpy('TPC close');
+        session.peerconnection = { close } as any;
+    });
+
+    it('closes a still-paused session and resolves only after TPC close', async () => {
+        await session.close();
+        expect(close).toHaveBeenCalledTimes(1);
+        expect(session.state).toBe(JingleSessionState.ENDED);
+    });
+
+    it('shares completion and preserves the queued close across repeated calls', async () => {
+        const first = session.close();
+        const second = session.close();
+
+        expect(second).toBe(first);
+        await first;
+        await session.close();
+        expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    it('waits for a running modification but clears pending modifications', async () => {
+        let finish: () => void;
+        let started: () => void;
+        const beginning = new Promise<void>(resolve => { started = resolve; });
+        const pending = jasmine.createSpy('pending modification');
+
+        session.modificationQueue.push(done => { finish = done; started(); });
+        session.modificationQueue.resume();
+        await beginning;
+        session.modificationQueue.push(done => { pending(); done(); });
+        const completion = session.close();
+        const again = session.close();
+
+        expect(again).toBe(completion);
+        expect(close).not.toHaveBeenCalled();
+        finish();
+        await completion;
+        expect(pending).not.toHaveBeenCalled();
+        expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects closure failure and never reports a retired connection', async () => {
+        close.and.throwError('close failed');
+        const completion = session.close();
+
+        await expectAsync(completion).toBeRejectedWithError('close failed');
+        expect(session.close()).toBe(completion);
+        expect(close).toHaveBeenCalledTimes(1);
+    });
+});
