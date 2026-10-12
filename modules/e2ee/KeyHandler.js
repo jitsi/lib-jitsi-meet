@@ -7,6 +7,7 @@ import Deferred from '../util/Deferred';
 import Listenable from '../util/Listenable';
 
 import E2EEContext from './E2EEContext';
+import { listenNativeE2EE } from './NativeManagedLifecycle';
 
 const logger = getLogger('e2ee:KeyHandler');
 
@@ -23,7 +24,8 @@ export class KeyHandler extends Listenable {
         super();
 
         this.conference = conference;
-        this.e2eeCtx = new E2EEContext(options);
+        this.e2eeCtx = conference.rtc?.getNativeE2EEContext?.() || new E2EEContext(options);
+        this._nativeLifecycle = this.e2eeCtx.createLifecycle?.();
 
         this.enabled = false;
         this._enabling = undefined;
@@ -34,16 +36,16 @@ export class KeyHandler extends Listenable {
         // added instead of shenanigans around conference track events and track muted.
         //
 
-        this.conference.on(
+        listenNativeE2EE(this, this.conference,
             JitsiConferenceEvents._MEDIA_SESSION_STARTED,
             this._onMediaSessionStarted.bind(this));
-        this.conference.on(
+        listenNativeE2EE(this, this.conference,
             JitsiConferenceEvents.TRACK_ADDED,
             track => track.isLocal() && this._onLocalTrackAdded(track));
-        this.conference.rtc.on(
+        listenNativeE2EE(this, this.conference.rtc,
             RTCEvents.REMOTE_TRACK_ADDED,
             (track, tpc) => this._setupReceiverE2EEForTrack(tpc, track));
-        this.conference.on(
+        listenNativeE2EE(this, this.conference,
             JitsiConferenceEvents.TRACK_MUTE_CHANGED,
             this._trackMuteChanged.bind(this));
     }

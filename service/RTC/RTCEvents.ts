@@ -93,6 +93,9 @@ export enum RTCEvents {
      */
     LOCAL_UFRAG_CHANGED = 'rtc.local_ufrag_changed',
 
+    /** Native encrypted connection initialization failed; affected native connections have been closed. */
+    NATIVE_E2EE_ERROR = 'rtc.native_e2ee_error',
+
     /**
      * Event emitted when the user granted/blocked a permission for the camera / mic.
      * Used to keep track of the granted permissions on browsers which don't

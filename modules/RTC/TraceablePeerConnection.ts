@@ -16,6 +16,7 @@ import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
+import { INativePeerConnectionContext } from '../e2ee/NativePeerConnectionContext';
 import FeatureFlags from '../flags/FeatureFlags';
 import LocalSdpMunger from '../sdp/LocalSdpMunger';
 import RtxModifier from '../sdp/RtxModifier';
@@ -91,6 +92,7 @@ export interface ITPCOptions {
     disableRtx: boolean;
     disableSimulcast: boolean;
     maxstats: number;
+    nativeE2EEContext?: INativePeerConnectionContext;
     startSilent: boolean;
     usesCodecSelectionAPI: boolean;
     videoQuality: IVideoQuality;
@@ -159,6 +161,9 @@ export default class TraceablePeerConnection {
     private _remoteSsrcMap: Map<string, ITPCSourceInfo>;
     private _lastVideoSenderUpdatePromise: Promise<void>;
     private _localUfrag: string;
+    private _nativeE2EEReady?: Promise<unknown>;
+    private _closePromise?: Promise<void>;
+    private _nativeE2EEContext?: INativePeerConnectionContext;
     private _pcId: string;
     private _remoteUfrag: string;
     private _selectedTransportCost: Nullable<TransportCost>;
@@ -450,9 +455,24 @@ export default class TraceablePeerConnection {
             logger.warn('Optional param is not an array, rtcstats p2p data is omitted.');
         }
 
-        // RTCPeerConnection constructor only accepts RTCConfiguration
-        // @ts-ignore
-        this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
+        this._nativeE2EEContext = options.nativeE2EEContext;
+        if (this._nativeE2EEContext) {
+            const { peerConnection, ready } = this._nativeE2EEContext.createPeerConnection(
+                RTCPeerConnection,
+                pcConfig);
+
+            this.peerconnection = peerConnection;
+            this._nativeE2EEReady = ready.catch(() => {
+                rtc.eventEmitter.emit(RTCEvents.NATIVE_E2EE_ERROR, this);
+                throw new Error('Native E2EE key initialization failed');
+            });
+            // Observe failure even if negotiation never starts. Keep the rejection for SDP callers.
+            this._nativeE2EEReady.catch(() => undefined);
+        } else {
+            // RTCPeerConnection constructor only accepts RTCConfiguration
+            // @ts-ignore
+            this.peerconnection = new RTCPeerConnection(pcConfig, safeConstraints);
+        }
 
         this.tpcUtils = new TPCUtils(this, {
             audioQuality: options.audioQuality,
@@ -1195,7 +1215,10 @@ export default class TraceablePeerConnection {
      * Handles codec preferences, SDP munging for simulcast and RTX, and source information extraction.
      * @private
      */
-    private _createOfferOrAnswer(isOffer: boolean, constraints: Optional<RTCOfferOptions>): Promise<RTCSessionDescription> {
+    private async _createOfferOrAnswer(isOffer: boolean, constraints: Optional<RTCOfferOptions>): Promise<RTCSessionDescription> {
+        if (this._nativeE2EEReady) {
+            await this._nativeE2EEReady;
+        }
         const logName = isOffer ? 'Offer' : 'Answer';
 
         this.trace(`create${logName}`, JSON.stringify(constraints, null, ' '));
@@ -1883,6 +1906,7 @@ export default class TraceablePeerConnection {
         logger.info(`${this} Removing remote track stream[id=${toBeRemoved.getStreamId()},`
             + `trackId=${toBeRemoved.getTrackId()}]`);
 
+        this._nativeE2EEContext?.releaseReceiver?.(this.findReceiverForTrack(toBeRemoved.track));
         const participantId = toBeRemoved.getParticipantId();
         const ssrc = toBeRemoved.getSsrc();
 
@@ -2922,7 +2946,8 @@ export default class TraceablePeerConnection {
      * tracks by emitting {@link RTCEvents.REMOTE_TRACK_REMOVED} for each one of
      * them.
      */
-    close(): void {
+    close(): Promise<void> {
+        if (this._closePromise) return this._closePromise;
         this.trace('stop');
 
         // Off SignalingEvents
@@ -2957,7 +2982,18 @@ export default class TraceablePeerConnection {
             this.statsinterval = null;
         }
         logger.info(`${this} Closing peerconnection`);
-        this.peerconnection.close();
+        try {
+            const result = this._nativeE2EEContext
+                ? this._nativeE2EEContext.closePeerConnection(this.peerconnection)
+                : this.peerconnection.close();
+
+            this._closePromise = Promise.resolve(result).then(() => undefined);
+        } catch (error) {
+            this._closePromise = Promise.reject(error);
+        }
+        this._closePromise.catch(() => undefined);
+
+        return this._closePromise;
     }
 
     /**

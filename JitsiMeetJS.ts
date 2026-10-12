@@ -24,6 +24,7 @@ import { TrackStreamingStatus } from './modules/connectivity/TrackStreamingStatu
 import getActiveAudioDevice from './modules/detection/ActiveDeviceDetector';
 import { DetectionEvents } from './modules/detection/DetectionEvents';
 import TrackVADEmitter from './modules/detection/TrackVADEmitter';
+import { registerNativeE2EE } from './modules/e2ee/NativeE2EE';
 import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
@@ -537,6 +538,9 @@ const JitsiMeetJS = {
 
     logLevels: Logger.levels,
     mediaDevices,
+
+    /** Register the native platform bridge before creating connections. */
+    registerNativeE2EE,
 
     /**
      * Removes global logging transport from the library logging framework.

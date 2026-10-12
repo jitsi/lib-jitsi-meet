@@ -4,6 +4,7 @@ import { debounce } from 'lodash-es';
 import { JitsiConferenceEvents } from '../../JitsiConferenceEvents';
 
 import { KeyHandler } from './KeyHandler';
+import { initializeNativeManaged, listenNativeE2EE, runNativeE2EE } from './NativeManagedLifecycle';
 import { OlmAdapter } from './OlmAdapter';
 import { importKey, ratchet } from './crypto-utils';
 
@@ -23,41 +24,42 @@ export class ManagedKeyHandler extends KeyHandler {
     constructor(conference) {
         super(conference);
 
+        initializeNativeManaged(this);
         this._key = undefined;
         this._conferenceJoined = false;
 
         this._olmAdapter = new OlmAdapter(conference);
 
-        this._rotateKey = debounce(this._rotateKeyImpl, DEBOUNCE_PERIOD);
-        this._ratchetKey = debounce(this._ratchetKeyImpl, DEBOUNCE_PERIOD);
+        this._rotateKey = debounce(runNativeE2EE(this, this._rotateKeyImpl), DEBOUNCE_PERIOD);
+        this._ratchetKey = debounce(runNativeE2EE(this, this._ratchetKeyImpl), DEBOUNCE_PERIOD);
 
         // Olm signalling events.
-        this._olmAdapter.on(
+        listenNativeE2EE(this, this._olmAdapter,
             OlmAdapter.events.PARTICIPANT_KEY_UPDATED,
             this._onParticipantKeyUpdated.bind(this));
 
-        this._olmAdapter.on(
+        listenNativeE2EE(this, this._olmAdapter,
             OlmAdapter.events.PARTICIPANT_SAS_READY,
             this._onParticipantSasReady.bind(this));
 
-        this._olmAdapter.on(
+        listenNativeE2EE(this, this._olmAdapter,
             OlmAdapter.events.PARTICIPANT_SAS_AVAILABLE,
             this._onParticipantSasAvailable.bind(this));
 
-        this._olmAdapter.on(
+        listenNativeE2EE(this, this._olmAdapter,
             OlmAdapter.events.PARTICIPANT_VERIFICATION_COMPLETED,
             this._onParticipantVerificationCompleted.bind(this));
 
-        this.conference.on(
+        listenNativeE2EE(this, this.conference,
             JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
             this._onParticipantPropertyChanged.bind(this));
-        this.conference.on(
+        listenNativeE2EE(this, this.conference,
             JitsiConferenceEvents.USER_JOINED,
             this._onParticipantJoined.bind(this));
-        this.conference.on(
+        listenNativeE2EE(this, this.conference,
             JitsiConferenceEvents.USER_LEFT,
-            this._onParticipantLeft.bind(this));
-        this.conference.on(
+            this._onParticipantLeft.bind(this), true);
+        listenNativeE2EE(this, this.conference,
                 JitsiConferenceEvents.CONFERENCE_JOINED,
                 () => {
                     this._conferenceJoined = true;

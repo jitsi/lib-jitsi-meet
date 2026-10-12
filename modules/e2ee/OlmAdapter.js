@@ -12,6 +12,7 @@ import Listenable from '../util/Listenable';
 import { FEATURE_E2EE, JITSI_MEET_MUC_TYPE } from '../xmpp/xmpp';
 
 import { E2EEErrors } from './E2EEErrors';
+import { initializeNativeOlm, listenNativeE2EE } from './NativeManagedLifecycle';
 import { generateSas } from './SAS';
 
 const logger = getLogger('e2ee:OlmAdapter');
@@ -78,14 +79,19 @@ export class OlmAdapter extends Listenable {
         this._reqs = new Map();
         this._sessionInitialization = undefined;
         this._sessionReadyCallbacks = new Map(); // participantId -> callback
+        initializeNativeOlm(this, conference.rtc?.getNativeE2EEContext?.());
 
         if (OlmAdapter.isSupported()) {
             this._bootstrapOlm();
 
-            this._conf.on(JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED, this._onEndpointMessageReceived.bind(this));
-            this._conf.on(JitsiConferenceEvents.CONFERENCE_LEFT, this._onConferenceLeft.bind(this));
-            this._conf.on(JitsiConferenceEvents.USER_LEFT, this._onParticipantLeft.bind(this));
-            this._conf.on(JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
+            listenNativeE2EE(this, this._conf, JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
+                this._onEndpointMessageReceived.bind(this));
+            if (!this._nativeLifecycle) {
+                this._conf.on(JitsiConferenceEvents.CONFERENCE_LEFT, this._onConferenceLeft.bind(this));
+            }
+            listenNativeE2EE(this, this._conf, JitsiConferenceEvents.USER_LEFT,
+                this._onParticipantLeft.bind(this), true);
+            listenNativeE2EE(this, this._conf, JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED,
                 this._onParticipantPropertyChanged.bind(this));
         } else {
             this._init.reject(new Error('Olm not supported'));

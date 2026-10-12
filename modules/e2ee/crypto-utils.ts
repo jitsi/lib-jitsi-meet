@@ -1,3 +1,5 @@
+import { getNativeE2EECrypto } from './NativeE2EE';
+
 /**
  * Derives a set of keys from the master key.
  * @param {CryptoKey} material - master key to derive from
@@ -33,6 +35,10 @@ export async function deriveKeys(material: CryptoKey): Promise<{ encryptionKey: 
  * @returns {Promise<ArrayBuffer>} - ratcheted key material
  */
 export async function ratchet(material: CryptoKey): Promise<ArrayBuffer> {
+    const native = getNativeE2EECrypto();
+
+    if (native) return native.ratchet(material);
+
     const textEncoder = new TextEncoder();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveBits
@@ -52,6 +58,10 @@ export async function ratchet(material: CryptoKey): Promise<ArrayBuffer> {
  * @returns {Promise<CryptoKey>} - the WebCrypto key.
  */
 export async function importKey(keyBytes: ArrayBuffer): Promise<CryptoKey> {
+    const native = getNativeE2EECrypto();
+
+    if (native) return native.importKey(keyBytes);
+
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
     return await crypto.subtle.importKey('raw', keyBytes, 'HKDF', false, [ 'deriveBits', 'deriveKey' ]);
 }

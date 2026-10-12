@@ -196,6 +196,9 @@ export default class JitsiConferenceEventManager {
             });
 
         chatRoom.addListener(JitsiTrackEvents.TRACK_OWNER_SET, (track: JitsiRemoteTrack, owner: string, sourceName: string, videoType: VideoType) => {
+            if (conference.options.config.e2ee?.nativeManaged) {
+                conference._assertNativeTrackOwner(track, owner);
+            }
             if (track.getParticipantId() !== owner || track.getSourceName() !== sourceName) {
                 conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
 
@@ -357,6 +360,9 @@ export default class JitsiConferenceEventManager {
             conference._onMemberBotTypeChanged.bind(conference));
         chatRoom.addListener(XMPPEvents.MUC_MEMBER_LEFT,
             conference.onMemberLeft.bind(conference));
+        chatRoom.addListener(XMPPEvents.MUC_LEFT, () => {
+            if (conference.options.config.e2ee?.nativeManaged) conference._disposeNativeE2EE();
+        });
         this.chatRoomForwarder.forward(XMPPEvents.MUC_LEFT,
             JitsiConferenceEvents.CONFERENCE_LEFT);
         this.chatRoomForwarder.forward(XMPPEvents.MUC_DENIED_ACCESS,

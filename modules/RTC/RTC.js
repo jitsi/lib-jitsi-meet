@@ -98,6 +98,7 @@ export default class RTC extends Listenable {
          * @type {Map.<number, TraceablePeerConnection>}
          */
         this.peerConnections = new Map();
+        this._nativeE2EEContext = null;
 
         this.localTracks = [];
 
@@ -154,6 +155,7 @@ export default class RTC extends Listenable {
      * @returns {void}
      */
     destroy() {
+        this._nativeE2EEContext?.cleanupAll();
         RTCUtils.removeListener(RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED, this._updateAudioOutputForAudioTracks);
         RTCUtils.removeListener(RTCEvents.DEVICE_LIST_CHANGED, this._onDeviceListChanged);
 
@@ -376,7 +378,10 @@ export default class RTC extends Listenable {
     createPeerConnection(signaling, pcConfig, isP2P, options) {
         const pcConstraints = {};
 
-        if (options.enableInsertableStreams) {
+        const connectionOptions = { ...options,
+            nativeE2EEContext: this._nativeE2EEContext };
+
+        if (options.enableInsertableStreams && !this._nativeE2EEContext) {
             logger.debug('E2EE - setting insertable streams constraints');
             pcConfig.encodedInsertableStreams = true;
         }
@@ -398,11 +403,28 @@ export default class RTC extends Listenable {
                 peerConnectionIdCounter,
                 signaling,
                 pcConfig, pcConstraints,
-                isP2P, options);
+                isP2P, connectionOptions);
 
         this.peerConnections.set(newConnection.id, newConnection);
 
         return newConnection;
+    }
+
+    /** Select the conference-owned native coordinator before any media session. */
+    setNativeE2EEContext(context) {
+        if (context === this._nativeE2EEContext) {
+            return;
+        }
+        if (this.peerConnections.size) {
+            throw new Error('Retire media sessions before changing native E2EE mode');
+        }
+        this._nativeE2EEContext?.cleanupAll();
+        this._nativeE2EEContext = context;
+    }
+
+    /** Return the conference-owned context to the existing automatic key handler. */
+    getNativeE2EEContext() {
+        return this._nativeE2EEContext?.createLifecycle ? this._nativeE2EEContext : null;
     }
 
     /* eslint-enable max-params */

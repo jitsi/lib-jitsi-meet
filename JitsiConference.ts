@@ -114,6 +114,7 @@ export interface IConferenceOptions {
         disableAudioLevels?: boolean;
         disableLocalStats?: boolean;
         disableLocalStatsBroadcast?: boolean;
+        e2ee?: { disabled?: boolean; externallyManagedKey?: boolean; nativeManaged?: boolean; };
         e2eping?: {
             enabled?: boolean;
         };
@@ -347,6 +348,7 @@ export default class JitsiConference extends Listenable {
     private _translationRequestSeq = 0;
     private _conferenceJoinAnalyticsEventSent?: number;
     private _e2eEncryption?: E2EEncryption;
+    private _nativeE2EEFailed = false;
     private _liteModeContext?: LiteModeContext;
     private _audioSenderLimitReached?: boolean;
     private _videoSenderLimitReached?: boolean;
@@ -417,6 +419,11 @@ export default class JitsiConference extends Listenable {
 
             logger.error(`${errmsg} ${additionalLogMsg}`);
             throw new Error(errmsg);
+        }
+
+        // Reject unsupported protected mode before registering a room or its listeners.
+        if (options.config.e2ee?.nativeManaged && !E2EEncryption.isSupported(options.config)) {
+            throw new Error('Requested native managed E2EE is unsupported');
         }
 
         this.connection = options.connection;
@@ -939,6 +946,9 @@ export default class JitsiConference extends Listenable {
      * @returns {void}
      */
     private _restartMediaSessions(): void {
+        if (this.options.config.e2ee?.nativeManaged && this.getNativeE2EEState()?.closed) {
+            return;
+        }
         if (this.p2pJingleSession) {
             this._stopP2PSession({
                 reasonDescription: 'restart',
@@ -2832,6 +2842,9 @@ export default class JitsiConference extends Listenable {
      * an existing participant with same jwt from the meeting.
      */
     public join(password: string = '', replaceParticipant: boolean = false) {
+        if (this.options.config.e2ee?.nativeManaged && !this.getNativeE2EEState()?.ready) {
+            throw new Error('Native managed E2EE must be ready before joining');
+        }
         if (this.room) {
             this.room.join(password, replaceParticipant).then(() => this._maybeSetSITimeout());
         }
@@ -2991,6 +3004,9 @@ export default class JitsiConference extends Listenable {
    * @returns {Promise}
    */
     public async leave(reason?: string): Promise<void> {
+        const nativeDisposal = this._disposeNativeE2EE();
+        const mediaClosures: Promise<void>[] = [];
+
         if (this.avgRtpStatsReporter) {
             this.avgRtpStatsReporter.dispose();
             this.avgRtpStatsReporter = null;
@@ -3017,16 +3033,21 @@ export default class JitsiConference extends Listenable {
 
         // Close both JVb and P2P JingleSessions
         if (this.jvbJingleSession) {
-            this.jvbJingleSession.close();
+            mediaClosures.push(this.jvbJingleSession.close());
             this.jvbJingleSession = null;
         }
         if (this.p2pJingleSession) {
-            this.p2pJingleSession.close();
+            mediaClosures.push(this.p2pJingleSession.close());
             this.p2pJingleSession = null;
         }
 
         // Leave the conference. If this.room == null we are calling second time leave().
+        const mediaRetirement = Promise.all(mediaClosures);
+
+        mediaRetirement.catch(() => undefined);
         if (!this.room) {
+            await Promise.all([ nativeDisposal, mediaRetirement ]);
+
             return;
         }
 
@@ -3106,6 +3127,7 @@ export default class JitsiConference extends Listenable {
             this.rtc.destroy();
         }
 
+        await Promise.all([ nativeDisposal, mediaRetirement ]);
         if (leaveError) {
             throw leaveError;
         }
@@ -3947,6 +3969,11 @@ export default class JitsiConference extends Listenable {
         if (id === 'focus' || this.myUserId() === id) {
             return;
         }
+        if (this.options.config.e2ee?.nativeManaged && this.getNativeE2EEState(id)?.removed) {
+            this._onNativeE2EEError(new Error('Retired participant identity reused'));
+
+            return;
+        }
         const participant = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
 
         participant.setConnectionJid(fullJid);
@@ -4024,6 +4051,11 @@ export default class JitsiConference extends Listenable {
             return;
         }
 
+        const participant = this.participants.get(id);
+        const nativeDeparture = participant && this.options.config.e2ee?.nativeManaged
+            ? this._e2eEncryption.participantLeft(id) : null;
+
+        nativeDeparture?.catch(error => this._onNativeE2EEError(error));
         const mediaSessions = this.getMediaSessions();
         let tracksToBeRemoved = [];
 
@@ -4050,12 +4082,17 @@ export default class JitsiConference extends Listenable {
             }
         });
 
-        const participant = this.participants.get(id);
-
         if (participant) {
             this.participants.delete(id);
-            this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
-
+            if (nativeDeparture) {
+                nativeDeparture.then(() => {
+                    if (!this.getNativeE2EEState()?.closed) {
+                        this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
+                    }
+                }).catch(error => this._onNativeE2EEError(error));
+            } else {
+                this.eventEmitter.emit(JitsiConferenceEvents.USER_LEFT, id, participant, reason);
+            }
             // Drop the departed speaker from translation, including any per-participant override (delta-only).
             const hadTranslationOverride = this._participantTranslationLanguages.delete(id);
 
@@ -5043,7 +5080,61 @@ export default class JitsiConference extends Listenable {
             return;
         }
 
-        this._e2eEncryption.setEnabled(enabled);
+        if (!this.options.config.e2ee?.nativeManaged) {
+            this._e2eEncryption.setEnabled(enabled);
+
+            return;
+        }
+        this.setE2EEEnabled(enabled).catch(error => {
+            if (this.options.config.e2ee?.nativeManaged && !this.getNativeE2EEState()?.closed) {
+                this._onNativeE2EEError(error);
+            }
+        });
+    }
+
+    /** Await original key exchange and native key acknowledgments before protected media. */
+    public async setE2EEEnabled(enabled: boolean): Promise<void> {
+        if (!this._e2eEncryption || !this.isE2EESupported()) {
+            throw new Error('E2EE is unsupported');
+        }
+        try {
+            await this._e2eEncryption.setEnabled(enabled);
+        } catch (error) {
+            if (this.options.config.e2ee?.nativeManaged && !this.getNativeE2EEState()?.closed) {
+                this._onNativeE2EEError(error);
+            }
+            throw error;
+        }
+    }
+
+    /** Native completion evidence; optional participant lookup never returns the identity. */
+    public getNativeE2EEState(participantId?: string): any {
+        return this._e2eEncryption?.getNativeState(participantId) ?? null;
+    }
+
+    /** @internal Terminal revocation starts synchronously, before room or session teardown. */
+    public _disposeNativeE2EE(): Promise<void> {
+        const result = this._e2eEncryption?.dispose() ?? Promise.resolve();
+
+        result.catch(error => this._onNativeE2EEError(error));
+
+        return result;
+    }
+
+    /** @internal Native acknowledgment failures cannot fall back to plaintext. */
+    public _onNativeE2EEError(_error: Error): void {
+        if (this._nativeE2EEFailed) return;
+        this._nativeE2EEFailed = true;
+        this._disposeNativeE2EE();
+        this.eventEmitter.emit(JitsiConferenceEvents.CONFERENCE_FAILED, 'conference.nativeE2EEFailed');
+    }
+
+    /** @internal Source reassignment needs an explicit native unbind protocol, not key reuse. */
+    public _assertNativeTrackOwner(track: JitsiRemoteTrack, owner?: string): void {
+        if (this.options.config.e2ee?.nativeManaged && track.getParticipantId() !== owner) {
+            this._onNativeE2EEError(new Error('Native receiver owner changed'));
+            throw new Error('Native receiver owner changed');
+        }
     }
 
     /**
