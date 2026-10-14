@@ -518,6 +518,9 @@ export default class JitsiConferenceEventManager {
                 conference._setTranscribingEnabled(Boolean(metadata.recording.isTranscribingEnabled));
             }
 
+            // Each update carries the whole metadata, so a missing key means the last agent left.
+            conference._setVoiceAgents(metadata.agents);
+
             if (metadata.services) {
                 chatRoom.xmpp.connection.jingle.onReceiveStunAndTurnCredentials(metadata);
             }

@@ -582,6 +582,34 @@ describe('JitsiConference', () => {
             expect(conference._shouldBeInP2PMode()).toBe(false);
         });
 
+        it('an agent advertised in room metadata forces JVB before anyone subscribes', () => {
+            conference.getParticipants = () => [ participant('aaaaaaaa') ];
+
+            conference._setVoiceAgents({ 'agent-support': { state: 'provisioning' } });
+            expect(conference._shouldBeInP2PMode()).toBe(false);
+
+            conference._setVoiceAgents(undefined);
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+        });
+
+        it('a failed agent does not count as advertised', () => {
+            conference.getParticipants = () => [ participant('aaaaaaaa') ];
+
+            conference._setVoiceAgents({ 'agent-support': { state: 'failed' } });
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+        });
+
+        it('re-evaluates P2P when the first agent appears, but not when the last one leaves', () => {
+            const p2pSpy = spyOn(conference, '_maybeStartOrStopP2P');
+
+            conference._setVoiceAgents({ 'agent-support': { state: 'connecting' } });
+            conference._setVoiceAgents({ 'agent-support': { state: 'active' } });
+            expect(p2pSpy).toHaveBeenCalledTimes(1);
+
+            conference._setVoiceAgents({});
+            expect(p2pSpy).toHaveBeenCalledTimes(1);
+        });
+
         it('subscribing agent audio triggers the P2P re-evaluation', () => {
             const p2pSpy = spyOn(conference, '_maybeStartOrStopP2P');
 

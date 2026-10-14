@@ -298,6 +298,7 @@ interface IProcessWithCancel extends Promise<void> {
  */
 export default class JitsiConference extends Listenable {
     private _transcribingEnabled?: boolean;
+    private _hasVoiceAgents?: boolean;
     private _visitorCodecs?: string[];
     private _hasVisitors?: boolean;
     private _sessionInitiateTimeout?: number;
@@ -1464,7 +1465,7 @@ export default class JitsiConference extends Listenable {
         const shouldBeInP2P = !this._p2pFallbackLatched
         && peerCount === 1 && !hasBotPeer && !this._hasVisitors
         && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0
-        && !hasAgentAudio;
+        && !this._hasVoiceAgents && !hasAgentAudio;
 
         logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer}, `
             + `fallbackLatched: ${this._p2pFallbackLatched} => ${shouldBeInP2P}`);
@@ -2807,6 +2808,25 @@ export default class JitsiConference extends Listenable {
         if (this._transcribingEnabled !== enabled) {
             this._transcribingEnabled = enabled;
             this._maybeStartOrStopP2P(true);
+        }
+    }
+
+    /**
+     * Updates whether the room has a voice agent, from the agents advertised in room metadata. An agent's audio is
+     * bridge-injected, so the call leaves P2P as soon as one appears, before anyone subscribes to it, and the media
+     * path is ready when the agent starts talking. A failed agent will never connect, so it does not count.
+     *
+     * @param {Object} agents - The room metadata's agents, keyed by agent id; undefined when there are none.
+     * @internal
+     */
+    _setVoiceAgents(agents?: Record<string, { state?: string; }>): void {
+        const hasVoiceAgents = Object.values(agents ?? {}).some(agent => agent?.state !== 'failed');
+
+        if (this._hasVoiceAgents !== hasVoiceAgents) {
+            this._hasVoiceAgents = hasVoiceAgents;
+
+            // Like the agent subscription, an agent leaving does not renegotiate back to P2P.
+            hasVoiceAgents && this._maybeStartOrStopP2P();
         }
     }
 
