@@ -399,6 +399,22 @@ export enum JitsiConferenceEvents {
     POLL_ANSWER_RECEIVED = 'conference.pollAnswerReceived',
 
     /**
+     * A poll was closed, thus it does not take answers anymore. The listener receives the message of the polls
+     * component: {
+     *     pollId: string,       // the id of the closed poll
+     *     senderId?: string,    // the occupant id of the participant that closed it
+     *     answers?: Array<{     // the server's copy of the results, sent only where the client may not have them,
+     *         name: string,     // i.e. to visitors, whose node learns about the close from the main prosody;
+     *         voters?: Array<{  // when present it is the authoritative final result and replaces the local one
+     *             id: string,
+     *             name?: string
+     *         }>
+     *     }>
+     * }
+     */
+    POLL_CLOSED = 'conference.pollClosed',
+
+    /**
      * A new poll was received or a poll is loaded from the history.
      */
     POLL_RECEIVED = 'conference.pollReceived',
