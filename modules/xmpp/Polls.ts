@@ -4,6 +4,7 @@ import ChatRoom from './ChatRoom';
 import XMPP from './xmpp';
 
 export const COMMAND_ANSWER_POLL = 'answer-poll';
+export const COMMAND_CLOSE_POLL = 'close-poll';
 export const COMMAND_NEW_POLL = 'new-poll';
 export const COMMAND_OLD_POLLS = 'old-polls';
 
@@ -81,6 +82,24 @@ export default class Polls {
     }
 
     /**
+     * Closes a poll, thus it does not take answers anymore. The server accepts it from the creator of the poll and
+     * from a moderator.
+     *
+     * @param pollId - The id of the poll.
+     */
+    closePoll(pollId: string) {
+        this._mainRoom.sendPrivateMessage(
+            this._xmpp.pollsComponentAddress,
+            JSON.stringify({
+                command: COMMAND_CLOSE_POLL,
+                pollId,
+                type: 'polls'
+            }),
+            'json-message',
+            true);
+    }
+
+    /**
      * Handles a message for polls.
      *
      * @param {object} payload - Arbitrary data.
@@ -102,6 +121,10 @@ export default class Polls {
         }
         case COMMAND_ANSWER_POLL: {
             this._mainRoom.eventEmitter.emit(XMPPEvents.POLLS_ANSWER_EVENT, payload);
+            break;
+        }
+        case COMMAND_CLOSE_POLL: {
+            this._mainRoom.eventEmitter.emit(XMPPEvents.POLLS_CLOSE_EVENT, payload);
             break;
         }
         }

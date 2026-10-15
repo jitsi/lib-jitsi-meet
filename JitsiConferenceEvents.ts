@@ -399,6 +399,11 @@ export enum JitsiConferenceEvents {
     POLL_ANSWER_RECEIVED = 'conference.pollAnswerReceived',
 
     /**
+     * A poll was closed, thus it does not take answers anymore.
+     */
+    POLL_CLOSED = 'conference.pollClosed',
+
+    /**
      * A new poll was received or a poll is loaded from the history.
      */
     POLL_RECEIVED = 'conference.pollReceived',
