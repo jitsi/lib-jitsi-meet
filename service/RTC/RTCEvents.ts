@@ -133,9 +133,10 @@ export enum RTCEvents {
     SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
 
     /**
-     * Indicates that a translated audio source started or stopped being sent (forwarded) to this endpoint by
-     * the bridge. The payload is { sourceName, sending, timestamp }; timestamp is an RTP timestamp (48 kHz,
-     * arbitrary origin, wraps at 2^32) — not epoch milliseconds.
+     * Indicates that a synthetic (bridge-injected) audio source started or stopped being sent (forwarded) to
+     * this endpoint by the bridge. The payload is { sourceName, sending, timestamp, kind? }; timestamp is an RTP
+     * timestamp (48 kHz, arbitrary origin, wraps at 2^32) — not epoch milliseconds; kind is 'agent' or
+     * 'translation' when the bridge signals it.
      */
     TRANSLATED_SOURCE_SENDING_CHANGED = 'rtc.translated_source_sending_changed',
 

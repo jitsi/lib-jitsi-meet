@@ -4,7 +4,7 @@ import { Strophe } from 'strophe.js';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { SignalingEvents } from '../../service/RTC/SignalingEvents';
-import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getEndpointIdFromSourceName, getMediaTypeFromSourceName } from '../../service/RTC/SignalingLayer';
+import SignalingLayer, { EndpointId, IPeerMediaInfo, ISourceInfo, SourceName, getEndpointIdFromSourceName, getMediaTypeFromSourceName, isVoiceAgentEndpointId } from '../../service/RTC/SignalingLayer';
 import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -273,7 +273,15 @@ export default class SignalingLayerImpl extends SignalingLayer {
         const lastPresence = this._chatRoom?.getLastPresence(owner);
 
         if (!lastPresence) {
-            logger.warn(`getPeerMediaInfo - no presence stored for: ${owner}`);
+            // Voice-agent endpoints are bridge-injected and publish no MUC presence, so a missing entry is
+            // expected rather than an error; their media state arrives out of band. The bridge-signaled kind
+            // wins, the id prefix only covers bridges that do not send one.
+            const kind = this.getSyntheticSourceKind(sourceName);
+            const isAgent = kind ? kind === 'agent' : isVoiceAgentEndpointId(owner);
+
+            if (!isAgent) {
+                logger.warn(`getPeerMediaInfo - no presence stored for: ${owner}`);
+            }
 
             return;
         }
@@ -364,6 +372,7 @@ export default class SignalingLayerImpl extends SignalingLayer {
                 && oldChatRoom.removePresenceListener(SOURCE_INFO_PRESENCE_ELEMENT, this._sourceInfoHandler);
             this._memberLeftHandler
                 && oldChatRoom.removeEventListener(XMPPEvents.MUC_MEMBER_LEFT, this._memberLeftHandler);
+            this.clearSyntheticSourceKinds();
         }
         if (room) {
             this._bindChatRoomEventHandlers(room);
@@ -439,10 +448,12 @@ export default class SignalingLayerImpl extends SignalingLayer {
      */
     public override updateSsrcOwnersOnLeave(id: string): void {
         const ssrcs: number[] = [];
+        const sourceNames: SourceName[] = [];
 
-        this._ssrcOwners.forEach(({ endpointId }, ssrc) => {
+        this._ssrcOwners.forEach(({ endpointId, sourceName }, ssrc) => {
             if (endpointId === id) {
                 ssrcs.push(ssrc);
+                sourceNames.push(sourceName);
             }
         });
 
@@ -451,5 +462,6 @@ export default class SignalingLayerImpl extends SignalingLayer {
         }
 
         this.removeSSRCOwners(ssrcs);
+        this.removeSyntheticSourceKinds(sourceNames);
     }
 }

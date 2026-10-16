@@ -7,6 +7,38 @@ import { VideoType } from './VideoType';
 export type EndpointId = string;
 export type SourceName = string;
 
+/**
+ * Classification of a bridge-injected (synthetic) source, as signaled by the bridge in the audio sources map and
+ * in sending-change events. Absent for regular sources and when the bridge does not know the kind.
+ */
+export type SyntheticSourceKind = 'agent' | 'translation';
+
+/**
+ * Payload of a synthetic source's sending-change notification (RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED,
+ * JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED).
+ */
+export interface ISyntheticSourceSendingChange {
+    /**
+     * The source's kind, when the bridge signaled it.
+     */
+    kind?: SyntheticSourceKind;
+
+    /**
+     * Whether the bridge is now forwarding the source to this endpoint.
+     */
+    sending: boolean;
+
+    /**
+     * The synthetic source's name.
+     */
+    sourceName: SourceName;
+
+    /**
+     * RTP timestamp of the change (48 kHz, wraps at 2^32) — not epoch ms.
+     */
+    timestamp: number;
+}
+
 export interface ISourceInfo {
     muted?: boolean;
     sourceName: SourceName;
@@ -105,9 +137,51 @@ export function getSourceIndexFromSourceName(sourceName: SourceName): number {
  *
  * @param {SourceName} sourceName - The source name to check (callers may pass a null/undefined source name).
  * @returns {boolean}
+ * @deprecated Name heuristic, kept only as the fallback for bridges that do not signal the source kind. Prefer
+ * {@link SignalingLayer#getSyntheticSourceKind}.
  */
 export function isTranslatedSourceName(sourceName?: SourceName | null): boolean {
     return typeof sourceName === 'string' && sourceName.includes('.');
+}
+
+/** Reserved endpoint-id namespace for bridge-injected voice agents (mirrors the server-side `agent-` prefix). */
+export const AGENT_ENDPOINT_ID_PREFIX = 'agent-';
+
+/**
+ * Whether an id belongs to a voice agent. Agents are bridge-injected synthetic endpoints in the reserved
+ * `agent-` namespace and, unlike real participants, publish no MUC presence. Their source names
+ * (`agent-<id>-a0`) inherit the prefix, so this matches both endpoint ids and source names.
+ *
+ * @param {string} id - An endpoint id or source name (callers may pass null/undefined).
+ * @returns {boolean}
+ * @deprecated Name heuristic, kept only as the fallback for bridges that do not signal the source kind. Prefer
+ * {@link SignalingLayer#getSyntheticSourceKind}.
+ */
+export function isVoiceAgentEndpointId(id?: EndpointId | SourceName | null): boolean {
+    return typeof id === 'string' && id.startsWith(AGENT_ENDPOINT_ID_PREFIX);
+}
+
+/**
+ * Whether a source is bridge-injected (audio translation or voice agent) and therefore never carried in MUC
+ * presence — its media state is signaled out of band, so callers must not expect a presence entry for it.
+ *
+ * @param {SourceName} sourceName - The source name to check (callers may pass null/undefined).
+ * @returns {boolean}
+ * @deprecated Name heuristic, kept only as the fallback for bridges that do not signal the source kind. Prefer
+ * {@link SignalingLayer#isSyntheticSource}.
+ */
+export function isSyntheticSourceName(sourceName?: SourceName | null): boolean {
+    return isTranslatedSourceName(sourceName) || isVoiceAgentEndpointId(sourceName);
+}
+
+/**
+ * Whether a value received from the bridge is a known {@link SyntheticSourceKind}.
+ *
+ * @param {unknown} kind - The value to check.
+ * @returns {boolean}
+ */
+export function isSyntheticSourceKind(kind: unknown): kind is SyntheticSourceKind {
+    return kind === 'agent' || kind === 'translation';
 }
 
 /**
@@ -125,6 +199,20 @@ export function isTranslatedSourceName(sourceName?: SourceName | null): boolean 
  * @interface SignalingLayer
  */
 export default class SignalingLayer extends Listenable {
+    /**
+     * The kinds of the synthetic sources signaled by the bridge so far, keyed by source name.
+     */
+    private _syntheticSourceKinds: Map<SourceName, SyntheticSourceKind> = new Map();
+
+    /**
+     * Forgets every synthetic source kind, e.g. when the bridge session that signaled them ends.
+     *
+     * @returns {void}
+     */
+    clearSyntheticSourceKinds(): void {
+        this._syntheticSourceKinds.clear();
+    }
+
     /**
      * Obtains the info about given media advertised in the MUC presence of
      * the participant identified by the given MUC JID.
@@ -167,12 +255,35 @@ export default class SignalingLayer extends Listenable {
     }
 
     /**
+     * Obtains the kind of a synthetic (bridge-injected) source as signaled by the bridge.
+     *
+     * @param {SourceName} sourceName - The source name (callers may pass null/undefined).
+     * @returns {Optional<SyntheticSourceKind>} 'agent' or 'translation', or undefined for regular sources and when
+     * the bridge did not signal a kind.
+     */
+    getSyntheticSourceKind(sourceName?: SourceName | null): Optional<SyntheticSourceKind> {
+        return sourceName ? this._syntheticSourceKinds.get(sourceName) : undefined;
+    }
+
+    /**
      * Obtains the source name for given SSRC.
      * @param {number} ssrc the track's SSRC identifier.
      * @returns {Optional<SourceName>} the track's source name.
      */
     getTrackSourceName(ssrc: number): Optional<SourceName> {
         throw new Error('not implemented');
+    }
+
+    /**
+     * Whether a source is bridge-injected (audio translation or voice agent) and therefore never carried in MUC
+     * presence. A kind signaled by the bridge wins; the source-name heuristics only cover bridges that do not
+     * send one.
+     *
+     * @param {SourceName} sourceName - The source name (callers may pass null/undefined).
+     * @returns {boolean}
+     */
+    isSyntheticSource(sourceName?: SourceName | null): boolean {
+        return Boolean(this.getSyntheticSourceKind(sourceName)) || isSyntheticSourceName(sourceName);
     }
 
     /**
@@ -184,6 +295,18 @@ export default class SignalingLayer extends Listenable {
     }
 
     /**
+     * Forgets the kinds of the given synthetic sources, e.g. when their owner leaves.
+     *
+     * @param {SourceName[]} sourceNames - The source names.
+     * @returns {void}
+     */
+    removeSyntheticSourceKinds(sourceNames: SourceName[]): void {
+        for (const sourceName of sourceNames) {
+            this._syntheticSourceKinds.delete(sourceName);
+        }
+    }
+
+    /**
      * Set an SSRC owner.
      *
      * @param {number} ssrc - An SSRC to be owned.
@@ -192,6 +315,17 @@ export default class SignalingLayer extends Listenable {
      * @throws TypeError if <tt>ssrc</tt> is not a number.
      */
     setSSRCOwner(ssrc: number, endpointId: string, sourceName: SourceName): void {
+    }
+
+    /**
+     * Records the kind of a synthetic source as signaled by the bridge.
+     *
+     * @param {SourceName} sourceName - The source name.
+     * @param {SyntheticSourceKind} kind - The kind.
+     * @returns {void}
+     */
+    setSyntheticSourceKind(sourceName: SourceName, kind: SyntheticSourceKind): void {
+        this._syntheticSourceKinds.set(sourceName, kind);
     }
 
     /**
