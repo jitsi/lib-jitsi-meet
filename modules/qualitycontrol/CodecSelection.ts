@@ -18,12 +18,6 @@ const MOBILE_VIDEO_CODEC_ORDER = [ CodecMimeType.VP8, CodecMimeType.VP9, CodecMi
 
 export interface ICodecSelectionOptions {
     [connectionType: string]: {
-
-        /**
-         * Removes AV1 from the codec list on Firefox so that it is not advertised and remote endpoints do not send
-         * it, unlike {@link enableAV1ForFF} which only changes what Firefox encodes.
-         */
-        disableAV1DecodeForFF?: boolean;
         disabledCodec?: string;
         enableAV1ForFF?: boolean;
         preferenceOrder?: string[];
@@ -68,15 +62,15 @@ export class CodecSelection {
 
         for (const connectionType of Object.keys(options)) {
             let { disabledCodec, preferredCodec, preferenceOrder } = options[connectionType];
-            const { disableAV1DecodeForFF = false, enableAV1ForFF = false, screenshareCodec }
-                = options[connectionType];
+            const { enableAV1ForFF = false, screenshareCodec } = options[connectionType];
             const supportedCodecs = new Set(this._getSupportedVideoCodecs(connectionType));
 
-            // Firefox assembles the frames of an AV1 stream that carries spatial layers but never emits them from
-            // the jitter buffer, so dropping AV1 from the list keeps it out of presence and remote endpoints then
-            // send something Firefox can decode. Demoting it, as enableAV1ForFF does, only affects encoding.
+            // Firefox 156 assembles the frames of an AV1 stream that carries spatial layers but never emits them
+            // from the jitter buffer, so dropping AV1 from the JVB list keeps it out of presence and remote
+            // endpoints then send something Firefox can decode. Demoting it, as enableAV1ForFF does, only affects
+            // encoding. P2P is left alone since it never uses spatial layers. Only Firefox 156 is affected.
             // https://bugzilla.mozilla.org/show_bug.cgi?id=2071030
-            const removeAV1ForFF = browser.isFirefox() && disableAV1DecodeForFF;
+            const removeAV1ForFF = connectionType === 'jvb' && browser.isFirefox() && browser.isVersionEqualTo(156);
 
             // Default preference codec order when no codec preferences are set in config.js
             let selectedOrder = Array.from(supportedCodecs);

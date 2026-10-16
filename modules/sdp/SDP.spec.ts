@@ -1225,6 +1225,7 @@ a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
 a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
 a=setup:actpass
 a=mid:0
+a=msid:mixedmslabel mixedlabelaudio0
 a=sendrecv
 a=ice-ufrag:someufrag
 a=ice-pwd:somepwd
@@ -1250,6 +1251,7 @@ a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
 a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
 a=setup:actpass
 a=mid:1
+a=msid:mixedmslabel mixedlabelvideo0
 a=sendrecv
 a=ice-ufrag:someufrag
 a=ice-pwd:somepwd
@@ -1275,6 +1277,7 @@ a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
 a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
 a=setup:actpass
 a=mid:2
+a=msid:831de82b-video-1 9bb949d4-5abd-4498-98e9-2be1222b8d3e-1
 a=sendonly
 a=ice-ufrag:someufrag
 a=ice-pwd:somepwd
@@ -1302,6 +1305,7 @@ a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
 a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
 a=setup:actpass
 a=mid:3
+a=msid:07af8d49-video-2 f685aa25-0318-442e-bd00-cd2a911236da-2
 a=sendonly
 a=ice-ufrag:someufrag
 a=ice-pwd:somepwd
@@ -1329,6 +1333,7 @@ a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
 a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
 a=setup:actpass
 a=mid:4
+a=msid:95edea8d-video-1 0c5d94d1-1902-4fb7-bf6a-76517d065d02-1
 a=sendonly
 a=ice-ufrag:someufrag
 a=ice-pwd:somepwd
@@ -1725,6 +1730,54 @@ a=rtcp-mux
 
             // The 1234 line, which the regex `a=ssrc:1.*` would have matched, must survive - proving literal matching.
             expect(sdp.media[0]).toContain('a=ssrc:1234 cname:legit\r\n');
+        });
+    });
+
+    describe('updateRemoteSources media-level msid', () => {
+        const recvOnlyMLine = [
+            'm=video 9 UDP/TLS/RTP/SAVPF 100\r\n',
+            'c=IN IP4 0.0.0.0\r\n',
+            'a=rtpmap:100 VP8/90000\r\n',
+            'a=mid:0\r\n',
+            'a=recvonly\r\n'
+        ].join('');
+        const baseSdp = [
+            'v=0\r\n',
+            'o=- 123 2 IN IP4 127.0.0.1\r\n',
+            's=-\r\n',
+            't=0 0\r\n',
+            'a=group:BUNDLE 0\r\n',
+            recvOnlyMLine
+        ].join('');
+        const sourceMap = new Map([ [ 'src', {
+            groups: [ { semantics: 'FID', ssrcs: [ '1111', '2222' ] } ],
+            mediaType: MediaType.VIDEO,
+            msid: 'stream track',
+            ssrcList: [ '1111', '2222' ]
+        } ] ]);
+
+        it('adds an a=msid line equivalent to the a=ssrc msid lines', () => {
+            const sdp = new SDP(baseSdp, true /* isP2P */);
+
+            sdp.updateRemoteSources(sourceMap, true /* isAdd */);
+
+            expect(sdp.media[0].match(/^a=msid:/gm)?.length).toBe(1);
+            expect(sdp.media[0]).toContain('a=msid:stream track\r\n');
+            expect(sdp.media[0]).toContain('a=ssrc:1111 msid:stream track\r\n');
+            expect(sdp.media[0]).toContain('a=ssrc:2222 msid:stream track\r\n');
+        });
+
+        it('removes the a=msid line with the last source and does not duplicate it on re-add', () => {
+            const sdp = new SDP(baseSdp, true /* isP2P */);
+
+            sdp.updateRemoteSources(sourceMap, true /* isAdd */);
+            sdp.updateRemoteSources(sourceMap, false /* isAdd */);
+
+            expect(sdp.media[0]).not.toContain('a=msid:');
+
+            sdp.updateRemoteSources(sourceMap, true /* isAdd */);
+
+            expect(sdp.media[0].match(/^a=msid:/gm)?.length).toBe(1);
         });
     });
 });

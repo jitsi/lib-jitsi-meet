@@ -414,7 +414,10 @@ export default class XMPP extends Listenable {
         // they wanted to utilize the connected connection in an unload handler
         // of their own. However, it should be fairly easy for them to do that
         // by registering their unload handler before us.
-        const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}unload`;
+        // We use pagehide instead of unload, because Chrome no longer fires unload handlers by default (since
+        // Chrome 154) and beforeunload is not fired for a removed iframe. Without a graceful disconnect the
+        // participant stays in the MUC as a ghost until the stream management session times out.
+        const events = `${this.options.disableBeforeUnloadHandlers ? '' : 'beforeunload '}pagehide`;
 
         this._unloadHandler = (ev: Event) => {
             // type-checking added as disconnect returns Promise<void> | boolean
@@ -434,7 +437,7 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Removes the beforeunload/unload listeners registered in the constructor. Without this each created connection
+     * Removes the beforeunload/pagehide listeners registered in the constructor. Without this each created connection
      * would leak its listeners on the window object.
      *
      * @returns {void}
@@ -843,7 +846,7 @@ export default class XMPP extends Listenable {
      * participant will be removed from the conference XMPP MUC, so that it doesn't leave a "ghost" participant behind.
      *
      * @param {Object} ev - Optionally, the event which triggered the necessity to disconnect from the XMPP server
-     * (e.g. beforeunload, unload).
+     * (e.g. beforeunload, pagehide).
      * @private
      * @returns {void}
      */
@@ -861,7 +864,7 @@ export default class XMPP extends Listenable {
         if (!this.connection.isUsingWebSocket && ev !== null && typeof ev !== 'undefined') {
             const evType = ev.type;
 
-            if (evType === 'beforeunload' || evType === 'unload') {
+            if (evType === 'beforeunload' || evType === 'pagehide') {
                 // XXX Whatever we said above, synchronous sending is the best (known) way to properly disconnect from
                 // the XMPP server. Consequently, it may be fine to have the source code and comment it in or out
                 // depending on whether we want to run with it for some time.
@@ -1285,7 +1288,7 @@ export default class XMPP extends Listenable {
      * Disconnects this from the XMPP server (if this is connected).
      *
      * @param {Object} ev - Optionally, the event which triggered the necessity to
-     * disconnect from the XMPP server (e.g. beforeunload, unload).
+     * disconnect from the XMPP server (e.g. beforeunload, pagehide).
      * @returns {Promise} - Resolves when the disconnect process is finished or rejects with an error.
      */
     public disconnect(ev: Optional<Event> = undefined): Promise<void> | boolean {
