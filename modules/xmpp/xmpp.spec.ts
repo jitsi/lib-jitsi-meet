@@ -90,4 +90,38 @@ describe('XMPP', () => {
             expect(connectionDisconnectSpy).not.toHaveBeenCalled();
         });
     });
+
+    describe('server features', () => {
+        let xmpp: XMPP;
+
+        beforeEach(() => {
+            xmpp = createXMPP();
+        });
+
+        afterEach(() => {
+            xmpp?.disconnect();
+        });
+
+        it('does not support a feature that the server did not advertise', () => {
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#single_answer')).toBe(false);
+        });
+
+        it('supports the features received with the disco info', () => {
+            (xmpp as any)._processDiscoInfoIdentities(new Set(), new Set([
+                'http://jitsi.org/protocol/polls#single_answer',
+                'urn:xmpp:ping'
+            ]));
+
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#single_answer')).toBe(true);
+            expect(xmpp.isServerFeatureSupported('urn:xmpp:ping')).toBe(true);
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#close')).toBe(false);
+        });
+
+        it('keeps the features when identities are processed without features', () => {
+            (xmpp as any)._processDiscoInfoIdentities(new Set(), new Set([ 'http://jitsi.org/protocol/polls#close' ]));
+            (xmpp as any)._processDiscoInfoIdentities(new Set());
+
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#close')).toBe(true);
+        });
+    });
 });

@@ -270,6 +270,7 @@ export default class XMPP extends Listenable {
     private _disconnectInProgress: Optional<Promise<void>> | boolean;
     private _lastErrorMsg: Optional<string>;
     private _preComponentsMsgs: Element[];
+    private _serverFeatures = new Set<string>();
     private _sysMessageHandler: unknown;
     private _startConnecting: Optional<boolean>;
     private _unloadEventTypes: string[];
@@ -637,6 +638,8 @@ export default class XMPP extends Listenable {
      * @private
      */
     private _processDiscoInfoIdentities(identities: Set<IIdentity>, features?: Set<string>): void {
+        features?.forEach(feature => this._serverFeatures.add(feature));
+
         // check for speakerstats
         identities.forEach(identity => {
             if (identity.type === 'av_moderation') {
@@ -971,6 +974,18 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Checks whether the server advertised a feature, either in the disco#info of the main domain or in the
+     * system message that jiconop sends on connect. Prosody modules advertise their features with the
+     * 'jitsi-add-feature' event, so a client can enable an option only when the server supports it.
+     *
+     * @param {string} feature - The feature to check, e.g. 'http://jitsi.org/protocol/polls#single_answer'.
+     * @returns {boolean}
+     */
+    public isServerFeatureSupported(feature: string): boolean {
+        return this._serverFeatures.has(feature);
+    }
+
+    /**
      * Returns the current XMPP connection instance.
      */
     public getConnection(): XmppConnection {
@@ -1020,6 +1035,8 @@ export default class XMPP extends Listenable {
                         logger.error(`Ping NOT supported by ${
                             this.options.hosts.domain} - please enable ping in your XMPP server config`);
                     }
+
+                    features.forEach(feature => this._serverFeatures.add(feature));
 
                     this._processDiscoInfoIdentities(
                         identities, undefined /* when querying we will query for features */);
