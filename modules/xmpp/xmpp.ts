@@ -160,6 +160,16 @@ interface IJsonMessage {
 }
 
 /**
+ * The feature that the lobby component advertises when the room requires a display name to join.
+ */
+const LOBBY_DISPLAY_NAME_REQUIRED_FEATURE = 'http://jitsi.org/protocol/lobbyrooms#displayname_required';
+
+/**
+ * The feature that the breakout rooms component advertises when breakout rooms can be renamed.
+ */
+const BREAKOUT_ROOMS_RENAME_FEATURE = 'http://jitsi.org/protocol/breakout_rooms#rename';
+
+/**
 * Regex to extract exact error message on jwt error.
 */
 const FAILURE_REGEX = /<failure.*><not-allowed\/><text>(.*)<\/text><\/failure>/gi;
@@ -666,7 +676,8 @@ export default class XMPP extends Listenable {
                 this.lobbySupported = true;
                 const processLobbyFeatures = f => {
                     f.forEach(fr => {
-                        if (fr.endsWith('#displayname_required')) {
+                        // The features of the main domain are in the same list (jiconop), so match the whole name.
+                        if (fr === LOBBY_DISPLAY_NAME_REQUIRED_FEATURE) {
                             this.eventEmitter.emit(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
                         }
                     });
@@ -702,7 +713,7 @@ export default class XMPP extends Listenable {
                     this.breakoutRoomsFeatures = {};
 
                     f.forEach(fr => {
-                        if (fr.endsWith('#rename')) {
+                        if (fr === BREAKOUT_ROOMS_RENAME_FEATURE) {
                             this.breakoutRoomsFeatures.rename = true;
                         }
                     });
@@ -976,7 +987,12 @@ export default class XMPP extends Listenable {
     /**
      * Checks whether the server advertised a feature, either in the disco#info of the main domain or in the
      * system message that jiconop sends on connect. Prosody modules advertise their features with the
-     * 'jitsi-add-feature' event, so a client can enable an option only when the server supports it.
+     * 'jitsi-add-feature' event, so a client can enable an option only when the server supports it. Only the
+     * 'http://jitsi.org/protocol/' features advertised that way are reported the same way by both paths.
+     *
+     * With jiconop the features are known before CONNECTION_ESTABLISHED. Without it they come with the reply to the
+     * disco#info query sent once the connection is established, so check them when an option is rendered rather
+     * than once on connect.
      *
      * @param {string} feature - The feature to check, e.g. 'http://jitsi.org/protocol/polls#single_answer'.
      * @returns {boolean}

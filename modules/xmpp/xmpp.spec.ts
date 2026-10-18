@@ -1,3 +1,7 @@
+import { $msg } from 'strophe.js';
+
+import { JitsiConnectionEvents } from '../../JitsiConnectionEvents';
+
 import XMPP from './xmpp';
 
 /**
@@ -115,6 +119,50 @@ describe('XMPP', () => {
             expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#single_answer')).toBe(true);
             expect(xmpp.isServerFeatureSupported('urn:xmpp:ping')).toBe(true);
             expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#close')).toBe(false);
+        });
+
+        it('supports the features received with the jiconop message', () => {
+            const msg = $msg({ from: 'localhost' })
+                .c('query', { xmlns: 'http://jabber.org/protocol/disco#info' })
+                .c('identity', { category: 'server', name: 'shard-1', type: 'shard' })
+                .up()
+                .c('feature', { var: 'http://jitsi.org/protocol/polls#single_answer' })
+                .tree();
+
+            spyOn((xmpp as any).connection._stropheConn, 'deleteHandler');
+            (xmpp as any)._onSystemMessage(msg);
+
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#single_answer')).toBe(true);
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#close')).toBe(false);
+        });
+
+        it('does not read the features of other modules as breakout rooms or lobby features', () => {
+            const displayNameRequiredSpy = jasmine.createSpy('displayNameRequired');
+
+            xmpp.addListener(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED, displayNameRequiredSpy);
+            (xmpp as any)._processDiscoInfoIdentities(new Set([
+                { category: 'component', name: 'breakout.localhost', type: 'breakout_rooms' },
+                { category: 'component', name: 'lobby.localhost', type: 'lobbyrooms' }
+            ]), new Set([ 'http://jitsi.org/protocol/test#rename', 'http://jitsi.org/protocol/test#displayname_required' ]));
+
+            expect(xmpp.breakoutRoomsFeatures.rename).toBeFalsy();
+            expect(displayNameRequiredSpy).not.toHaveBeenCalled();
+        });
+
+        it('reads the breakout rooms and lobby features', () => {
+            const displayNameRequiredSpy = jasmine.createSpy('displayNameRequired');
+
+            xmpp.addListener(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED, displayNameRequiredSpy);
+            (xmpp as any)._processDiscoInfoIdentities(new Set([
+                { category: 'component', name: 'breakout.localhost', type: 'breakout_rooms' },
+                { category: 'component', name: 'lobby.localhost', type: 'lobbyrooms' }
+            ]), new Set([
+                'http://jitsi.org/protocol/breakout_rooms#rename',
+                'http://jitsi.org/protocol/lobbyrooms#displayname_required'
+            ]));
+
+            expect(xmpp.breakoutRoomsFeatures.rename).toBe(true);
+            expect(displayNameRequiredSpy).toHaveBeenCalled();
         });
 
         it('keeps the features when identities are processed without features', () => {
