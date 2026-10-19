@@ -2541,6 +2541,17 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Checks whether the server advertised the given feature. Use it to enable an option only when the deployed
+     * Prosody modules support it.
+     *
+     * @param {string} feature - The feature to check, e.g. 'http://jitsi.org/protocol/polls#single_answer'.
+     * @returns {boolean}
+     */
+    public isServerFeatureSupported(feature: string): boolean {
+        return Boolean(this.xmpp?.isServerFeatureSupported(feature));
+    }
+
+    /**
      * Checks whether an in-place ICE restart of the JVB session can be used: it must be enabled in the client
      * configuration ('enableIceRestart').
      *
