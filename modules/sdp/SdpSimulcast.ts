@@ -36,7 +36,10 @@ export default class SdpSimulcast {
         const mid = mLine.mid;
         const cachedSsrcs = this._ssrcCache.get(mid);
         const newSsrcs = this._parseSimLayers(mLine);
-        const newMsid = this._getSsrcAttribute(mLine, newSsrcs[0], 'msid');
+
+        // Fall back to the a=msid line when the browser omits the a=ssrc msid lines, otherwise the cached SSRCs get
+        // a bare "a=ssrc:<ssrc> msid" line that fails to parse in setLocalDescription.
+        const newMsid = this._getSsrcAttribute(mLine, newSsrcs[0], 'msid') ?? mLine.msid;
         const newCname = this._getSsrcAttribute(mLine, newSsrcs[0], 'cname');
 
         mLine.ssrcs = [];

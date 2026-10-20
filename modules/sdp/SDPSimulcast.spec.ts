@@ -76,6 +76,44 @@ describe('sdp-simulcast', () => {
             expect(parseSimLayers(secondSdp)).toEqual(cachedSsrcs);
         });
 
+        it('should use the a=msid of the current m-line for the cached SSRCs when a=ssrc msid is missing', () => {
+            // Chrome and Safari only signal the media-level a=msid in answers to an offer that carries both a=msid
+            // and a=ssrc msid, and in Unified Plan offers once https://webrtc-review.googlesource.com/c/src/+/509780
+            // lands.
+            const sdp = SampleSdpStrings.plainVideoSdp;
+            const videoMLine = sdp.media.find(m => m.type === MediaType.VIDEO);
+
+            videoMLine.ssrcs = videoMLine.ssrcs.filter(ssrc => ssrc.attribute !== 'msid');
+
+            const cachedSsrcs = parseSimLayers(transform.parse(simulcast.mungeLocalDescription({
+                type: 'answer',
+                sdp: transform.write(sdp)
+            }).sdp));
+
+            // Re-adding a track, e.g. restarting a screenshare, gives the m-line a new SSRC and track id.
+            const newMsid = '- 2c1ea6a9-6e94-4d7c-9a3e-2b8d1f0e7c55';
+
+            videoMLine.msid = newMsid;
+            videoMLine.ssrcs.forEach(ssrc => {
+                ssrc.id = 1234567890;
+            });
+
+            const secondDesc = simulcast.mungeLocalDescription({
+                type: 'answer',
+                sdp: transform.write(sdp)
+            });
+            const secondSdp = transform.parse(secondDesc.sdp);
+            const secondVideoMLine = secondSdp.media.find(m => m.type === MediaType.VIDEO);
+
+            expect(secondDesc.sdp).not.toMatch(/^a=ssrc:\d+ msid(?!:)/m);
+            expect(parseSimLayers(secondSdp)).toEqual(cachedSsrcs);
+            for (const ssrc of cachedSsrcs) {
+                const msid = secondVideoMLine.ssrcs.find(s => s.id === ssrc && s.attribute === 'msid');
+
+                expect(msid?.value).toBe(newMsid);
+            }
+        });
+
         describe('corner cases', () => {
             it('should do nothing if the mline has no ssrcs in the local sdp', () => {
                 const sdp = SampleSdpStrings.plainVideoSdp;
