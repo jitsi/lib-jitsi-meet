@@ -76,6 +76,35 @@ describe('sdp-simulcast', () => {
             expect(parseSimLayers(secondSdp)).toEqual(cachedSsrcs);
         });
 
+        it('should keep the msid on the cached SSRCs when the browser omits the a=ssrc msid lines', () => {
+            // Chrome and Safari only signal the media-level a=msid in answers to an offer that carries both a=msid
+            // and a=ssrc msid, and in Unified Plan offers once https://webrtc-review.googlesource.com/c/src/+/509780
+            // lands.
+            const sdp = SampleSdpStrings.plainVideoSdp;
+            const videoMLine = sdp.media.find(m => m.type === MediaType.VIDEO);
+
+            videoMLine.ssrcs = videoMLine.ssrcs.filter(ssrc => ssrc.attribute !== 'msid');
+
+            const desc = {
+                type: 'answer',
+                sdp: transform.write(sdp)
+            };
+            const cachedSsrcs = parseSimLayers(transform.parse(simulcast.mungeLocalDescription(desc).sdp));
+
+            // Call sLD again with the original description so that the SSRCs are filled in from the cache.
+            const secondDesc = simulcast.mungeLocalDescription(desc);
+            const secondSdp = transform.parse(secondDesc.sdp);
+            const secondVideoMLine = secondSdp.media.find(m => m.type === MediaType.VIDEO);
+
+            expect(secondDesc.sdp).not.toMatch(/^a=ssrc:\d+ msid(?!:)/m);
+            expect(parseSimLayers(secondSdp)).toEqual(cachedSsrcs);
+            for (const ssrc of cachedSsrcs) {
+                const msid = secondVideoMLine.ssrcs.find(s => s.id === ssrc && s.attribute === 'msid');
+
+                expect(msid?.value).toBe(videoMLine.msid);
+            }
+        });
+
         describe('corner cases', () => {
             it('should do nothing if the mline has no ssrcs in the local sdp', () => {
                 const sdp = SampleSdpStrings.plainVideoSdp;
