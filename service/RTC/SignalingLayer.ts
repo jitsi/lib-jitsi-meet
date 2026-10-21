@@ -177,10 +177,10 @@ export function isSyntheticSourceName(sourceName?: SourceName | null): boolean {
 /**
  * Whether a value received from the bridge is a known {@link SyntheticSourceKind}.
  *
- * @param {unknown} kind - The value to check.
+ * @param {string|null|undefined} kind - The value to check.
  * @returns {boolean}
  */
-export function isSyntheticSourceKind(kind: unknown): kind is SyntheticSourceKind {
+export function isSyntheticSourceKind(kind?: string | null): kind is SyntheticSourceKind {
     return kind === 'agent' || kind === 'translation';
 }
 

@@ -2546,9 +2546,7 @@ export default class JitsiConference extends Listenable {
             ([ endpointId, language ]) =>
                 `${getSourceNameForJitsiTrack(endpointId, MediaType.AUDIO, 0)}.${language}`);
 
-        this.qualityController.audioController
-            .getSyntheticSubscription(SyntheticAudioService.AUDIO_TRANSLATION)
-            .setSources(include);
+        this.qualityController.audioController.setServiceIncludes(SyntheticAudioService.AUDIO_TRANSLATION, include);
     }
 
     /**
@@ -2560,9 +2558,7 @@ export default class JitsiConference extends Listenable {
      * @returns {void}
      */
     public setAgentAudioSubscription(sourceNames: string[]): void {
-        this.qualityController.audioController
-            .getSyntheticSubscription(SyntheticAudioService.VOICE_AGENTS)
-            .setSources(sourceNames);
+        this.qualityController.audioController.setServiceIncludes(SyntheticAudioService.VOICE_AGENTS, sourceNames);
 
         // Adding bridge-injected agent audio forces JVB; like clearTranslation we don't renegotiate back to P2P on leave.
         if (sourceNames.length > 0) {
@@ -2812,13 +2808,15 @@ export default class JitsiConference extends Listenable {
     /**
      * Updates whether the room has a voice agent, from the agents advertised in room metadata. An agent's audio is
      * bridge-injected, so the call leaves P2P as soon as one appears, before anyone subscribes to it, and the media
-     * path is ready when the agent starts talking. A failed agent will never connect, so it does not count.
+     * path is ready when the agent starts talking. The metadata carries provisioning, connecting, active and failed
+     * agents, and removes ended ones; a failed or ended agent will never connect, so it does not count.
      *
      * @param {Object} agents - The room metadata's agents, keyed by agent id; undefined when there are none.
      * @internal
      */
     _setVoiceAgents(agents?: Record<string, { state?: string; }>): void {
-        const hasVoiceAgents = Object.values(agents ?? {}).some(agent => agent?.state !== 'failed');
+        const hasVoiceAgents = Object.values(agents ?? {})
+            .some(agent => agent?.state !== 'failed' && agent?.state !== 'ended');
 
         if (this._hasVoiceAgents !== hasVoiceAgents) {
             this._hasVoiceAgents = hasVoiceAgents;

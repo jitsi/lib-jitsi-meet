@@ -63,7 +63,7 @@ describe('/service/RTC/SignalingLayer', () => {
         it('rejects anything else', () => {
             expect(isSyntheticSourceKind('bot')).toBe(false);
             expect(isSyntheticSourceKind('')).toBe(false);
-            expect(isSyntheticSourceKind(1)).toBe(false);
+            expect(isSyntheticSourceKind(1 as any)).toBe(false);
             expect(isSyntheticSourceKind(undefined)).toBe(false);
             expect(isSyntheticSourceKind(null)).toBe(false);
         });

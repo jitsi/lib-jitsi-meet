@@ -592,10 +592,13 @@ describe('JitsiConference', () => {
             expect(conference._shouldBeInP2PMode()).toBe(true);
         });
 
-        it('a failed agent does not count as advertised', () => {
+        it('a failed or ended agent does not count as advertised', () => {
             conference.getParticipants = () => [ participant('aaaaaaaa') ];
 
             conference._setVoiceAgents({ 'agent-support': { state: 'failed' } });
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+
+            conference._setVoiceAgents({ 'agent-support': { state: 'ended' } });
             expect(conference._shouldBeInP2PMode()).toBe(true);
         });
 

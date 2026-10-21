@@ -602,6 +602,64 @@ describe('JingleSessionPC', () => {
             expect(signalingLayer.getSyntheticSourceKind('abcdef12-a0')).toBeUndefined();
         });
 
+        describe('an existing SSRC re-mapped to another source', () => {
+            const track = { getParticipantId: () => 'abcdef12', getSourceName: () => 'abcdef12-a0' };
+            let muteChanges: Array<[ string, boolean ]>;
+            let owners: string[];
+
+            beforeEach(() => {
+                muteChanges = [];
+                owners = [];
+                session.peerconnection = {
+                    _sourceMutedChanged: (source: string, muted: boolean) => muteChanges.push([ source, muted ]),
+                    addRemoteSsrc: () => false,
+                    close: () => { /* no-op */ },
+                    getRemoteSourceInfoBySourceName: () => undefined,
+                    getTrackBySSRC: () => track
+                };
+                session.room = {
+                    eventEmitter: {
+                        emit: (_event: string, _track: typeof track, owner: string) => owners.push(owner)
+                    }
+                };
+            });
+
+            it('takes an agent source, which has no presence, unmuted and goes on with the message', () => {
+                session.processSourceMap({
+                    mappedSources: [
+                        { kind: 'agent', owner: 'agent-0dae1739', rtx: '-1', source: 'agent-0dae1739-a0', ssrc: 1111 },
+                        { owner: 'bbbbbbbb', rtx: '-1', source: 'bbbbbbbb-a0', ssrc: 2222 }
+                    ]
+                }, MediaType.AUDIO);
+
+                expect(muteChanges).toEqual([ [ 'agent-0dae1739-a0', false ] ]);
+                expect(owners).toEqual([ 'agent-0dae1739', 'bbbbbbbb' ]);
+            });
+
+            it('takes a translated source unmuted, whatever its owner\'s presence says', () => {
+                const presence = spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted: true });
+
+                session.processSourceMap({
+                    mappedSources: [
+                        { kind: 'translation', owner: 'abcdef12', rtx: '-1', source: 'abcdef12-a0.en', ssrc: 1111 }
+                    ]
+                }, MediaType.AUDIO);
+
+                expect(muteChanges).toEqual([ [ 'abcdef12-a0.en', false ] ]);
+                expect(presence).not.toHaveBeenCalled();
+            });
+
+            it('still takes a regular source\'s mute state from presence', () => {
+                spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted: true });
+
+                session.processSourceMap({
+                    mappedSources: [ { owner: 'bbbbbbbb', rtx: '-1', source: 'bbbbbbbb-a0', ssrc: 1111 } ]
+                }, MediaType.AUDIO);
+
+                expect(muteChanges).toEqual([ [ 'bbbbbbbb-a0', true ] ]);
+            });
+        });
+
         it('close() forgets the kinds signaled on a JVB session', () => {
             signalingLayer.setSyntheticSourceKind('agent-0dae1739-a0', 'agent');
 

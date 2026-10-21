@@ -10,8 +10,6 @@ import {
 } from '../../service/RTC/ReceiverAudioSubscription';
 import RTC from '../RTC/RTC';
 
-import { ISyntheticIncludeSink, SyntheticAudioSubscription } from './SyntheticAudioSubscription';
-
 const logger = getLogger('qc:ReceiveAudioController');
 
 /**
@@ -20,10 +18,10 @@ const logger = getLogger('qc:ReceiveAudioController');
  * top) and `exclude` (sources to drop). The default is `all: true`.
  *
  * The include set has two layers: the base include from {@link setAudioSubscriptionMode}, and per-service
- * synthetic subscriptions (audio translation, voice agents — see {@link SyntheticAudioSubscription}). The
+ * synthetic subscriptions (audio translation, voice agents — see {@link setServiceIncludes}). The
  * message sent to the bridge carries their union, so each layer can change without clobbering the others.
  */
-export class ReceiverAudioController implements ISyntheticIncludeSink {
+export class ReceiverAudioController {
     private _rtc: RTC;
 
     /**
@@ -48,11 +46,6 @@ export class ReceiverAudioController implements ISyntheticIncludeSink {
     private _serviceIncludes: Map<string, string[]>;
 
     /**
-     * Memoized per-service subscription handles.
-     */
-    private _syntheticSubscriptions: Map<string, SyntheticAudioSubscription>;
-
-    /**
      * Creates a new instance of the ReceiverAudioController.
      */
     constructor(conference: JitsiConference) {
@@ -61,7 +54,6 @@ export class ReceiverAudioController implements ISyntheticIncludeSink {
         this._exclude = [];
         this._include = [];
         this._serviceIncludes = new Map();
-        this._syntheticSubscriptions = new Map();
     }
 
     /**
@@ -109,28 +101,9 @@ export class ReceiverAudioController implements ISyntheticIncludeSink {
     }
 
     /**
-     * Returns the (memoized) synthetic-audio subscription handle for a service. Each service replaces only
-     * its own set of synthetic sources; the bridge always receives the union across services.
+     * Returns the source names currently subscribed for a service.
      *
-     * @param {string} serviceId - The service, e.g. a {@code SyntheticAudioService} value.
-     * @returns {SyntheticAudioSubscription}
-     */
-    getSyntheticSubscription(serviceId: string): SyntheticAudioSubscription {
-        let subscription = this._syntheticSubscriptions.get(serviceId);
-
-        if (!subscription) {
-            subscription = new SyntheticAudioSubscription(this, serviceId);
-            this._syntheticSubscriptions.set(serviceId, subscription);
-        }
-
-        return subscription;
-    }
-
-    /**
-     * Returns the source names currently subscribed for a service. Part of {@link ISyntheticIncludeSink};
-     * use {@link SyntheticAudioSubscription#sources} instead of calling this directly.
-     *
-     * @param {string} serviceId - The service whose sources to return.
+     * @param {string} serviceId - The service whose sources to return, e.g. a {@code SyntheticAudioService} value.
      * @returns {Array<string>}
      */
     getServiceIncludes(serviceId: string): string[] {
@@ -148,11 +121,10 @@ export class ReceiverAudioController implements ISyntheticIncludeSink {
     }
 
     /**
-     * Replaces the set of synthetic sources subscribed for a service and re-sends the effective
-     * subscription. Part of {@link ISyntheticIncludeSink}; use
-     * {@link SyntheticAudioSubscription#setSources} instead of calling this directly.
+     * Replaces the set of synthetic sources subscribed for a service and re-sends the effective subscription. Each
+     * service replaces only its own set; the bridge always receives the union across services.
      *
-     * @param {string} serviceId - The service whose sources to replace.
+     * @param {string} serviceId - The service whose sources to replace, e.g. a {@code SyntheticAudioService} value.
      * @param {Array<string>} sourceNames - The service's full desired set of source names.
      * @returns {void}
      */
