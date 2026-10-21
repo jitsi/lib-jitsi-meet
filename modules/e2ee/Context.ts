@@ -51,6 +51,13 @@ export interface ICryptoKeyData {
 }
 
 /**
+ * Key data used in shared key mode, where the key is imported by the application.
+ */
+export interface ISharedKeyData {
+    encryptionKey: CryptoKey;
+}
+
+/**
  * Per-participant context holding the cryptographic keys and
  * encode/decode functions
  */
@@ -235,16 +242,19 @@ export class Context {
     /**
      * Derives the different subkeys and starts using them for encryption or
      * decryption.
-     * @param {Uint8Array|ArrayBuffer|false} key bytes. Pass false to disable.
+     * @param {Uint8Array|ArrayBuffer|ISharedKeyData|false} key bytes, or the already imported key in shared
+     * key mode. Pass false to disable.
      * @param {Number} keyIndex
      */
-    public async setKey(key: Uint8Array | ArrayBuffer | false, keyIndex: number = -1): Promise<void> {
+    public async setKey(
+            key: Uint8Array | ArrayBuffer | ISharedKeyData | false,
+            keyIndex: number = -1): Promise<void> {
         let newKey: ICryptoKeyData | false = false;
 
         if (key) {
             if (this._sharedKey) {
-                (newKey as Uint8Array | ArrayBuffer | false) = key;
-            } else {
+                newKey = key as ICryptoKeyData;
+            } else if (key instanceof ArrayBuffer || key instanceof Uint8Array) {
                 // Handle both Uint8Array and ArrayBuffer
                 let keyBuffer: ArrayBuffer;
 
