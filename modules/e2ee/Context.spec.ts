@@ -343,6 +343,32 @@ describe('E2EE Context', () => {
             setupKeys();
         });
         
+        it('encrypts multiple sequential frames with unique IVs', done => {
+            const totalFrames = 5;
+            let framesProcessed = 0;
+            const decryptedFrames = [];
+
+            receiveController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    expect(data.byteLength).toEqual(audioBytes.length);
+                    expect(Array.from(data)).toEqual(audioBytes);
+
+                    decryptedFrames.push(encodedFrame);
+                    framesProcessed++;
+
+                    if (framesProcessed === totalFrames) {
+                        done();
+                    }
+                }
+            };
+
+            for (let i = 0; i < totalFrames; i++) {
+                sender.encodeFunction(makeAudioFrame(), sendController);
+            }
+        });
+
         it('the receiver ratchets forward', done => {
             receiveController = {
                 enqueue: encodedFrame => {
