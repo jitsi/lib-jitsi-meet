@@ -20,6 +20,7 @@ function hexdump(buffer) {
 /* TODO: more tests
  * - delta frames
  * - frame header is not encrypted
+ * 
  * - different sendCounts
  * - different key length
  * - ratcheting in decodeFunction
@@ -55,12 +56,27 @@ function makeEmptyAudioFrame() {
 }
 
 /**
- * generates a dummy video frame
+ * generates a dummy video key frame
  */
 function makeVideoFrame() {
     return {
         data: new Uint8Array(videoBytes).buffer,
         type: 'key',
+        getMetadata: () => {
+            return { synchronizationSource: 321 };
+        }
+    };
+}
+
+/**
+ * generates a dummy video delta (interframe) frame.
+ * Delta frames only have 3 bytes of unencrypted header (vs 10 for key frames).
+ * Uses the same payload bytes and SSRC as makeVideoFrame() for easy comparison.
+ */
+function makeDeltaVideoFrame() {
+    return {
+        data: new Uint8Array(videoBytes).buffer,
+        type: 'delta',
         getMetadata: () => {
             return { synchronizationSource: 321 };
         }
@@ -125,6 +141,72 @@ describe('E2EE Context', () => {
             sender.encodeFunction(makeVideoFrame(), sendController);
         });
 
+        it('with a video delta frame', done => {
+            sendController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    // A video delta (interframe) frame also has 30 bytes of JFrame trailer overhead:
+                    // 16 bytes authentication tag, 12 bytes iv, iv length (1 byte) and 1 byte key index.
+                    // The 3-byte unencrypted VP8 delta header (vs 10 bytes for a key frame) does not
+                    // change the overall overhead; it just shifts which bytes are plain vs encrypted.
+                    expect(data.byteLength).toEqual(videoBytes.length + 30);
+                    done();
+                }
+            };
+
+            sender.encodeFunction(makeDeltaVideoFrame(), sendController);
+        });
+
+        it('leaves the first byte unencrypted for audio frames', done => {
+            const inputFrame = makeAudioFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+
+                    expect(outputBytes[0]).toEqual(inputBytes[0]);
+                    done();
+                }
+            };
+
+            sender.encodeFunction(inputFrame, sendController);
+        });
+
+        it('leaves the first 3 bytes unencrypted for video delta frames', done => {
+            const inputFrame = makeDeltaVideoFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+
+                    for (let i = 0; i < 3; i++) {
+                        expect(outputBytes[i]).toEqual(inputBytes[i]);
+                    }
+                    done();
+                }
+            };
+
+            sender.encodeFunction(inputFrame, sendController);
+        });
+        
+            it('leave the first 10 bytes unencrypted for video keyframe', done => {
+            const inputFrame = makeVideoFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
+
+            sendController ={
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+                    for(let i = 0;i<10;i++){
+                        expect(outputBytes[i]).toEqual(inputBytes[i]);
+                    }
+                    done();
+                }
+            };
+            sender.encodeFunction(inputFrame,sendController);
+        })
         it('passes an empty audio frame through', () => {
             const enqueued = [];
 
