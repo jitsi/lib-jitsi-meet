@@ -369,6 +369,39 @@ describe('E2EE Context', () => {
             }
         });
 
+        it('maintains separate sendCounts for different SSRCs', done => {
+            const totalFrames = 4;
+            let framesProcessed = 0;
+
+            receiveController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    const isAudio = data.byteLength === audioBytes.length;
+                    const isVideo = data.byteLength === videoBytes.length;
+
+                    expect(isAudio || isVideo).toBe(true);
+
+                    if (isAudio) {
+                        expect(Array.from(data)).toEqual(audioBytes);
+                    } else {
+                        expect(Array.from(data)).toEqual(videoBytes);
+                    }
+
+                    framesProcessed++;
+
+                    if (framesProcessed === totalFrames) {
+                        done();
+                    }
+                }
+            };
+
+            sender.encodeFunction(makeAudioFrame(), sendController);
+            sender.encodeFunction(makeVideoFrame(), sendController);
+            sender.encodeFunction(makeAudioFrame(), sendController);
+            sender.encodeFunction(makeVideoFrame(), sendController);
+        });
+
         it('the receiver ratchets forward', done => {
             receiveController = {
                 enqueue: encodedFrame => {
