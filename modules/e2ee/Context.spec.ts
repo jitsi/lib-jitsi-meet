@@ -216,7 +216,31 @@ describe('E2EE Context', () => {
 
             sender.encodeFunction(makeVideoFrame(), sendController);
         });
+        it('encrypts multiple sequential frames with unique IVs', done => {
+            const totalFrames = 5;
+            let framesProcessed = 0;
+            const decryptedFrames = [];
 
+            receiveController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    expect(data.byteLength).toEqual(audioBytes.length);
+                    expect(Array.from(data)).toEqual(audioBytes);
+
+                    decryptedFrames.push(encodedFrame);
+                    framesProcessed++;
+
+                    if (framesProcessed === totalFrames) {
+                        done();
+                    }
+                }
+            };
+
+            for (let i = 0; i < totalFrames; i++) {
+                sender.encodeFunction(makeAudioFrame(), sendController);
+            }
+        });
         it('the receiver ratchets forward', done => {
             receiveController = {
                 enqueue: encodedFrame => {
@@ -227,7 +251,6 @@ describe('E2EE Context', () => {
                     done();
                 }
             };
-
             const encodeFunction = async () => {
                 // Ratchet the key. We reimport from the raw bytes.
                 const material = await importKey(key.buffer);
