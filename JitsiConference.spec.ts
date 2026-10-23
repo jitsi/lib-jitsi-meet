@@ -7,6 +7,7 @@ import { ReceiverAudioController } from './modules/qualitycontrol/ReceiveAudioCo
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import { RTCEvents } from './service/RTC/RTCEvents';
 import { TransportCost } from './service/RTC/TransportCost';
+import { MediaConnectivityStatus } from './service/connectivity/MediaConnectivity';
 
 describe('JitsiConference', () => {
     describe('JitsiConferenceEvents message handling', () => {
@@ -270,6 +271,65 @@ describe('JitsiConference', () => {
                 false,                        // isVisitor
                 undefined                     // replyToId
             );
+        });
+    });
+
+    describe('media connectivity', () => {
+        const proto = JitsiConference.prototype as any;
+        const assessment = (status: MediaConnectivityStatus) => ({ status });
+        let conference;
+        let jvb;
+        let p2p;
+
+        beforeEach(() => {
+            jvb = { getMediaConnectivity: () => assessment(MediaConnectivityStatus.AT_RISK) };
+            p2p = { getMediaConnectivity: () => undefined };
+            conference = {
+                _maybeEmitMediaConnectivity: proto._maybeEmitMediaConnectivity,
+                eventEmitter: { emit: jasmine.createSpy('emit') },
+                getActiveMediaSession: () => (conference.p2p ? p2p : jvb),
+                p2p: false
+            };
+        });
+
+        const onChanged = session => proto._onMediaConnectivityChanged.call(conference, session);
+
+        it('forwards only the active session, once per assessment', () => {
+            onChanged(p2p);
+            onChanged(jvb);
+            onChanged(jvb);
+
+            expect(conference.eventEmitter.emit.calls.allArgs()).toEqual([
+                [ JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED, assessment(MediaConnectivityStatus.AT_RISK) ]
+            ]);
+        });
+
+        it('keeps a failure through restarted sessions until one connects', () => {
+            const { AT_RISK, FAILED, GOOD } = MediaConnectivityStatus;
+
+            for (const status of [ AT_RISK, FAILED, AT_RISK, FAILED, AT_RISK, GOOD ]) {
+                jvb = { getMediaConnectivity: () => assessment(status) };
+                onChanged(jvb);
+            }
+
+            expect(conference.eventEmitter.emit.calls.allArgs().map(([ , e ]) => e.status))
+                .toEqual([ AT_RISK, FAILED, GOOD ]);
+            expect(proto.getMediaConnectivity.call(conference)).toEqual(assessment(GOOD));
+        });
+
+        it('keeps the last assessment until the newly active session reports one', () => {
+            onChanged(jvb);
+            conference.p2p = true;
+            proto._maybeEmitMediaConnectivity.call(conference);
+
+            expect(conference.eventEmitter.emit).toHaveBeenCalledTimes(1);
+            expect(proto.getMediaConnectivity.call(conference)).toEqual(assessment(MediaConnectivityStatus.AT_RISK));
+
+            p2p.getMediaConnectivity = () => assessment(MediaConnectivityStatus.GOOD);
+            onChanged(p2p);
+
+            expect(conference.eventEmitter.emit).toHaveBeenCalledWith(
+                JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED, assessment(MediaConnectivityStatus.GOOD));
         });
     });
 
