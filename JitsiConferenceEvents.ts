@@ -296,6 +296,14 @@ export enum JitsiConferenceEvents {
     LOCK_STATE_CHANGED = 'conference.lock_state_changed',
 
     /**
+     * Indicates that the expected media quality of the active media session, assessed from its ICE establishment,
+     * has changed. Fired while media is being established, e.g. when ICE is slow to connect, only host candidates
+     * could be gathered or ICE failed, and once ICE connects with the transport that was selected. The first
+     * argument is an {@link IMediaConnectivity}.
+     */
+    MEDIA_CONNECTIVITY_CHANGED = 'conference.mediaConnectivityChanged',
+
+    /**
      * Indicates that the conference had changed to members only enabled/disabled.
      * The first argument of this event is a <tt>boolean</tt> which when set to
      * <tt>true</tt> means that the conference is running in members only mode.
