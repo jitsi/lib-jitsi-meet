@@ -473,6 +473,7 @@ describe('E2EE Context', () => {
 
                 encodeFunction();
             });
+<<<<<<< HEAD
 
             it('receiver catches up at window boundary (8 ratchets)', done => {
                 receiveController = {
@@ -582,6 +583,8 @@ describe('E2EE Context', () => {
 
                 encodeFunction();
             });
+=======
+>>>>>>> 0a86e6bd (test(modules/e2ee): test receiver catches up when sender ratchets 3 times ahead)
         });
     });
 });
