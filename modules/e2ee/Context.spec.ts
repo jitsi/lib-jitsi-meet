@@ -523,6 +523,38 @@ describe('E2EE Context', () => {
 
                 encodeFunction();
             });
+
+            it('handles multiple frames with progressive ratcheting', done => {
+                const totalFrames = 3;
+                let framesProcessed = 0;
+
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+
+                        framesProcessed++;
+
+                        if (framesProcessed === totalFrames) {
+                            done();
+                        }
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+                        material = await importKey(await ratchet(material));
+                        await sender.setKey(material, 0);
+                        sender.encodeFunction(makeAudioFrame(), sendController);
+                    }
+                };
+
+                encodeFunction();
+            });
         });
     });
 });
