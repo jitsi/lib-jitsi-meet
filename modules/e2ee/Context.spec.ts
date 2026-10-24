@@ -498,6 +498,31 @@ describe('E2EE Context', () => {
 
                 encodeFunction();
             });
+
+            it('fails gracefully when sender exceeds ratchet window', done => {
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        done.fail('Should not decrypt when beyond ratchet window');
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    for (let i = 0; i < 9; i++) {
+                        material = await importKey(await ratchet(material));
+                    }
+
+                    await sender.setKey(material, 0);
+                    sender.encodeFunction(makeAudioFrame(), sendController);
+
+                    setTimeout(() => {
+                        done();
+                    }, 100);
+                };
+
+                encodeFunction();
+            });
         });
     });
 });
