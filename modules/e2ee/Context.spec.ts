@@ -448,6 +448,31 @@ describe('E2EE Context', () => {
 
                 encodeFunction();
             });
+
+            it('receiver catches up when sender ratchets 3 times ahead', done => {
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+                        done();
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    for (let i = 0; i < 3; i++) {
+                        material = await importKey(await ratchet(material));
+                    }
+
+                    await sender.setKey(material, 0);
+                    sender.encodeFunction(makeAudioFrame(), sendController);
+                };
+
+                encodeFunction();
+            });
         });
     });
 });
