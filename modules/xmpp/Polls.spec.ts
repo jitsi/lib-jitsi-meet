@@ -60,6 +60,27 @@ describe('Polls', () => {
         expect('singleAnswer' in JSON.parse(sent[0].body)).toBe(false);
     });
 
+    it('createPoll sends the poll without singleAnswer when options is null', () => {
+        const { room, sent } = createRoom();
+        const polls = new Polls(room as any);
+
+        polls.createPoll('poll1', 'Question?', [ { name: 'A' }, { name: 'B' } ], null as any);
+
+        expect(sent.length).toBe(1);
+        expect('singleAnswer' in JSON.parse(sent[0].body)).toBe(false);
+    });
+
+    it('createPoll sends singleAnswer only when it is true', () => {
+        const { room, sent } = createRoom();
+        const polls = new Polls(room as any);
+
+        polls.createPoll('poll1', 'Question?', [ { name: 'A' }, { name: 'B' } ], { singleAnswer: 'false' } as any);
+        polls.createPoll('poll2', 'Question?', [ { name: 'A' }, { name: 'B' } ], { singleAnswer: 1 } as any);
+
+        expect(sent.length).toBe(2);
+        expect(sent.some(({ body }) => 'singleAnswer' in JSON.parse(body))).toBe(false);
+    });
+
     it('passes singleAnswer of a received poll through to the event', () => {
         const { room } = createRoom();
         const polls = new Polls(room as any);

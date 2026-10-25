@@ -73,7 +73,7 @@ export default class Polls {
                 question,
 
                 // Only sent when set, so a poll without options keeps the message it had before.
-                ...options.singleAnswer ? { singleAnswer: true } : {},
+                ...options?.singleAnswer === true ? { singleAnswer: true } : {},
                 type: 'polls'
             }),
             'json-message',
