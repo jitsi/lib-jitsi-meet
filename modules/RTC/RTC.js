@@ -17,6 +17,13 @@ import TraceablePeerConnection from './TraceablePeerConnection';
 
 const logger = getLogger('rtc:RTC');
 
+// Chromium's 'default' entry carries the OS default output in its label and groupId, so this changes when it does.
+const getAudioOutputsKey = (devices = []) => devices
+    .filter(device => device.kind === 'audiooutput')
+    .map(({ deviceId, groupId, label }) => `${deviceId}|${groupId}|${label}`)
+    .sort()
+    .join();
+
 /**
  * The counter used to generated id numbers assigned to peer connections
  * @type {number}
@@ -130,6 +137,7 @@ export default class RTC extends Listenable {
         // The forwarded sources change listener.
         this._forwardedSourcesChangeListener = this._onForwardedSourcesChanged.bind(this);
 
+        this._audioOutputsKey = getAudioOutputsKey(RTCUtils.getCurrentlyAvailableMediaDevices());
         this._onDeviceListChanged = this._onDeviceListChanged.bind(this);
         this._updateAudioOutputForAudioTracks = this._updateAudioOutputForAudioTracks.bind(this);
 
@@ -227,15 +235,29 @@ export default class RTC extends Listenable {
     }
 
     /**
-     * Callback invoked when the list of known audio and video devices has
-     * been updated. Attempts to update the known available audio output
-     * devices.
+     * Callback invoked when the list of known audio and video devices has been updated. When the audio outputs
+     * changed, re-applies the selected output to the remote audio elements that are not on it, e.g. after a failed
+     * switch. Elements on the default output follow the OS default without a switch.
      *
+     * @param {MediaDeviceInfo[]} devices - The new list of devices.
      * @private
      * @returns {void}
      */
-    _onDeviceListChanged() {
-        this._updateAudioOutputForAudioTracks(RTCUtils.getAudioOutputDevice());
+    _onDeviceListChanged(devices = []) {
+        const audioOutputsKey = getAudioOutputsKey(devices);
+        const deviceId = RTCUtils.getAudioOutputDevice();
+
+        if (audioOutputsKey === this._audioOutputsKey) {
+            return;
+        }
+        this._audioOutputsKey = audioOutputsKey;
+
+        // The selected output was unplugged; the application picks another one.
+        if (deviceId !== 'default' && deviceId !== ''
+                && !devices.some(device => device.kind === 'audiooutput' && device.deviceId === deviceId)) {
+            return;
+        }
+        this._updateAudioOutputForAudioTracks(deviceId);
     }
 
     /**
@@ -786,7 +808,8 @@ export default class RTC extends Listenable {
         const remoteAudioTracks = this.getRemoteTracks(MediaType.AUDIO);
 
         for (const track of remoteAudioTracks) {
-            track.setAudioOutput(deviceId);
+            track.setAudioOutput(deviceId)
+                .catch(error => logger.warn(`Failed to set the audio output of ${track}`, error));
         }
     }
 }

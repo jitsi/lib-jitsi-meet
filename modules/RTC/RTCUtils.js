@@ -46,11 +46,9 @@ const DEFAULT_CONSTRAINTS = {
     }
 };
 
-// Currently audio output device change is supported only in Chrome and
-// default output always has 'default' device ID
+// Chromium enumerates the default output as 'default'; the Audio Output Devices API itself uses '' for it.
 let audioOutputDeviceId = 'default'; // default device
-// whether user has explicitly set a device to use
-let audioOutputChanged = false;
+const isDefaultAudioOutput = deviceId => !deviceId || deviceId === 'default';
 
 // Disables all audio processing
 let disableAP = false;
@@ -353,29 +351,66 @@ class RTCUtils extends Listenable {
      *
      * @param {*} element DOM element.
      * @param {*} stream MediaStream.
-     * @returns Promise<void>
+     * @returns Promise<void> - rejected with the setSinkId error if the audio output device could not be applied.
      */
     attachMediaStream(element, stream) {
         if (element) {
             element.srcObject = stream;
         }
 
+        // A new element already plays out of the default output, switching it to 'default' is a needless device switch.
         if (element && stream
                 && this.isDeviceChangeAvailable('output')
                 && stream.getAudioTracks().length
-
-                // we skip setting audio output if there was no explicit change
-                && audioOutputChanged) {
-            return element.setSinkId(this.getAudioOutputDevice()).catch(ex => {
+                && !this.isSinkApplied(element, audioOutputDeviceId)) {
+            return element.setSinkId(this.toSinkId(audioOutputDeviceId)).catch(ex => {
                 logger.warn(
                     'Failed to set audio output device for the element. Default audio output device will be used'
                         + ' instead',
                     element?.id,
                     new JitsiTrackError(ex, null, [ 'audiooutput' ]));
+                this.reloadMediaElement(element, stream, ex);
+
+                throw ex;
             });
         }
 
         return Promise.resolve();
+    }
+
+    /**
+     * Whether the element already plays out of the given audio output device. The default output has two ids.
+     *
+     * @param {HTMLMediaElement} element - The element.
+     * @param {string} deviceId - The audio output device id.
+     * @returns {boolean}
+     */
+    isSinkApplied(element, deviceId) {
+        return element.sinkId === deviceId || (isDefaultAudioOutput(element.sinkId) && isDefaultAudioOutput(deviceId));
+    }
+
+    /**
+     * Reloads the stream of an element whose setSinkId call was aborted. Chromium can leave the element silent after
+     * an aborted sink switch while media keeps arriving; reassigning srcObject rebuilds its renderer on the current
+     * sink. Other errors reject before any switch is attempted, so they leave the element as it was.
+     *
+     * @param {HTMLMediaElement} element - The element.
+     * @param {MediaStream} stream - The stream the element is expected to play.
+     * @param {Error} error - The setSinkId error.
+     * @returns {void}
+     */
+    reloadMediaElement(element, stream, error) {
+        // The element was detached or given another stream while setSinkId was pending.
+        if (error?.name !== 'AbortError' || !element || !stream || element.srcObject !== stream) {
+            return;
+        }
+
+        const wasPlaying = !element.paused;
+
+        logger.info(`Reloading the stream of ${element.id} after a failed audio output device change`);
+        element.srcObject = null;
+        element.srcObject = stream;
+        wasPlaying && element.play()?.catch(e => logger.warn(`Failed to resume ${element.id}`, e));
     }
 
     /**
@@ -870,10 +905,9 @@ class RTCUtils extends Listenable {
                 new Error('Audio output device change is not supported'));
         }
 
-        return featureDetectionAudioEl.setSinkId(deviceId)
+        return featureDetectionAudioEl.setSinkId(this.toSinkId(deviceId))
             .then(() => {
                 audioOutputDeviceId = deviceId;
-                audioOutputChanged = true;
 
                 logger.debug(`Audio output device set to ${deviceId}`);
 
@@ -890,6 +924,22 @@ class RTCUtils extends Listenable {
      */
     setDesktopSharingFrameRate(maxFps) {
         screenObtainer.setDesktopSharingFrameRate(maxFps);
+    }
+
+    /**
+     * Returns the sink id to pass to setSinkId for an audio output device id. 'default' is a valid sink id only where
+     * a device is enumerated with that id (Chromium); elsewhere setSinkId rejects it and '' selects the default.
+     *
+     * @param {string} deviceId - The audio output device id.
+     * @returns {string}
+     */
+    toSinkId(deviceId) {
+        if (deviceId !== 'default') {
+            return deviceId;
+        }
+
+        return availableDevices.some(device => device.kind === 'audiooutput' && device.deviceId === 'default')
+            ? deviceId : '';
     }
 
     /**
