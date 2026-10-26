@@ -233,9 +233,10 @@ export class TPCUtils {
         // opposed to Chromium and other browsers. This has been reverted in Firefox 117 as part of the below commit.
         // https://hg.mozilla.org/mozilla-central/rev/b0348f1f8d7197fb87158ba74542d28d46133997
         // Desktop tracks kept the reversed order (4:2:1) after that change. Firefox added simulcast for screen and
-        // window capture in version 134, and current versions (tested with 158) send the desktop encodings in the
-        // same order as the camera ones, so reversing them there makes the bridge forward the lowest layer as the
-        // highest one.
+        // window capture in version 134 as part of the below bug, and current versions (tested with 158) send the
+        // desktop encodings in the same order as the camera ones, so reversing them there makes the bridge forward
+        // the lowest layer as the highest one.
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1692873
         if (browser.isFirefox()
             && !browser.supportsScalabilityModeAPI()
             && ((videoType === VideoType.DESKTOP && browser.isVersionLessThan(134)) || browser.isVersionLessThan(117))) {
