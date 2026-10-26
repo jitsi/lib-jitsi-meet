@@ -4,6 +4,7 @@ import { RTCEvents } from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
+import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
 describe('TraceablePeerConnection', () => {
@@ -171,13 +172,18 @@ describe('TraceablePeerConnection', () => {
             expect(ctx.eventEmitter.emit).toHaveBeenCalledWith(RTCEvents.REMOTE_TRACK_REMOVED, oldTrack);
         });
 
-        it('is a no-op for a track with no owner (does not emit or clear)', () => {
+        it('releases the SSRC of a removed track whose owner was cleared, without emitting', () => {
             const track = mockRemoteTrack('' /* no participantId */);
             const ctx = context(new Map([ [ SSRC, track ] ]));
 
-            removeRemoteTrack.call(ctx, track);
+            ctx._removeRemoteTrack = removeRemoteTrack;
+            spyOn(RTCUtils, 'isUserStreamById').and.returnValue(true);
 
-            expect(ctx.remoteTracksBySsrc.has(SSRC)).toBe(true);
+            (TraceablePeerConnection.prototype as any)._remoteTrackRemoved.call(
+                ctx, { id: 'stream-1' }, { id: 'track-1' });
+
+            expect(track.dispose).toHaveBeenCalled();
+            expect(ctx.remoteTracksBySsrc.has(SSRC)).toBe(false);
             expect(ctx.eventEmitter.emit).not.toHaveBeenCalled();
         });
     });

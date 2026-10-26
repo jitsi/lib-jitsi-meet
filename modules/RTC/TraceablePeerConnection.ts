@@ -1861,7 +1861,10 @@ export default class TraceablePeerConnection {
             return;
         }
 
-        const toBeRemoved = this.getRemoteTracks().find(
+        // getRemoteTracks() skips tracks whose owner was cleared, but those still hold an SSRC slot to release.
+        const candidates = FeatureFlags.isSsrcRewritingSupported()
+            ? Array.from(this.remoteTracksBySsrc.values()) : this.getRemoteTracks();
+        const toBeRemoved = candidates.find(
             remoteTrack => remoteTrack.getStreamId() === streamId && remoteTrack.getTrackId() === trackId);
 
         if (!toBeRemoved) {
@@ -1889,15 +1892,15 @@ export default class TraceablePeerConnection {
         toBeRemoved.dispose();
 
         if (FeatureFlags.isSsrcRewritingSupported()) {
-            if (!participantId) {
-                return;
-            }
-
             // Drop the SSRC->track entry so that a later source-add reusing the same rewritten SSRC (e.g. the wedge
             // recovery recycling a source via source-remove then source-add) is not discarded as a duplicate by
             // _createRemoteTrack. Guarded so a slot already remapped to a different current track is left alone.
             if (this.remoteTracksBySsrc.get(ssrc) === toBeRemoved) {
                 this.remoteTracksBySsrc.delete(ssrc);
+            }
+
+            if (!participantId) {
+                return;
             }
         } else {
             const userTracksByMediaType = this.remoteTracks.get(participantId);
