@@ -648,7 +648,7 @@ export default class XMPP extends Listenable {
      * @private
      */
     private _processDiscoInfoIdentities(identities: Set<IIdentity>, features?: Set<string>): void {
-        features?.forEach(feature => this._serverFeatures.add(feature));
+        features && this._addServerFeatures(features);
 
         // check for speakerstats
         identities.forEach(identity => {
@@ -809,6 +809,7 @@ export default class XMPP extends Listenable {
         //  Status.ATTACHED - The connection has been attached
 
         this._resetState();
+        this._clearServerFeatures();
 
         // we want to send this only on the initial connect
         this.sendDiscoInfo = true;
@@ -973,6 +974,44 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Adds features that the server advertised and emits SERVER_FEATURES_UPDATED when they change. Leaves out the
+     * lobby and breakout rooms features that jiconop adds for the room in the connection URL: they describe that
+     * room rather than the server, and _processDiscoInfoIdentities handles them. Any other feature that a component
+     * adds to the jiconop message with 'host-disco-info-node' would be taken as a server feature.
+     *
+     * @param {Set<string>} features - The features to add.
+     * @private
+     * @returns {void}
+     */
+    private _addServerFeatures(features: Set<string>): void {
+        const { size } = this._serverFeatures;
+
+        features.forEach(feature => {
+            if (feature !== LOBBY_DISPLAY_NAME_REQUIRED_FEATURE && feature !== BREAKOUT_ROOMS_RENAME_FEATURE) {
+                this._serverFeatures.add(feature);
+            }
+        });
+
+        if (this._serverFeatures.size !== size) {
+            this.eventEmitter.emit(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, Array.from(this._serverFeatures));
+        }
+    }
+
+    /**
+     * Forgets the features of the server, before a new connection which can reach another shard. Not done in
+     * _resetState, which also runs when the connection is established, after jiconop sent the features.
+     *
+     * @private
+     * @returns {void}
+     */
+    private _clearServerFeatures(): void {
+        if (this._serverFeatures.size) {
+            this._serverFeatures.clear();
+            this.eventEmitter.emit(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, []);
+        }
+    }
+
+    /**
      * Resets any state/flag before starting a new connection.
      * @private
      */
@@ -991,8 +1030,8 @@ export default class XMPP extends Listenable {
      * 'http://jitsi.org/protocol/' features advertised that way are reported the same way by both paths.
      *
      * With jiconop the features are known before CONNECTION_ESTABLISHED. Without it they come with the reply to the
-     * disco#info query sent once the connection is established, so check them when an option is rendered rather
-     * than once on connect.
+     * disco#info query sent once the connection is established, so listen for SERVER_FEATURES_UPDATED rather than
+     * check them once on connect. They are cleared when a new connection starts.
      *
      * @param {string} feature - The feature to check, e.g. 'http://jitsi.org/protocol/polls#single_answer'.
      * @returns {boolean}
@@ -1052,7 +1091,7 @@ export default class XMPP extends Listenable {
                             this.options.hosts.domain} - please enable ping in your XMPP server config`);
                     }
 
-                    features.forEach(feature => this._serverFeatures.add(feature));
+                    this._addServerFeatures(features);
 
                     this._processDiscoInfoIdentities(
                         identities, undefined /* when querying we will query for features */);
@@ -1165,6 +1204,7 @@ export default class XMPP extends Listenable {
      */
     public attach(options: IConnectionCredentials): void {
         this._resetState();
+        this._clearServerFeatures();
 
         // we want to send this only on the initial connect
         this.sendDiscoInfo = true;

@@ -1,4 +1,4 @@
-import { $msg } from 'strophe.js';
+import { $msg, Strophe } from 'strophe.js';
 
 import { JitsiConnectionEvents } from '../../JitsiConnectionEvents';
 
@@ -169,6 +169,85 @@ describe('XMPP', () => {
             (xmpp as any)._processDiscoInfoIdentities(new Set(), new Set([ 'http://jitsi.org/protocol/polls#close' ]));
             (xmpp as any)._processDiscoInfoIdentities(new Set());
 
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#close')).toBe(true);
+        });
+
+        it('emits SERVER_FEATURES_UPDATED when the disco info reply arrives after the connection is established',
+            async () => {
+                let resolveDiscoInfo: (value: unknown) => void;
+                const discoInfo = new Promise(resolve => {
+                    resolveDiscoInfo = resolve;
+                });
+                const updatedSpy = jasmine.createSpy('serverFeaturesUpdated');
+
+                spyOn(xmpp.caps, 'getFeaturesAndIdentities').and.returnValue(discoInfo as any);
+                spyOn(xmpp.connection.jingle, 'getStunAndTurnCredentials');
+                (xmpp as any).sendDiscoInfo = true;
+                xmpp.addListener(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, updatedSpy);
+
+                xmpp.connectionHandler({}, Strophe.Status.CONNECTED);
+
+                expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#single_answer')).toBe(false);
+                expect(updatedSpy).not.toHaveBeenCalled();
+
+                resolveDiscoInfo({
+                    features: new Set([ Strophe.NS.PING, 'http://jitsi.org/protocol/polls#single_answer' ]),
+                    identities: new Set()
+                });
+                await discoInfo;
+                await Promise.resolve();
+
+                expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#single_answer')).toBe(true);
+                expect(updatedSpy).toHaveBeenCalledTimes(1);
+                expect(updatedSpy.calls.mostRecent().args[0])
+                    .toEqual(jasmine.arrayContaining([ 'http://jitsi.org/protocol/polls#single_answer' ]));
+            });
+
+        it('does not emit SERVER_FEATURES_UPDATED when the features did not change', () => {
+            const updatedSpy = jasmine.createSpy('serverFeaturesUpdated');
+
+            xmpp.addListener(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, updatedSpy);
+            (xmpp as any)._processDiscoInfoIdentities(new Set(), new Set([ 'http://jitsi.org/protocol/polls#close' ]));
+            (xmpp as any)._processDiscoInfoIdentities(new Set(), new Set([ 'http://jitsi.org/protocol/polls#close' ]));
+
+            expect(updatedSpy).toHaveBeenCalledTimes(1);
+            expect(updatedSpy).toHaveBeenCalledWith([ 'http://jitsi.org/protocol/polls#close' ]);
+        });
+
+        it('forgets the features of the previous connection when connecting again', () => {
+            const updatedSpy = jasmine.createSpy('serverFeaturesUpdated');
+
+            (xmpp as any)._processDiscoInfoIdentities(new Set(), new Set([ 'http://jitsi.org/protocol/polls#close' ]));
+            xmpp.addListener(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, updatedSpy);
+            spyOn(xmpp.connection, 'connect');
+
+            xmpp.connect('localhost', undefined);
+
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#close')).toBe(false);
+            expect(updatedSpy).toHaveBeenCalledWith([]);
+        });
+
+        it('keeps the features from jiconop when the connection is established', () => {
+            (xmpp as any)._processDiscoInfoIdentities(new Set(), new Set([ 'http://jitsi.org/protocol/polls#close' ]));
+            spyOn(xmpp.caps, 'getFeaturesAndIdentities').and.returnValue(new Promise(() => undefined) as any);
+            spyOn(xmpp.connection.jingle, 'getStunAndTurnCredentials');
+            (xmpp as any).sendDiscoInfo = true;
+
+            xmpp.connectionHandler({}, Strophe.Status.CONNECTED);
+
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#close')).toBe(true);
+        });
+
+        it('does not take the per-room lobby and breakout rooms features as server features', () => {
+            (xmpp as any)._processDiscoInfoIdentities(new Set(), new Set([
+                'http://jitsi.org/protocol/breakout_rooms#rename',
+                'http://jitsi.org/protocol/lobbyrooms#displayname_required',
+                'http://jitsi.org/protocol/polls#close'
+            ]));
+
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/breakout_rooms#rename')).toBe(false);
+            expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/lobbyrooms#displayname_required'))
+                .toBe(false);
             expect(xmpp.isServerFeatureSupported('http://jitsi.org/protocol/polls#close')).toBe(true);
         });
     });
