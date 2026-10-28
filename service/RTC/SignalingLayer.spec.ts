@@ -1,4 +1,9 @@
+import { MediaType } from './MediaType';
 import SignalingLayer, {
+    getEndpointIdFromSourceName,
+    getMediaTypeFromSourceName,
+    getSourceIndexFromSourceName,
+    getSourceNameForJitsiTrack,
     isSyntheticSourceKind,
     isSyntheticSourceName,
     isTranslatedSourceName,
@@ -6,6 +11,43 @@ import SignalingLayer, {
 } from './SignalingLayer';
 
 describe('/service/RTC/SignalingLayer', () => {
+    describe('source name parsers', () => {
+        it('round-trip the names getSourceNameForJitsiTrack generates', () => {
+            const name = getSourceNameForJitsiTrack('endpointA', MediaType.VIDEO, 1);
+
+            expect(name).toBe('endpointA-v1');
+            expect(getEndpointIdFromSourceName(name)).toBe('endpointA');
+            expect(getMediaTypeFromSourceName(name)).toBe(MediaType.VIDEO);
+            expect(getSourceIndexFromSourceName(name)).toBe(1);
+        });
+
+        it('keep a hyphen inside the endpoint id', () => {
+            expect(getEndpointIdFromSourceName('end-point-a0')).toBe('end-point');
+            expect(getMediaTypeFromSourceName('end-point-a0')).toBe(MediaType.AUDIO);
+            expect(getSourceIndexFromSourceName('end-point-a0')).toBe(0);
+        });
+
+        it('parse a translated source whose language suffix contains a hyphen', () => {
+            // The bridge names a translated source '<base source>.<language>'; the language may carry a region or
+            // script subtag, so the suffix can contain '-' and must not be mistaken for the media-type separator.
+            for (const name of [ 'endpointA-a0.es', 'endpointA-a0.pt-BR', 'endpointA-a0.zh-Hant' ]) {
+                expect(getEndpointIdFromSourceName(name)).withContext(name).toBe('endpointA');
+                expect(getMediaTypeFromSourceName(name)).withContext(name).toBe(MediaType.AUDIO);
+                expect(getSourceIndexFromSourceName(name)).withContext(name).toBe(0);
+            }
+            expect(getEndpointIdFromSourceName('end-point-a12.pt-BR')).toBe('end-point');
+            expect(getSourceIndexFromSourceName('end-point-a12.pt-BR')).toBe(12);
+        });
+
+        it('reject names that are not in the generated format', () => {
+            for (const name of [ 'endpointA', 'endpointA-x0', 'endpointA-a', '-a0', 'endpointA-a0.', 'endpointA-a0-pt-BR' ]) {
+                expect(() => getMediaTypeFromSourceName(name)).withContext(name).toThrowError(/Invalid source name/);
+                expect(() => getEndpointIdFromSourceName(name)).withContext(name).toThrowError(/Invalid source name/);
+                expect(() => getSourceIndexFromSourceName(name)).withContext(name).toThrowError(/Invalid source name/);
+            }
+        });
+    });
+
     describe('isTranslatedSourceName', () => {
         it('matches a translated source (has a language suffix)', () => {
             expect(isTranslatedSourceName('endpointA-a0.en')).toBe(true);
