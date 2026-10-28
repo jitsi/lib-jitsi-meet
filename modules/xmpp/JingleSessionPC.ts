@@ -2712,8 +2712,9 @@ export default class JingleSessionPC extends JingleSession {
                 const muted = mediaInfo?.muted;
                 const videoType = mediaInfo?.videoType;
 
-                typeof muted !== 'undefined' && this.peerconnection._sourceMutedChanged(source, muted);
+                // Update the track's source name before looking it up for the mute change.
                 this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_SET, track, owner, source, videoType);
+                typeof muted !== 'undefined' && this.peerconnection._sourceMutedChanged(source, muted);
             }
         }
 

@@ -4293,9 +4293,11 @@ export default class JitsiConference extends Listenable {
             JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
             (audioLevel: number, tpc: TraceablePeerConnection) => {
                 const activeTPC = this.getActivePeerConnection();
+                // SSRC rewriting can change or clear the owner without replacing the track.
+                const participantId = track.getParticipantId();
 
-                if (activeTPC === tpc) {
-                    emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, id, audioLevel);
+                if (activeTPC === tpc && participantId) {
+                    emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, participantId, audioLevel);
                 }
             }
         );

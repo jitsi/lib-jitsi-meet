@@ -2,13 +2,96 @@ import { XMPPEvents } from './service/xmpp/XMPPEvents';
 import JitsiConference from './JitsiConference';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
+import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
+import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
 import { P2PFallbackReason } from './modules/qualitycontrol/QualityController';
 import { ReceiverAudioController } from './modules/qualitycontrol/ReceiveAudioController';
+import EventEmitter from './modules/util/EventEmitter';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
+import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 import { TransportCost } from './service/RTC/TransportCost';
 
 describe('JitsiConference', () => {
+    describe('remote audio levels', () => {
+        let activeTPC: TraceablePeerConnection;
+        let audioLevelChanged: jasmine.Spy;
+        let track: JitsiRemoteTrack;
+
+        beforeEach(() => {
+            const conference = Object.create(JitsiConference.prototype);
+
+            activeTPC = Object.create(null);
+            audioLevelChanged = jasmine.createSpy('audioLevelChanged');
+            conference._signalingLayer = new SignalingLayerImpl();
+            conference.eventEmitter = new EventEmitter();
+            conference.getActivePeerConnection = () => activeTPC;
+            conference.getParticipantById = () => undefined;
+            conference.isP2PActive = () => false;
+            conference.eventEmitter.on(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, audioLevelChanged);
+            track = new JitsiRemoteTrack(
+                null,
+                conference,
+                'aaaaaaaa',
+                new MediaStream(),
+                jasmine.createSpyObj('MediaStreamTrack', [ 'addEventListener' ]),
+                MediaType.AUDIO,
+                undefined,
+                1234,
+                false,
+                false,
+                'aaaaaaaa-a0');
+
+            conference.onRemoteTrackAdded(track);
+        });
+
+        it('reports the current owner when the same audio track is remapped', () => {
+            track.setAudioLevel(0.2, activeTPC);
+            track.setOwner('bbbbbbbb');
+            track.setSourceName('bbbbbbbb-a0');
+            track.setAudioLevel(0.4, activeTPC);
+            track.setOwner('aaaaaaaa');
+            track.setSourceName('aaaaaaaa-a0');
+            track.setAudioLevel(0.6, activeTPC);
+
+            expect(audioLevelChanged.calls.allArgs()).toEqual([
+                [ 'aaaaaaaa', 0.2 ],
+                [ 'bbbbbbbb', 0.4 ],
+                [ 'aaaaaaaa', 0.6 ]
+            ]);
+        });
+
+        it('only relays levels from the currently active peer connection after a remap', () => {
+            const previousTPC = activeTPC;
+
+            activeTPC = Object.create(null);
+            track.setOwner('bbbbbbbb');
+            track.setSourceName('bbbbbbbb-a0');
+            track.setAudioLevel(0.2, previousTPC);
+
+            expect(audioLevelChanged).not.toHaveBeenCalled();
+
+            track.setAudioLevel(0.4, activeTPC);
+
+            expect(audioLevelChanged.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 0.4 ] ]);
+        });
+
+        for (const owner of [ null, undefined ]) {
+            it(`does not relay levels without an owner (${owner}) and resumes after reassignment`, () => {
+                track.setOwner(owner);
+                track.setAudioLevel(0.2, activeTPC);
+
+                expect(audioLevelChanged).not.toHaveBeenCalled();
+
+                track.setOwner('bbbbbbbb');
+                track.setSourceName('bbbbbbbb-a0');
+                track.setAudioLevel(0.4, activeTPC);
+
+                expect(audioLevelChanged.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 0.4 ] ]);
+            });
+        }
+    });
+
     describe('JitsiConferenceEvents message handling', () => {
         let conference;
         let eventManager;
