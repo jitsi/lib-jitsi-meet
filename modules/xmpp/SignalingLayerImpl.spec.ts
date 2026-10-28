@@ -335,6 +335,21 @@ describe('SignalingLayerImpl', () => {
                         videoType: 'desktop'
                     });
                 });
+                it('for a translated source whose language suffix contains a hyphen', () => {
+                    // The path _remoteTrackAdded takes for a bridge-injected translated track. It used to throw
+                    // 'Invalid source name' here (the media type was read from the last '-'), so the remote track
+                    // was never created.
+                    const endpointId = '12345678';
+
+                    chatRoom.mockSourceInfoPresence(endpointId, { '12345678-a0': { muted: false } });
+
+                    const peerMediaInfo = signalingLayer.getPeerMediaInfo(endpointId, MediaType.AUDIO, '12345678-a0.pt-BR');
+
+                    expect(peerMediaInfo).toEqual({
+                        muted: true,
+                        sourceName: '12345678-a0.pt-BR'
+                    });
+                });
             });
         });
     });
