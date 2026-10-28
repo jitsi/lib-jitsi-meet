@@ -2,13 +2,129 @@ import { XMPPEvents } from './service/xmpp/XMPPEvents';
 import JitsiConference from './JitsiConference';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
+import { JitsiTrackEvents } from './JitsiTrackEvents';
+import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { P2PFallbackReason } from './modules/qualitycontrol/QualityController';
 import { ReceiverAudioController } from './modules/qualitycontrol/ReceiveAudioController';
+import EventEmitter from './modules/util/EventEmitter';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
+import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 import { TransportCost } from './service/RTC/TransportCost';
 
 describe('JitsiConference', () => {
+    describe('remote track relays across SSRC remaps', () => {
+        let activeTPC: object;
+        let conference: any;
+        let levels: jasmine.Spy;
+        let mutes: jasmine.Spy;
+        let room: EventEmitter;
+
+        function addAudioTrack(owner: string, sourceName: string): JitsiRemoteTrack {
+            const track = new JitsiRemoteTrack(
+                null, conference, owner, new MediaStream(),
+                jasmine.createSpyObj('MediaStreamTrack', [ 'addEventListener' ]),
+                MediaType.AUDIO, undefined, 1234, false, false, sourceName);
+
+            conference.onRemoteTrackAdded(track);
+
+            return track;
+        }
+
+        // Remaps the track the way the bridge's source map does, through the TRACK_OWNER_SET handler.
+        function remap(track: JitsiRemoteTrack, owner?: string, sourceName?: string): void {
+            room.emit(JitsiTrackEvents.TRACK_OWNER_SET, track, owner, sourceName, undefined);
+        }
+
+        beforeEach(() => {
+            activeTPC = Object.create(null);
+            room = new EventEmitter();
+            conference = Object.create(JitsiConference.prototype);
+            conference.room = {
+                addListener: room.addListener.bind(room),
+                eventEmitter: room,
+                setParticipantPropertyListener: () => { /* no-op */ }
+            };
+            conference._signalingLayer = new SignalingLayerImpl();
+            conference.eventEmitter = new EventEmitter();
+            conference.getActivePeerConnection = () => activeTPC;
+            conference.getParticipantById = () => undefined;
+            conference.isP2PActive = () => false;
+            new JitsiConferenceEventManager(conference).setupChatRoomListeners();
+
+            levels = jasmine.createSpy('levels');
+            mutes = jasmine.createSpy('mutes');
+            conference.eventEmitter.on(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, levels);
+            conference.eventEmitter.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
+                (track: JitsiRemoteTrack) => mutes(track.getParticipantId(), track.isMuted()));
+        });
+
+        it('relays audio levels under the current owner', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            track.setAudioLevel(0.2, activeTPC);
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            track.setAudioLevel(0.4, activeTPC);
+
+            expect(levels.calls.allArgs()).toEqual([ [ 'aaaaaaaa', 0.2 ], [ 'bbbbbbbb', 0.4 ] ]);
+        });
+
+        it('relays no audio level while the track has no owner', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            remap(track);
+            track.setAudioLevel(0.2, activeTPC);
+
+            expect(levels).not.toHaveBeenCalled();
+        });
+
+        it('relays no audio level from a translation the track was remapped to', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            conference._signalingLayer.setSyntheticSourceKind('bbbbbbbb-a0.fr', 'translation');
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0.fr');
+            track.setAudioLevel(0.2, activeTPC);
+
+            expect(levels).not.toHaveBeenCalled();
+        });
+
+        it('relays audio levels and mute changes of a speaker a translation track was remapped to', () => {
+            conference._signalingLayer.setSyntheticSourceKind('aaaaaaaa-a0.fr', 'translation');
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0.fr');
+
+            track.setAudioLevel(0.2, activeTPC);
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            track.setAudioLevel(0.4, activeTPC);
+            track.setMute(true);
+
+            expect(levels.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 0.4 ] ]);
+            expect(mutes.calls.allArgs()).toEqual([ [ 'bbbbbbbb', true ] ]);
+        });
+
+        it('keeps relaying mute changes when the application strips the track listeners on TRACK_REMOVED', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            conference.eventEmitter.on(JitsiConferenceEvents.TRACK_REMOVED,
+                (removed: JitsiRemoteTrack) => removed.removeAllListeners(JitsiTrackEvents.TRACK_MUTE_CHANGED));
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            track.setMute(true);
+
+            expect(mutes.calls.allArgs()).toEqual([ [ 'bbbbbbbb', true ] ]);
+        });
+
+        it('relays each event once however many times the track is remapped', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            remap(track, 'aaaaaaaa', 'aaaaaaaa-a0');
+            track.setAudioLevel(0.2, activeTPC);
+            track.setMute(true);
+
+            expect(levels.calls.allArgs()).toEqual([ [ 'aaaaaaaa', 0.2 ] ]);
+            expect(mutes.calls.allArgs()).toEqual([ [ 'aaaaaaaa', true ] ]);
+        });
+    });
+
     describe('JitsiConferenceEvents message handling', () => {
         let conference;
         let eventManager;
@@ -691,13 +807,32 @@ describe('JitsiConference', () => {
         let onSendingChanged: (change: any) => void;
 
         const payloadsOf = (event: string) => emitted.filter(([ name ]) => name === event).map(([ , payload ]) => payload);
-        const remoteTrack = (sourceName: string) => ({
-            addEventListener: jasmine.createSpy('addEventListener'),
-            getParticipantId: () => 'abcdef12',
-            getSourceName: () => sourceName,
-            isAudioTrack: () => true,
-            isP2P: false
-        });
+        const activeTPC = {};
+        const remoteTrack = (sourceName: string) => {
+            const listeners = new Map<string, (...args: any[]) => void>();
+
+            return {
+                addCancellableListener: (event: string, listener: (...args: any[]) => void) => {
+                    listeners.set(event, listener);
+
+                    return () => listeners.delete(event);
+                },
+                fire: (event: string, ...args: any[]) => listeners.get(event)?.(...args),
+                getParticipantId: () => 'abcdef12',
+                getSourceName: () => sourceName,
+                isAudioTrack: () => true,
+                isP2P: false
+            };
+        };
+        const relayedFrom = (track: ReturnType<typeof remoteTrack>) => {
+            track.fire(JitsiTrackEvents.TRACK_MUTE_CHANGED, track);
+            track.fire(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, 0.5, activeTPC);
+
+            return [
+                ...payloadsOf(JitsiConferenceEvents.TRACK_MUTE_CHANGED),
+                ...payloadsOf(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED)
+            ];
+        };
 
         beforeEach(() => {
             emitted = [];
@@ -708,6 +843,7 @@ describe('JitsiConference', () => {
             conference._signalingLayer = new SignalingLayerImpl();
             conference.eventEmitter = { emit: (...args: any[]) => emitted.push(args) };
             conference.getParticipantById = () => undefined;
+            conference.getActivePeerConnection = () => activeTPC;
             conference.isP2PActive = () => false;
             conference.rtc = {
                 addListener: (event: string, listener: (...args: any[]) => void) => {
@@ -786,7 +922,7 @@ describe('JitsiConference', () => {
 
                 conference.onRemoteTrackAdded(track);
 
-                expect(track.addEventListener).not.toHaveBeenCalled();
+                expect(relayedFrom(track)).toEqual([]);
                 expect(payloadsOf(JitsiConferenceEvents.TRACK_ADDED)).toEqual([ track ]);
             });
 
@@ -796,18 +932,19 @@ describe('JitsiConference', () => {
 
                 conference.onRemoteTrackAdded(track);
 
-                expect(track.addEventListener).toHaveBeenCalledTimes(2);
+                expect(relayedFrom(track)).toEqual([ track, 'abcdef12' ]);
             });
 
             it('falls back to the language-suffix heuristic when the bridge sent no kind', () => {
                 const translated = remoteTrack('abcdef12-a0.en');
-                const regular = remoteTrack('abcdef12-a0');
 
                 conference.onRemoteTrackAdded(translated);
-                conference.onRemoteTrackAdded(regular);
+                expect(relayedFrom(translated)).toEqual([]);
 
-                expect(translated.addEventListener).not.toHaveBeenCalled();
-                expect(regular.addEventListener).toHaveBeenCalledTimes(2);
+                const regular = remoteTrack('abcdef12-a0');
+
+                conference.onRemoteTrackAdded(regular);
+                expect(relayedFrom(regular)).toEqual([ regular, 'abcdef12' ]);
             });
         });
     });

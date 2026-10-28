@@ -228,6 +228,11 @@ const P2P_TCP_RELAY_SAMPLES = 2;
 const DEFAULT_TRANSCRIPTION_LANGUAGE: string = 'en-US';
 
 /**
+ * Removes the listeners relaying a remote track's events to its conference. A track belongs to one conference.
+ */
+const remoteTrackRelays = new WeakMap<JitsiRemoteTrack, () => void>();
+
+/**
  * Checks if a given string is a valid video codec mime type.
  *
  * @param {string} codec the codec string that needs to be validated.
@@ -4275,32 +4280,55 @@ export default class JitsiConference extends Listenable {
             logger.info(`Source signaling received before presence for ${id}`);
         }
 
-        const emitter = this.eventEmitter;
-        const sourceName = track.getSourceName();
-        const kind = this._signalingLayer.getSyntheticSourceKind(sourceName);
+        this.attachRemoteTrackRelays(track);
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+    }
 
-        // The bridge-signaled kind wins; the name heuristic only covers bridges that do not send one.
-        const isTranslated = kind ? kind === 'translation' : isTranslatedSourceName(sourceName);
+    /**
+     * Attaches the listeners that relay a remote track's mute and audio-level events to this conference,
+     * replacing any attached before. With SSRC rewriting a track is reused for other sources, so the owner and
+     * whether the source is a translation are read when each event fires, not when the track was first added.
+     * Called again on every remap, which also restores the relays for an application that strips the track's
+     * listeners when it handles TRACK_REMOVED.
+     *
+     * @param {JitsiRemoteTrack} track - The remote track.
+     * @returns {void}
+     * @internal
+     */
+    attachRemoteTrackRelays(track: JitsiRemoteTrack): void {
+        remoteTrackRelays.get(track)?.();
+
+        const emitter = this.eventEmitter;
+        const isTranslated = (): boolean => {
+            const sourceName = track.getSourceName();
+            const kind = this._signalingLayer.getSyntheticSourceKind(sourceName);
+
+            // The bridge-signaled kind wins; the name heuristic only covers bridges that do not send one.
+            return kind ? kind === 'translation' : isTranslatedSourceName(sourceName);
+        };
 
         // Translated tracks have no mute lifecycle (presence/source-info is only signaled for the original
-        // sources), so skip the relay for them.
-        !isTranslated && track.addEventListener(
+        // sources), and their audio shares the participant id with the original source, so relaying their levels
+        // would clobber the original speaker's.
+        const cancelMute = track.addCancellableListener(
             JitsiTrackEvents.TRACK_MUTE_CHANGED,
-            () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
-        // Skip translated audio tracks. They share the participant id with the original source and would
-        // otherwise clobber the original speaker's levels on the conference-level event.
-        track.isAudioTrack() && !isTranslated && track.addEventListener(
-            JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-            (audioLevel: number, tpc: TraceablePeerConnection) => {
-                const activeTPC = this.getActivePeerConnection();
+            () => !isTranslated() && emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
+        const cancelAudioLevel = track.isAudioTrack()
+            ? track.addCancellableListener(
+                JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                (audioLevel: number, tpc: TraceablePeerConnection) => {
+                    const participantId = track.getParticipantId();
 
-                if (activeTPC === tpc) {
-                    emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, id, audioLevel);
-                }
-            }
-        );
+                    if (tpc === this.getActivePeerConnection() && participantId && !isTranslated()) {
+                        emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, participantId, audioLevel);
+                    }
+                })
+            : undefined;
 
-        emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+        remoteTrackRelays.set(track, () => {
+            cancelMute();
+            cancelAudioLevel?.();
+        });
     }
 
 
