@@ -72,17 +72,45 @@ describe('JitsiConference', () => {
             track.setAudioLevel(0.2, activeTPC);
             remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
             track.setAudioLevel(0.4, activeTPC);
+            remap(track, 'aaaaaaaa', 'aaaaaaaa-a0');
+            track.setAudioLevel(0.6, activeTPC);
 
-            expect(levels.calls.allArgs()).toEqual([ [ 'aaaaaaaa', 0.2 ], [ 'bbbbbbbb', 0.4 ] ]);
+            expect(levels.calls.allArgs()).toEqual([
+                [ 'aaaaaaaa', 0.2 ],
+                [ 'bbbbbbbb', 0.4 ],
+                [ 'aaaaaaaa', 0.6 ]
+            ]);
         });
 
-        it('relays no audio level while the track has no owner', () => {
+        it('only relays levels from the currently active peer connection after a remap', () => {
             const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+            const previousTPC = activeTPC;
 
-            remap(track);
-            track.setAudioLevel(0.2, activeTPC);
+            activeTPC = Object.create(TraceablePeerConnection.prototype);
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            track.setAudioLevel(0.2, previousTPC);
 
             expect(levels).not.toHaveBeenCalled();
+
+            track.setAudioLevel(0.4, activeTPC);
+
+            expect(levels.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 0.4 ] ]);
+        });
+
+        [ null, undefined ].forEach(owner => {
+            it(`does not relay levels without an owner (${owner}) and resumes after reassignment`, () => {
+                const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+                remap(track, owner);
+                track.setAudioLevel(0.2, activeTPC);
+
+                expect(levels).not.toHaveBeenCalled();
+
+                remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+                track.setAudioLevel(0.4, activeTPC);
+
+                expect(levels.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 0.4 ] ]);
+            });
         });
 
         it('relays no audio level from a translation the track was remapped to', () => {
