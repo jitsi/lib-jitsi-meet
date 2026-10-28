@@ -120,13 +120,12 @@ describe('RTCUtils', () => {
             expect(el.setSinkId).toHaveBeenCalledWith('');
         });
 
-        it('passes \'default\' as a sink id only where a device is enumerated with that id', () => {
-            expect(RTCUtils.toSinkId('default')).toBe('');
-            expect(RTCUtils.toSinkId('speaker-2')).toBe('speaker-2');
-
+        it('passes the default output as \'\' even where a device is enumerated as \'default\'', () => {
             (RTCUtils as any)._updateKnownDevices([ { deviceId: 'default', kind: 'audiooutput' } ]);
 
-            expect(RTCUtils.toSinkId('default')).toBe('default');
+            expect(RTCUtils.toSinkId('default')).toBe('');
+            expect(RTCUtils.toSinkId('')).toBe('');
+            expect(RTCUtils.toSinkId('speaker-2')).toBe('speaker-2');
         });
     });
 

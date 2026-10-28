@@ -273,7 +273,8 @@ export default class JitsiTrack extends Listenable {
             if (this.isAudioTrack()) {
                 result = result.catch((error: Error) => {
                     this.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED, error);
-                    throw error;
+
+                    return Promise.reject(error);
                 });
             }
         }
@@ -570,7 +571,8 @@ export default class JitsiTrack extends Listenable {
                             element,
                             error);
                         RTCUtils.reloadMediaElement(element, this.stream, error);
-                        throw error;
+
+                        return Promise.reject(error);
                     })))
             .then(results => {
                 if (results.some(result => result.status === 'fulfilled')) {

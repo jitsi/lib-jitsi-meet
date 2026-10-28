@@ -371,7 +371,7 @@ class RTCUtils extends Listenable {
                     new JitsiTrackError(ex, null, [ 'audiooutput' ]));
                 this.reloadMediaElement(element, stream, ex);
 
-                throw ex;
+                return Promise.reject(ex);
             });
         }
 
@@ -927,19 +927,14 @@ class RTCUtils extends Listenable {
     }
 
     /**
-     * Returns the sink id to pass to setSinkId for an audio output device id. 'default' is a valid sink id only where
-     * a device is enumerated with that id (Chromium); elsewhere setSinkId rejects it and '' selects the default.
+     * Returns the sink id to pass to setSinkId for an audio output device id. The default output is always passed as
+     * '', which every browser accepts; 'default' is a device id only on Chromium.
      *
      * @param {string} deviceId - The audio output device id.
      * @returns {string}
      */
     toSinkId(deviceId) {
-        if (deviceId !== 'default') {
-            return deviceId;
-        }
-
-        return availableDevices.some(device => device.kind === 'audiooutput' && device.deviceId === 'default')
-            ? deviceId : '';
+        return isDefaultAudioOutput(deviceId) ? '' : deviceId;
     }
 
     /**
