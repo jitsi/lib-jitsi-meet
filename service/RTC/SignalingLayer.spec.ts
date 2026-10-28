@@ -37,10 +37,27 @@ describe('/service/RTC/SignalingLayer', () => {
             }
             expect(getEndpointIdFromSourceName('end-point-a12.pt-BR')).toBe('end-point');
             expect(getSourceIndexFromSourceName('end-point-a12.pt-BR')).toBe(12);
+            expect(getMediaTypeFromSourceName('endpointA-v1.es')).toBe(MediaType.VIDEO);
+            expect(getSourceIndexFromSourceName('endpointA-v1.es')).toBe(1);
+        });
+
+        it('take the media segment from before the suffix, even when the suffix ends like one', () => {
+            expect(getEndpointIdFromSourceName('x-a0.foo-a1')).toBe('x');
+            expect(getMediaTypeFromSourceName('x-a0.foo-a1')).toBe(MediaType.AUDIO);
+            expect(getSourceIndexFromSourceName('x-a0.foo-a1')).toBe(0);
+            expect(getMediaTypeFromSourceName('endpointA-a0.x-v12')).toBe(MediaType.AUDIO);
+            expect(getSourceIndexFromSourceName('endpointA-a0.x-v12')).toBe(0);
         });
 
         it('reject names that are not in the generated format', () => {
-            for (const name of [ 'endpointA', 'endpointA-x0', 'endpointA-a', '-a0', 'endpointA-a0.', 'endpointA-a0-pt-BR' ]) {
+            const invalid = [
+                'endpointA', 'endpointA-x0', 'endpointA-a', 'endpointA-a-1', '-a0', 'endpointA-a0-pt-BR',
+
+                // A single '.' marks the suffix; an empty or dotted suffix is not a name we generate.
+                'endpointA-a0.', 'endpointA-a0..', '12345678-a0.x.y'
+            ];
+
+            for (const name of invalid) {
                 expect(() => getMediaTypeFromSourceName(name)).withContext(name).toThrowError(/Invalid source name/);
                 expect(() => getEndpointIdFromSourceName(name)).withContext(name).toThrowError(/Invalid source name/);
                 expect(() => getSourceIndexFromSourceName(name)).withContext(name).toThrowError(/Invalid source name/);

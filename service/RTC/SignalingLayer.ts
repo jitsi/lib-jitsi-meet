@@ -72,9 +72,11 @@ export function getSourceNameForJitsiTrack(endpointId: EndpointId, mediaType: Me
  * itself contain '-'), '-', the media type letter, the track index, and an optional '.<suffix>' that a synthetic
  * (bridge-injected) source carries for its language, eg. 'endpointA-a0.es' or 'endpointA-a0.pt-BR'. The suffix may
  * contain '-' (a BCP-47 region or script subtag), so the media type and index are taken from the segment before
- * the suffix, never from the last '-' of the whole name.
+ * the suffix. Neither the endpoint id nor the suffix may contain '.': the single '.' is what marks a translated
+ * source ({@link isTranslatedSourceName}), and anchoring both groups on it keeps a suffix that happens to end in
+ * '-a1' or '-v12' from being read as the media segment.
  */
-const SOURCE_NAME_RE = /^(.+)-([av])(\d+)(?:\.(.+))?$/;
+const SOURCE_NAME_RE = /^([^.]+)-([av])(\d+)(?:\.([^.]+))?$/;
 
 /**
  * Splits a source name into its parts, or throws if it is not in the format {@link getSourceNameForJitsiTrack}
