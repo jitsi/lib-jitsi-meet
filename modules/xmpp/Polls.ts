@@ -7,6 +7,17 @@ export const COMMAND_ANSWER_POLL = 'answer-poll';
 export const COMMAND_NEW_POLL = 'new-poll';
 export const COMMAND_OLD_POLLS = 'old-polls';
 
+/**
+ * Options of a new poll.
+ */
+export interface IPollOptions {
+
+    /**
+     * Whether a voter can choose only one answer. When not set, a voter can choose any number of answers.
+     */
+    singleAnswer?: boolean;
+}
+
 export default class Polls {
     private _mainRoom: ChatRoom;
     private _xmpp: XMPP;
@@ -46,8 +57,13 @@ export default class Polls {
      * @param pollId
      * @param question
      * @param answers
+     * @param options - The options of the poll.
      */
-    createPoll(pollId: string, question: string, answers: Array<{ name: string; }>) {
+    createPoll(
+            pollId: string,
+            question: string,
+            answers: Array<{ name: string; }>,
+            options: IPollOptions = {}) {
         this._mainRoom.sendPrivateMessage(
             this._xmpp.pollsComponentAddress,
             JSON.stringify({
@@ -55,6 +71,9 @@ export default class Polls {
                 command: COMMAND_NEW_POLL,
                 pollId,
                 question,
+
+                // Only sent when set, so a poll without options keeps the message it had before.
+                ...options?.singleAnswer === true ? { singleAnswer: true } : {},
                 type: 'polls'
             }),
             'json-message',
