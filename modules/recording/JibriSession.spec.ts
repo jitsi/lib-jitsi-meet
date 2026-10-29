@@ -5,6 +5,7 @@
 import RTCStats from '../RTCStats/RTCStats';
 
 import JibriSession from './JibriSession';
+import recordingConstants from './recordingConstants';
 
 describe('JibriSession', () => {
     let sendStatsEntrySpy: jasmine.Spy;
@@ -388,6 +389,40 @@ describe('JibriSession', () => {
             expect(iqString).toContain('you_tube_broadcast_id="youtube-broadcast-id"');
             expect(iqString).toContain('streamid="youtube-stream-key"');
             expect(iqString).toContain('recording_mode="stream"');
+        });
+
+        it('should keep a bad-request error and log its text', async () => {
+            const session = new JibriSession({
+                connection: mockConnection,
+                mode: 'file'
+            });
+            const detail = 'No canvas for 3 tiles of 1280x720. Supported: 2 tiles of 1280x720';
+
+            // Parse it as XML, like Strophe does, so that the tag names keep their case.
+            const errorIq = new DOMParser().parseFromString(
+                '<iq xmlns="jabber:client" type="error">'
+                    + '<error type="modify" code="400">'
+                    + '<bad-request xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"/>'
+                    + `<text xmlns="urn:ietf:params:xml:ns:xmpp-stanzas">${detail}</text>`
+                    + '</error></iq>',
+                'text/xml'
+            ).documentElement;
+
+            sendIQSpy.and.callFake((iq: any, successCallback: any, errorCallback: any) => {
+                errorCallback(errorIq);
+            });
+
+            await expectAsync(
+                session.start({ focusMucJid: 'focus@conference.example.com' })
+            ).toBeRejected();
+
+            expect(session.getError()).toBe(recordingConstants.error.BAD_REQUEST);
+
+            // handleStropheError logs the same object to the console.
+            const statsCall = sendStatsEntrySpy.calls.mostRecent().args[2];
+
+            expect(statsCall.reason).toBe('bad-request');
+            expect(statsCall.msg).toBe(detail);
         });
 
         it('should call handleStropheError with correct context on error', async () => {
