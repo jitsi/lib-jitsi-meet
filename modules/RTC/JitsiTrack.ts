@@ -261,7 +261,8 @@ export default class JitsiTrack extends Listenable {
      * @param container the HTML container which can be 'video' or 'audio'
      * element.
      *
-     * @returns {void}
+     * @returns {Promise<void>} - rejects if the audio output device could not be applied, which audio tracks also
+     * report with {@link JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED}.
      */
     public attach(container: HTMLElement): Promise<void> {
         let result = Promise.resolve();
@@ -269,8 +270,17 @@ export default class JitsiTrack extends Listenable {
         if (this.stream) {
             this._onTrackAttach(container);
             result = RTCUtils.attachMediaStream(container, this.stream);
+            if (this.isAudioTrack()) {
+                result = result.catch((error: Error) => {
+                    this.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED, error);
+
+                    return Promise.reject(error);
+                });
+            }
         }
-        this.containers.push(container);
+        if (!this.containers.includes(container)) {
+            this.containers.push(container);
+        }
         this._attachTTFMTracker(container);
 
         return result;
@@ -528,7 +538,8 @@ export default class JitsiTrack extends Listenable {
 
     /**
      * Sets new audio output device for track's DOM elements. Video tracks are
-     * ignored. Emits `JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED`.
+     * ignored. Emits `JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED`, and `JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED`
+     * if any element could not be switched.
      * @param {string} audioOutputDeviceId - id of 'audiooutput' device from
      *      navigator.mediaDevices.enumerateDevices(), '' for default device
      * @returns {Promise}
@@ -547,21 +558,30 @@ export default class JitsiTrack extends Listenable {
         // surface as an unhandled rejection (both callers — RTC._updateAudioOutputForAudioTracks and the
         // AUDIO_OUTPUT_DEVICE_CHANGED listener on local tracks — invoke this fire-and-forget). The event is
         // suppressed when every container failed so UI consumers do not show a sink change that did not happen.
+        const sinkId = RTCUtils.toSinkId(audioOutputDeviceId);
+
         return Promise.allSettled(
-            this.containers.map(element =>
-                (element as HTMLAudioElement | HTMLVideoElement).setSinkId(audioOutputDeviceId)
+            (this.containers as HTMLMediaElement[]).map(element => RTCUtils.isSinkApplied(element, audioOutputDeviceId)
+                ? Promise.resolve()
+                : element.setSinkId(sinkId)
                     .catch(error => {
                         logger.warn(
                             'Failed to change audio output device on element. Default or previously set audio'
                                 + ' output device will be used.',
                             element,
                             error);
-                        throw error;
+                        RTCUtils.reloadMediaElement(element, this.stream, error);
+
+                        return Promise.reject(error);
                     })))
             .then(results => {
                 if (results.some(result => result.status === 'fulfilled')) {
                     this.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED, audioOutputDeviceId);
                 }
+
+                const failure = results.find(result => result.status === 'rejected') as PromiseRejectedResult;
+
+                failure && this.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED, failure.reason);
             });
     }
 

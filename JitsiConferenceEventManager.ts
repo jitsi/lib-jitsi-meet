@@ -204,7 +204,11 @@ export default class JitsiConferenceEventManager {
                 track.setOwner(owner);
                 track.setSourceName(sourceName);
                 track._setVideoType(videoType);
-                owner && conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+                if (owner) {
+                    // An application may have stripped the track's listeners when it handled TRACK_REMOVED.
+                    conference.attachRemoteTrackRelays(track);
+                    conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+                }
             }
         });
 
