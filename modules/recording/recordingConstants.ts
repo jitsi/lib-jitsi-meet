@@ -1,5 +1,6 @@
 export interface IRecordingConstants {
     error: {
+        BAD_REQUEST: string;
         BUSY: string;
         ERROR: string;
         POLICY_VIOLATION: string;
@@ -20,6 +21,7 @@ export interface IRecordingConstants {
 
 const recordingConstants: IRecordingConstants = {
     error: {
+        BAD_REQUEST: 'bad-request',
         BUSY: 'busy',
         ERROR: 'error',
         POLICY_VIOLATION: 'policy-violation',
