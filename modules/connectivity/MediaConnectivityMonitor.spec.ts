@@ -1,3 +1,4 @@
+import { getSelectedCandidatePair } from '../../service/RTC/TransportCost';
 import {
     IMediaConnectivity,
     MediaConnectivityReason,
@@ -23,7 +24,7 @@ function candidate(type: string): RTCIceCandidate {
  * Chrome points the transport stats at the selected pair, Firefox flags the pair itself (withTransport=false).
  */
 function connectedStats(
-        local: { candidateType: string; protocol: string; relayProtocol?: string; },
+        local: { candidateType: string; protocol: string; relayProtocol?: string; url?: string; },
         withTransport = true): RTCStatsReport {
     const entries = [
         { id: 'L1', type: 'local-candidate', ...local },
@@ -205,6 +206,39 @@ describe('MediaConnectivityMonitor', () => {
             expect(changes[0].status).toBe(MediaConnectivityStatus.DEGRADED);
             expect(changes[0].reasons).toEqual([ MediaConnectivityReason.TCP_TRANSPORT ]);
         }
+    });
+
+    it('reports degraded for a TURN/TLS relay that only shows in the URL, as on Safari', async () => {
+        stats = Promise.resolve(connectedStats({
+            candidateType: 'relay',
+            protocol: 'udp',
+            url: TURN_SERVERS[0].urls as string
+        }));
+
+        createMonitor().onIceConnectionStateChange('connected');
+        await nextTick();
+
+        expect(changes[0].status).toBe(MediaConnectivityStatus.DEGRADED);
+    });
+
+    it('follows the selected pair reported by the stats poll once connected', async () => {
+        const udpPair = getSelectedCandidatePair(connectedStats({ candidateType: 'srflx', protocol: 'udp' }));
+        const monitor = createMonitor();
+
+        monitor.onSelectedCandidatePair(udpPair);
+        expect(changes.length).toBe(0);
+
+        stats = Promise.resolve(connectedStats({ candidateType: 'relay', protocol: 'udp', relayProtocol: 'tcp' }));
+        monitor.onIceConnectionStateChange('connected');
+        await nextTick();
+
+        // The relayed pair that got ICE connected gives way to a better one.
+        monitor.onSelectedCandidatePair(udpPair);
+        monitor.onSelectedCandidatePair(udpPair);
+        monitor.onSelectedCandidatePair(undefined);
+
+        expect(changes.map(c => c.status)).toEqual([ MediaConnectivityStatus.DEGRADED, MediaConnectivityStatus.GOOD ]);
+        expect(monitor.getConnectivity()?.selectedPair?.localType).toBe('srflx');
     });
 
     it('adds the checking timeout to the gathering reasons, then reports good', async () => {

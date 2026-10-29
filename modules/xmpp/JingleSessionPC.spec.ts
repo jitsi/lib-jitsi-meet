@@ -1,9 +1,11 @@
 import { MockRTC } from '../RTC/MockClasses';
 import SDP from '../sdp/SDP';
 import Statistics from '../statistics/statistics';
+import { nextTick } from '../util/TestUtils';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { MediaConnectivityStatus } from '../../service/connectivity/MediaConnectivity';
 import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
@@ -1066,6 +1068,7 @@ describe('JingleSessionPC media connectivity', () => {
         type: 'host'
     };
     let room;
+    let rtc;
     let pc;
     let sendAnalytics;
     let session: JingleSessionPC;
@@ -1073,12 +1076,13 @@ describe('JingleSessionPC media connectivity', () => {
     beforeEach(() => {
         room = new MockChatRoom();
         room.connectionTimes = {};
+        rtc = new MockRTC();
         sendAnalytics = spyOn(Statistics, 'sendAnalytics');
         session = new JingleSessionPC('sid', 'peer1', 'focus', new MockStropheConnection(), { },
             { iceServers: [ { urls: 'turn:turn.example.com:443' } ] }, false, false);
         session.initialize(
             room,
-            new MockRTC(),
+            rtc,
             // eslint-disable-next-line no-empty-function
             { clearSyntheticSourceKinds: () => { }, setSSRCOwner: () => { }, removeSSRCOwners: () => { } },
             { webrtcIceTcpDisable: true });
@@ -1123,5 +1127,27 @@ describe('JingleSessionPC media connectivity', () => {
         pc.onconnectionstatechange();
 
         expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.FAILED);
+    });
+
+    it('follows the selected pair from its own peerconnection\'s stats poll until closed', async () => {
+        const tcpRelay = {
+            local: { candidateType: 'relay', id: 'L1', protocol: 'udp', relayProtocol: 'tls', type: 'local-candidate' },
+            pair: { id: 'CP1', type: 'candidate-pair' }
+        };
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.GOOD);
+
+        rtc.eventEmitter.emit(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, { }, tcpRelay);
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.GOOD);
+
+        rtc.eventEmitter.emit(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, pc, tcpRelay);
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.DEGRADED);
+
+        session.close();
+        expect(rtc.eventEmitter.listenerCount(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS)).toBe(0);
     });
 });

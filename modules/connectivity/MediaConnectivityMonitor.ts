@@ -1,6 +1,12 @@
 import { getLogger } from '@jitsi/logger';
 
 import {
+    ISelectedCandidatePairStats,
+    TransportCost,
+    getSelectedCandidatePair,
+    getTransportCost
+} from '../../service/RTC/TransportCost';
+import {
     ICandidateCounts,
     IIceServerError,
     IMediaConnectivity,
@@ -17,24 +23,6 @@ const logger = getLogger('connectivity:MediaConnectivityMonitor');
 export const DEFAULT_CHECKING_TIMEOUT = 5000;
 
 const MAX_ICE_SERVER_ERRORS = 10;
-
-/**
- * The fields of the transport, candidate-pair and candidate stats read by the monitor.
- */
-interface IStatsEntry {
-    candidateType?: string;
-    currentRoundTripTime?: number;
-    id: string;
-    localCandidateId?: string;
-    nominated?: boolean;
-    protocol?: string;
-    relayProtocol?: string;
-    remoteCandidateId?: string;
-    selected?: boolean;
-    selectedCandidatePairId?: string;
-    state?: string;
-    type: string;
-}
 
 /**
  * Options for {@link MediaConnectivityMonitor}.
@@ -72,7 +60,8 @@ function getCandidateType(candidate: RTCIceCandidate): Optional<string> {
 /**
  * Assesses the expected media quality of one media session from its ICE establishment: the local candidates that
  * were gathered, STUN/TURN errors, the progress of ICE checking and the candidate pair that ICE selected. The
- * assessment ends once ICE connects for the first time.
+ * establishment assessment ends once ICE connects for the first time, after that only the transport of the selected
+ * pair is followed.
  */
 export default class MediaConnectivityMonitor {
     private _candidates: ICandidateCounts;
@@ -85,6 +74,7 @@ export default class MediaConnectivityMonitor {
     private _getStats: () => Promise<RTCStatsReport>;
     private _iceServerErrors: IIceServerError[];
     private _isP2P: boolean;
+    private _isTcp: boolean;
     private _onChange: (connectivity: IMediaConnectivity) => void;
     private _reasons: MediaConnectivityReason[];
     private _selectedPair?: ISelectedCandidatePair;
@@ -109,6 +99,7 @@ export default class MediaConnectivityMonitor {
         this._getStats = options.getStats;
         this._iceServerErrors = [];
         this._isP2P = options.isP2P;
+        this._isTcp = false;
         this._onChange = options.onChange;
         this._reasons = [];
     }
@@ -179,23 +170,13 @@ export default class MediaConnectivityMonitor {
         this._done = true;
 
         this._getStats()
-            .then(stats => this._readSelectedPair(stats))
+            .then(stats => this._setSelectedPair(getSelectedCandidatePair(stats)))
             .catch(error => {
                 logger.warn(`Failed to read the selected candidate pair: ${error}`);
             })
             .then(() => {
-                if (this._disposed) {
-                    return;
-                }
-
-                const { localType, protocol, relayProtocol } = this._selectedPair ?? {};
-                const isTcp = protocol === 'tcp'
-                    || (localType === 'relay' && (relayProtocol === 'tcp' || relayProtocol === 'tls'));
-
-                if (isTcp) {
-                    this._update(MediaConnectivityStatus.DEGRADED, [ MediaConnectivityReason.TCP_TRANSPORT ]);
-                } else {
-                    this._update(MediaConnectivityStatus.GOOD, []);
+                if (!this._disposed) {
+                    this._updateTransport();
                 }
             });
     }
@@ -217,32 +198,20 @@ export default class MediaConnectivityMonitor {
     }
 
     /**
-     * Reads the selected candidate pair from the stats.
+     * Records the candidate pair selected by ICE.
      *
-     * @param {RTCStatsReport} stats - The PeerConnection stats.
+     * @param {ISelectedCandidatePairStats} selected - The selected pair, undefined keeps the last one.
      * @returns {void}
      */
-    private _readSelectedPair(stats: RTCStatsReport): void {
-        const reports = new Map<string, IStatsEntry>();
-
-        stats.forEach((report: IStatsEntry) => reports.set(report.id, report));
-
-        const entries = Array.from(reports.values());
-        const transport = entries.find(report => report.type === 'transport' && report.selectedCandidatePairId);
-
-        // Firefox doesn't expose the transport stats but flags the pair instead.
-        const pair = transport
-            ? reports.get(transport.selectedCandidatePairId)
-            : entries.find(report => report.type === 'candidate-pair'
-                && (report.selected || (report.nominated && report.state === 'succeeded')));
-
-        if (!pair) {
+    private _setSelectedPair(selected: Optional<ISelectedCandidatePairStats>): void {
+        if (!selected) {
             return;
         }
 
-        const local = reports.get(pair.localCandidateId);
-        const remote = reports.get(pair.remoteCandidateId);
+        const { local, pair, remote } = selected;
 
+        // ICE-TCP shows in the candidate's own protocol, a TCP or TLS relay only in its relay protocol or URL.
+        this._isTcp = local?.protocol === 'tcp' || getTransportCost(local) === TransportCost.RELAY_TCP;
         this._selectedPair = {
             localType: local?.candidateType,
             protocol: local?.protocol,
@@ -272,6 +241,15 @@ export default class MediaConnectivityMonitor {
 
         logger.info(`${this._isP2P ? 'P2P' : 'JVB'} media connectivity: ${JSON.stringify(connectivity)}`);
         this._onChange(connectivity);
+    }
+
+    /** Reports whether the selected candidate pair uses TCP. */
+    private _updateTransport(): void {
+        if (this._isTcp) {
+            this._update(MediaConnectivityStatus.DEGRADED, [ MediaConnectivityReason.TCP_TRANSPORT ]);
+        } else {
+            this._update(MediaConnectivityStatus.GOOD, []);
+        }
     }
 
     /**
@@ -386,5 +364,20 @@ export default class MediaConnectivityMonitor {
         if (type && Object.prototype.hasOwnProperty.call(this._candidates, type)) {
             this._candidates[type as keyof ICandidateCounts]++;
         }
+    }
+
+    /**
+     * Follows the selected candidate pair reported by a stats poll, ICE can move to another pair after it connects.
+     *
+     * @param {ISelectedCandidatePairStats} selected - The selected pair, undefined keeps the last one.
+     * @returns {void}
+     */
+    onSelectedCandidatePair(selected: Optional<ISelectedCandidatePairStats>): void {
+        if (this._disposed || !this._done) {
+            return;
+        }
+
+        this._setSelectedPair(selected);
+        this._updateTransport();
     }
 }
