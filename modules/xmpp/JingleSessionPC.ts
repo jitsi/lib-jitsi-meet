@@ -2684,7 +2684,8 @@ export default class JingleSessionPC extends JingleSession {
                     }
                 }
             } else {
-                const track = this.peerconnection.getTrackBySSRC(ssrc);
+                // The bridge's source map only carries remote SSRCs.
+                const track = this.peerconnection.getTrackBySSRC(ssrc) as Nullable<JitsiRemoteTrack>;
 
                 if (!track || (track.getParticipantId() === owner && track.getSourceName() === source)) {
                     !track && logger.warn(`Remote track for SSRC=${ssrc} hasn't been created yet,`
@@ -2712,8 +2713,11 @@ export default class JingleSessionPC extends JingleSession {
                 const muted = mediaInfo?.muted;
                 const videoType = mediaInfo?.videoType;
 
-                typeof muted !== 'undefined' && this.peerconnection._sourceMutedChanged(source, muted);
                 this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_SET, track, owner, source, videoType);
+
+                // Set on the track directly: a lookup by source name can find another track that still has the name
+                // when one source map swaps sources between tracks.
+                typeof muted !== 'undefined' && track.setMute(muted);
             }
         }
 
