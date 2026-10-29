@@ -1,9 +1,17 @@
+import EventEmitter from 'events';
+
+import JitsiConference from '../../JitsiConference';
+import JitsiConferenceEventManager from '../../JitsiConferenceEventManager';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import { MockRTC } from '../RTC/MockClasses';
+import TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import SDP from '../sdp/SDP';
 import Statistics from '../statistics/statistics';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -657,6 +665,61 @@ describe('JingleSessionPC', () => {
                 }, MediaType.AUDIO);
 
                 expect(muteChanges).toEqual([ [ 'bbbbbbbb-a0', true ] ]);
+            });
+        });
+
+        describe('mute state of a re-mapped track', () => {
+            [
+                { mediaType: MediaType.AUDIO, muted: false },
+                { mediaType: MediaType.AUDIO, muted: true },
+                { mediaType: MediaType.VIDEO, muted: false },
+                { mediaType: MediaType.VIDEO, muted: true }
+            ].forEach(({ mediaType, muted }) => {
+                it(`applies muted=${muted} to the new ${mediaType} owner and source`, () => {
+                    const eventEmitter = new EventEmitter();
+                    const conference = Object.create(JitsiConference.prototype);
+                    const oldSource = `abcdef12-${mediaType[0]}0`;
+                    const newSource = `bbbbbbbb-${mediaType[0]}0`;
+                    const videoType = mediaType === MediaType.VIDEO ? VideoType.DESKTOP : undefined;
+
+                    session.room = {
+                        addListener: eventEmitter.addListener.bind(eventEmitter),
+                        eventEmitter,
+                        setParticipantPropertyListener: () => { /* no-op */ }
+                    };
+                    conference.room = session.room;
+                    conference.eventEmitter = new EventEmitter();
+                    new JitsiConferenceEventManager(conference).setupChatRoomListeners();
+
+                    const track = new JitsiRemoteTrack(
+                        null, conference, 'abcdef12', new MediaStream(),
+                        jasmine.createSpyObj<MediaStreamTrack>('mediaTrack', [ 'addEventListener' ]),
+                        mediaType, mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined,
+                        1111, !muted, false, oldSource);
+                    const muteChanged = jasmine.createSpy('muteChanged');
+
+                    track.on(JitsiTrackEvents.TRACK_MUTE_CHANGED, () => {
+                        muteChanged(track.getParticipantId(), track.getSourceName(), track.isMuted());
+                    });
+                    session.peerconnection = {
+                        _sourceMutedChanged: TraceablePeerConnection.prototype._sourceMutedChanged,
+                        addRemoteSsrc: () => false,
+                        getRemoteSourceInfoBySourceName: () => undefined,
+                        getRemoteTracks: () => [ track ],
+                        getTrackBySSRC: () => track
+                    };
+                    spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted, videoType });
+
+                    session.processSourceMap({
+                        mappedSources: [ { owner: 'bbbbbbbb', rtx: '-1', source: newSource, ssrc: 1111 } ]
+                    }, mediaType);
+
+                    expect(track.getParticipantId()).toBe('bbbbbbbb');
+                    expect(track.getSourceName()).toBe(newSource);
+                    expect(track.isMuted()).toBe(muted);
+                    expect(track.getVideoType()).toBe(videoType);
+                    expect(muteChanged).toHaveBeenCalledOnceWith('bbbbbbbb', newSource, muted);
+                });
             });
         });
 
