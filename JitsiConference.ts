@@ -125,6 +125,9 @@ export interface IConferenceOptions {
         enableNoisyMicDetection?: boolean;
         enableTalkWhileMuted?: boolean;
         hiddenDomain?: string;
+        mediaConnectivity?: {
+            checkingTimeout?: number;
+        };
         p2p?: {
             backToP2PDelay?: number;
             codecPreferenceOrder?: string[];

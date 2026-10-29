@@ -8,8 +8,10 @@ import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { IPeerMediaInfo, isSyntheticSourceKind } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
+import { ISelectedCandidatePairStats } from '../../service/RTC/TransportCost';
 import { VideoType } from '../../service/RTC/VideoType';
 import { IMediaConnectivity } from '../../service/connectivity/MediaConnectivity';
 import { AnalyticsEvents, createAudioWedgeRecoveryEvent, createJingleEvent } from '../../service/statistics/AnalyticsEvents';
@@ -245,6 +247,7 @@ export default class JingleSessionPC extends JingleSession {
     private _removeSenderVideoConstraintsChangeListener: Nullable<() => void>;
     private _audioWedgeDetector: Nullable<RemoteAudioWedgeDetector>;
     private _mediaConnectivityMonitor: Nullable<MediaConnectivityMonitor>;
+    private _removeSelectedCandidatePairListener: Nullable<() => void>;
     private usesCodecSelectionAPI: boolean;
     private wasConnected: boolean;
     private isReconnect: boolean;
@@ -527,6 +530,7 @@ export default class JingleSessionPC extends JingleSession {
 
         this._audioWedgeDetector = null;
         this._mediaConnectivityMonitor = null;
+        this._removeSelectedCandidatePairListener = null;
 
         this._xmppListeners = [];
         this._xmppListeners.push(
@@ -2167,6 +2171,8 @@ export default class JingleSessionPC extends JingleSession {
         this._audioWedgeDetector = null;
         this._mediaConnectivityMonitor?.dispose();
         this._mediaConnectivityMonitor = null;
+        this._removeSelectedCandidatePairListener?.();
+        this._removeSelectedCandidatePairListener = null;
 
         if (this._iceRestartStatsTimer !== null) {
             window.clearInterval(this._iceRestartStatsTimer);
@@ -2301,6 +2307,11 @@ export default class JingleSessionPC extends JingleSession {
             }
         });
         this.peerconnection.onicecandidateerror = ev => this._mediaConnectivityMonitor?.onCandidateError(ev);
+        this._removeSelectedCandidatePairListener = this.rtc.addCancellableListener(
+            RTCEvents.SELECTED_CANDIDATE_PAIR_STATS,
+            (tpc: TraceablePeerConnection, selected: Optional<ISelectedCandidatePairStats>) => {
+                tpc === this.peerconnection && this._mediaConnectivityMonitor?.onSelectedCandidatePair(selected);
+            });
 
         this.peerconnection.onicecandidate = ev => {
             if (!ev) {

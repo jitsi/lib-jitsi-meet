@@ -1,4 +1,46 @@
-import { getTransportCost, ITransportCandidateInfo, TransportCost } from './TransportCost';
+import {
+    getSelectedCandidatePair,
+    getTransportCost,
+    IIceStatsEntry,
+    ITransportCandidateInfo,
+    TransportCost
+} from './TransportCost';
+
+describe('getSelectedCandidatePair', () => {
+    const LOCAL = { candidateType: 'relay', id: 'L1', relayProtocol: 'tcp', type: 'local-candidate' };
+    const REMOTE = { candidateType: 'host', id: 'R1', type: 'remote-candidate' };
+
+    function report(...entries: IIceStatsEntry[]): RTCStatsReport {
+        return new Map(entries.map(entry => [ entry.id, entry ])) as unknown as RTCStatsReport;
+    }
+
+    function pair(id: string, fields: Partial<IIceStatsEntry> = {}): IIceStatsEntry {
+        return { id, localCandidateId: 'L1', remoteCandidateId: 'R1', type: 'candidate-pair', ...fields };
+    }
+
+    it('follows the transport to the selected pair over other nominated pairs', () => {
+        const selected = pair('CP2');
+
+        expect(getSelectedCandidatePair(report(
+            LOCAL,
+            REMOTE,
+            pair('CP1', { nominated: true, state: 'succeeded' }),
+            selected,
+            { id: 'T1', selectedCandidatePairId: 'CP2', type: 'transport' }
+        ))).toEqual({ local: LOCAL, pair: selected, remote: REMOTE });
+    });
+
+    it('takes the pair Firefox flags as selected when there are no transport stats', () => {
+        const selected = pair('CP1', { selected: true });
+
+        expect(getSelectedCandidatePair(report(LOCAL, REMOTE, selected))?.pair).toBe(selected);
+    });
+
+    it('returns undefined before ICE selects a pair', () => {
+        expect(getSelectedCandidatePair(report(LOCAL, REMOTE, pair('CP1', { state: 'in-progress' }))))
+            .toBeUndefined();
+    });
+});
 
 describe('getTransportCost', () => {
     const { DIRECT, RELAY_TCP, RELAY_UDP } = TransportCost;
