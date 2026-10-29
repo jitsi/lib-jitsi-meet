@@ -8,6 +8,7 @@ import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { IPeerMediaInfo, isSyntheticSourceKind } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoType } from '../../service/RTC/VideoType';
 import { AnalyticsEvents, createAudioWedgeRecoveryEvent, createJingleEvent } from '../../service/statistics/AnalyticsEvents';
@@ -2152,6 +2153,9 @@ export default class JingleSessionPC extends JingleSession {
         this.state = JingleSessionState.ENDED;
         this.establishmentDuration = undefined;
 
+        // Synthetic source kinds are signaled per bridge session; the next JVB session re-signals them.
+        !this.isP2P && this._signalingLayer?.clearSyntheticSourceKinds();
+
         this._audioWedgeDetector?.stop();
         this._audioWedgeDetector = null;
 
@@ -2658,7 +2662,10 @@ export default class JingleSessionPC extends JingleSession {
         const newSsrcs = [];
 
         for (const src of message.mappedSources) {
-            const { owner, source, ssrc } = src;
+            const { kind, owner, source, ssrc } = src;
+
+            // Recorded before the track is created so its mute state never depends on the source name.
+            isSyntheticSourceKind(kind) && this._signalingLayer.setSyntheticSourceKind(source, kind);
             const isNewSsrc = this.peerconnection.addRemoteSsrc(ssrc);
 
             if (isNewSsrc) {
@@ -2698,7 +2705,12 @@ export default class JingleSessionPC extends JingleSession {
 
                 // Update the muted state and the video type on the track since the presence for this track could have
                 // been received before the updated source map is received on the bridge channel.
-                const { muted, videoType } = this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
+                // A synthetic source has no presence of its own and is always unmuted, as when its track is created.
+                const mediaInfo: Optional<IPeerMediaInfo> = this._signalingLayer.isSyntheticSource(source)
+                    ? { muted: false }
+                    : this._signalingLayer.getPeerMediaInfo(owner, mediaType, source);
+                const muted = mediaInfo?.muted;
+                const videoType = mediaInfo?.videoType;
 
                 typeof muted !== 'undefined' && this.peerconnection._sourceMutedChanged(source, muted);
                 this.room.eventEmitter.emit(JitsiTrackEvents.TRACK_OWNER_SET, track, owner, source, videoType);
