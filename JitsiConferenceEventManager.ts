@@ -621,20 +621,18 @@ export default class JitsiConferenceEventManager {
 
         rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,
             (from: string, payload: any) => {
-                if (from === 'transcriber') {
-                    conference.eventEmitter.emit(
-                        JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED,
-                        from, payload);
-
-                    return;
-                }
-
+                // A participant's ID wins over the bridge's 'transcriber' sender, so a message from a participant
+                // is always reported as coming from that participant.
                 const participant = conference.getParticipantById(from);
 
                 if (participant) {
                     conference.eventEmitter.emit(
                         JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED,
                         participant, payload);
+                } else if (from === 'transcriber') {
+                    conference.eventEmitter.emit(
+                        JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED,
+                        from, payload);
                 } else {
                     logger.warn(
                         'Ignored ENDPOINT_MESSAGE_RECEIVED for not existing '

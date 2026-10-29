@@ -685,6 +685,66 @@ describe('JitsiConference', () => {
         });
     });
 
+    describe('bridge channel endpoint messages', () => {
+        let emitted: any[][];
+        let onEndpointMessage: (from: string, payload: any) => void;
+        let participants: Map<string, any>;
+
+        beforeEach(() => {
+            emitted = [];
+            participants = new Map();
+
+            // The real prototype, with the event manager's RTC listeners captured so bridge-channel messages
+            // can be simulated.
+            const conference = Object.create(JitsiConference.prototype);
+
+            conference.eventEmitter = { emit: (...args: any[]) => emitted.push(args) };
+            conference.getParticipantById = (id: string) => participants.get(id);
+            conference.rtc = {
+                addListener: (event: string, listener: (...args: any[]) => void) => {
+                    if (event === RTCEvents.ENDPOINT_MESSAGE_RECEIVED) {
+                        onEndpointMessage = listener;
+                    }
+                }
+            };
+            new JitsiConferenceEventManager(conference).setupRTCListeners();
+        });
+
+        it('reports a message from the transcriber as a non-participant message', () => {
+            const payload = { type: 'transcription-result' };
+
+            onEndpointMessage('transcriber', payload);
+
+            expect(emitted).toEqual([ [ JitsiConferenceEvents.NON_PARTICIPANT_MESSAGE_RECEIVED, 'transcriber', payload ] ]);
+        });
+
+        it('reports a message from a participant as an endpoint message', () => {
+            const participant = { getId: () => 'abcdef12' };
+            const payload = { type: 'some-message' };
+
+            participants.set('abcdef12', participant);
+            onEndpointMessage('abcdef12', payload);
+
+            expect(emitted).toEqual([ [ JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED, participant, payload ] ]);
+        });
+
+        it('reports a message from a participant with the transcriber ID as an endpoint message', () => {
+            const participant = { getId: () => 'transcriber' };
+            const payload = { type: 'transcription-result' };
+
+            participants.set('transcriber', participant);
+            onEndpointMessage('transcriber', payload);
+
+            expect(emitted).toEqual([ [ JitsiConferenceEvents.ENDPOINT_MESSAGE_RECEIVED, participant, payload ] ]);
+        });
+
+        it('ignores a message from an unknown endpoint', () => {
+            onEndpointMessage('abcdef34', { type: 'some-message' });
+
+            expect(emitted).toEqual([]);
+        });
+    });
+
     describe('synthetic source kinds', () => {
         let conference: any;
         let emitted: any[][];
