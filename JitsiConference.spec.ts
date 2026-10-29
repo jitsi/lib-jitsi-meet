@@ -6,7 +6,8 @@ import { JitsiTrackEvents } from './JitsiTrackEvents';
 import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { P2PFallbackReason } from './modules/qualitycontrol/QualityController';
 import { ReceiverAudioController } from './modules/qualitycontrol/ReceiveAudioController';
-import EventEmitter from './modules/util/EventEmitter';
+import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
+import EventEmitter, { EventListener } from './modules/util/EventEmitter';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
@@ -14,11 +15,12 @@ import { TransportCost } from './service/RTC/TransportCost';
 
 describe('JitsiConference', () => {
     describe('remote track relays across SSRC remaps', () => {
-        let activeTPC: object;
-        let conference: any;
+        let activeTPC: TraceablePeerConnection;
+        let conference: JitsiConference;
         let levels: jasmine.Spy;
         let mutes: jasmine.Spy;
         let room: EventEmitter;
+        let signalingLayer: SignalingLayerImpl;
 
         function addAudioTrack(owner: string, sourceName: string): JitsiRemoteTrack {
             const track = new JitsiRemoteTrack(
@@ -37,19 +39,24 @@ describe('JitsiConference', () => {
         }
 
         beforeEach(() => {
-            activeTPC = Object.create(null);
+            activeTPC = Object.create(TraceablePeerConnection.prototype);
             room = new EventEmitter();
-            conference = Object.create(JitsiConference.prototype);
-            conference.room = {
-                addListener: room.addListener.bind(room),
-                eventEmitter: room,
-                setParticipantPropertyListener: () => { /* no-op */ }
-            };
-            conference._signalingLayer = new SignalingLayerImpl();
-            conference.eventEmitter = new EventEmitter();
-            conference.getActivePeerConnection = () => activeTPC;
-            conference.getParticipantById = () => undefined;
-            conference.isP2PActive = () => false;
+            signalingLayer = new SignalingLayerImpl();
+
+            // The real prototype with only the members the relays and the TRACK_OWNER_SET handler use.
+            conference = Object.assign(Object.create(JitsiConference.prototype), {
+                _remoteTrackRelays: new WeakMap(),
+                _signalingLayer: signalingLayer,
+                eventEmitter: new EventEmitter(),
+                getActivePeerConnection: () => activeTPC,
+                getParticipantById: () => undefined,
+                isP2PActive: () => false,
+                room: {
+                    addListener: room.addListener.bind(room),
+                    eventEmitter: room,
+                    setParticipantPropertyListener: () => { /* no-op */ }
+                }
+            });
             new JitsiConferenceEventManager(conference).setupChatRoomListeners();
 
             levels = jasmine.createSpy('levels');
@@ -81,7 +88,7 @@ describe('JitsiConference', () => {
         it('relays no audio level from a translation the track was remapped to', () => {
             const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
 
-            conference._signalingLayer.setSyntheticSourceKind('bbbbbbbb-a0.fr', 'translation');
+            signalingLayer.setSyntheticSourceKind('bbbbbbbb-a0.fr', 'translation');
             remap(track, 'bbbbbbbb', 'bbbbbbbb-a0.fr');
             track.setAudioLevel(0.2, activeTPC);
 
@@ -89,7 +96,7 @@ describe('JitsiConference', () => {
         });
 
         it('relays audio levels and mute changes of a speaker a translation track was remapped to', () => {
-            conference._signalingLayer.setSyntheticSourceKind('aaaaaaaa-a0.fr', 'translation');
+            signalingLayer.setSyntheticSourceKind('aaaaaaaa-a0.fr', 'translation');
             const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0.fr');
 
             track.setAudioLevel(0.2, activeTPC);
@@ -807,17 +814,17 @@ describe('JitsiConference', () => {
         let onSendingChanged: (change: any) => void;
 
         const payloadsOf = (event: string) => emitted.filter(([ name ]) => name === event).map(([ , payload ]) => payload);
-        const activeTPC = {};
+        const activeTPC = Object.create(TraceablePeerConnection.prototype);
         const remoteTrack = (sourceName: string) => {
-            const listeners = new Map<string, (...args: any[]) => void>();
+            const listeners = new Map<string, EventListener>();
 
             return {
-                addCancellableListener: (event: string, listener: (...args: any[]) => void) => {
+                addCancellableListener: (event: string, listener: EventListener) => {
                     listeners.set(event, listener);
 
                     return () => listeners.delete(event);
                 },
-                fire: (event: string, ...args: any[]) => listeners.get(event)?.(...args),
+                fire: (event: string, ...args: Parameters<EventListener>) => listeners.get(event)?.(...args),
                 getParticipantId: () => 'abcdef12',
                 getSourceName: () => sourceName,
                 isAudioTrack: () => true,
@@ -840,6 +847,7 @@ describe('JitsiConference', () => {
             // The real prototype over a real signaling layer, with the event manager's RTC listeners captured
             // so bridge-channel events can be simulated.
             conference = Object.create(JitsiConference.prototype);
+            conference._remoteTrackRelays = new WeakMap();
             conference._signalingLayer = new SignalingLayerImpl();
             conference.eventEmitter = { emit: (...args: any[]) => emitted.push(args) };
             conference.getParticipantById = () => undefined;

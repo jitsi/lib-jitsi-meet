@@ -692,9 +692,9 @@ describe('JingleSessionPC', () => {
 });
 
 describe('processSourceMap - mute state of a re-mapped SSRC', () => {
-    let session: any;
+    let session: JingleSessionPC;
     let signalingLayer: SignalingLayerImpl;
-    let conference: any;
+    let conference: JitsiConference;
 
     function audioTrack(owner: string, sourceName: string, ssrc: number, muted: boolean): JitsiRemoteTrack {
         return new JitsiRemoteTrack(
@@ -704,13 +704,15 @@ describe('processSourceMap - mute state of a re-mapped SSRC', () => {
     }
 
     function useTracks(tracks: JitsiRemoteTrack[]): void {
-        session.peerconnection = {
-            _sourceMutedChanged: () => fail('the re-mapped track is known, no lookup by source name is needed'),
-            addRemoteSsrc: () => false,
-            getRemoteSourceInfoBySourceName: () => undefined,
-            getRemoteTracks: () => tracks,
-            getTrackBySSRC: (ssrc: number) => tracks.find(t => t.getSsrc() === ssrc)
-        };
+        Object.assign(session, {
+            peerconnection: {
+                _sourceMutedChanged: () => fail('the re-mapped track is known, no lookup by source name is needed'),
+                addRemoteSsrc: () => false,
+                getRemoteSourceInfoBySourceName: () => undefined,
+                getRemoteTracks: () => tracks,
+                getTrackBySSRC: (ssrc: number) => tracks.find(t => t.getSsrc() === ssrc)
+            }
+        });
     }
 
     beforeEach(() => {
@@ -718,20 +720,26 @@ describe('processSourceMap - mute state of a re-mapped SSRC', () => {
 
         spyOn(FeatureFlags, 'isSsrcRewritingSupported').and.returnValue(true);
         signalingLayer = new SignalingLayerImpl();
-        session = Object.create(JingleSessionPC.prototype);
-        session._signalingLayer = signalingLayer;
-        session.isP2P = false;
-        session.options = {};
-        session.room = {
+        const chatRoom = {
             addListener: room.addListener.bind(room),
             eventEmitter: room,
             setParticipantPropertyListener: () => { /* no-op */ }
         };
-        conference = Object.create(JitsiConference.prototype);
-        conference.room = session.room;
-        conference._signalingLayer = signalingLayer;
-        conference.eventEmitter = new EventEmitter();
-        conference.getActivePeerConnection = () => undefined;
+
+        // The real prototypes with only the members processSourceMap and the TRACK_OWNER_SET handler use.
+        session = Object.assign(Object.create(JingleSessionPC.prototype), {
+            _signalingLayer: signalingLayer,
+            isP2P: false,
+            options: {},
+            room: chatRoom
+        });
+        conference = Object.assign(Object.create(JitsiConference.prototype), {
+            _remoteTrackRelays: new WeakMap(),
+            _signalingLayer: signalingLayer,
+            eventEmitter: new EventEmitter(),
+            getActivePeerConnection: () => undefined,
+            room: chatRoom
+        });
         new JitsiConferenceEventManager(conference).setupChatRoomListeners();
     });
 

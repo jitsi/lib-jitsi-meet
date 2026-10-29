@@ -228,11 +228,6 @@ const P2P_TCP_RELAY_SAMPLES = 2;
 const DEFAULT_TRANSCRIPTION_LANGUAGE: string = 'en-US';
 
 /**
- * Removes the listeners relaying a remote track's events to its conference. A track belongs to one conference.
- */
-const remoteTrackRelays = new WeakMap<JitsiRemoteTrack, () => void>();
-
-/**
  * Checks if a given string is a valid video codec mime type.
  *
  * @param {string} codec the codec string that needs to be validated.
@@ -314,6 +309,11 @@ export default class JitsiConference extends Listenable {
     private _audioAnalyser?: VADAudioAnalyser;
     private _noAudioSignalDetection?: NoAudioSignalDetection;
     private _signalingLayer: SignalingLayerImpl;
+
+    /**
+     * Removes the listeners relaying a remote track's events to this conference, per track.
+     */
+    private _remoteTrackRelays = new WeakMap<JitsiRemoteTrack, () => void>();
 
     /**
      * The default language remote audio is translated into for every speaker, or null when off.
@@ -4296,7 +4296,7 @@ export default class JitsiConference extends Listenable {
      * @internal
      */
     attachRemoteTrackRelays(track: JitsiRemoteTrack): void {
-        remoteTrackRelays.get(track)?.();
+        this._remoteTrackRelays.get(track)?.();
 
         const emitter = this.eventEmitter;
         const isTranslated = (): boolean => {
@@ -4325,7 +4325,7 @@ export default class JitsiConference extends Listenable {
                 })
             : undefined;
 
-        remoteTrackRelays.set(track, () => {
+        this._remoteTrackRelays.set(track, () => {
             cancelMute();
             cancelAudioLevel?.();
         });
