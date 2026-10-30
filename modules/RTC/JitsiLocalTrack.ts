@@ -271,7 +271,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 // Mark track as ended for those browsers that do not support
                 // "readyState" property. We do not touch tracks created with
                 // default device ID "".
-                (typeof this.getTrack().readyState === 'undefined'
+                (typeof this._getDeviceTrack().readyState === 'undefined'
                     && typeof this._realDeviceId !== 'undefined'
                     && !devices.find(d => d.deviceId === this._realDeviceId))
 
@@ -563,7 +563,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {void}
      */
     private _setRealDeviceIdFromDeviceList(devices: MediaDeviceInfo[]): void {
-        const track = this.getTrack();
+        const track = this._getDeviceTrack();
         const kind = `${track.kind}input`;
 
         // We need to match by deviceId as well, in case of multiple devices with the same label.
@@ -583,6 +583,17 @@ export default class JitsiLocalTrack extends JitsiTrack {
         } else {
             this._realDeviceId = undefined;
         }
+    }
+
+    /**
+     * Returns the MediaStreamTrack captured from the device. While a stream effect is active, {@link getTrack} returns
+     * the effect's output track, which has its own label and state and doesn't match any device.
+     *
+     * @private
+     * @returns {MediaStreamTrack}
+     */
+    private _getDeviceTrack(): MediaStreamTrack {
+        return (this._effectEnabled && this._originalStream?.getTracks()[0]) || this.getTrack();
     }
 
     /**
@@ -811,7 +822,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             return this._trackEnded;
         }
 
-        return this.getTrack().readyState === 'ended' || this._trackEnded;
+        return this._getDeviceTrack().readyState === 'ended' || this._trackEnded;
     }
 
     /**
