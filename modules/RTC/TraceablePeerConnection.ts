@@ -2432,7 +2432,12 @@ export default class TraceablePeerConnection {
 
         // If old track exists, replace the track on the corresponding sender.
         if (oldTrack && !oldTrack.isMuted()) {
-            transceiver = this.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
+            const oldMid = this.localTrackTransceiverMids.get(oldTrack.rtcId);
+
+            // The sender can hold a track the old track no longer exposes, e.g. the output of a stream effect that
+            // was stopped by stopStream(), so fall back to the transceiver the old track was added to.
+            transceiver = this.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack())
+                ?? (oldMid ? this.peerconnection.getTransceivers().find(t => t.mid === oldMid) : undefined);
 
         // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
         // As part of the track addition, a new m-line was added to the remote description with direction set to
