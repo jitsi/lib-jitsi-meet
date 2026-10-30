@@ -84,6 +84,7 @@ import {
 import { TransportCost } from './service/RTC/TransportCost';
 import { VideoType } from './service/RTC/VideoType';
 import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
+import { IMediaConnectivity, MediaConnectivityStatus } from './service/connectivity/MediaConnectivity';
 import {
     AnalyticsEvents,
     createConferenceEvent,
@@ -124,6 +125,9 @@ export interface IConferenceOptions {
         enableNoisyMicDetection?: boolean;
         enableTalkWhileMuted?: boolean;
         hiddenDomain?: string;
+        mediaConnectivity?: {
+            checkingTimeout?: number;
+        };
         p2p?: {
             backToP2PDelay?: number;
             codecPreferenceOrder?: string[];
@@ -360,6 +364,7 @@ export default class JitsiConference extends Listenable {
     private _videoSenderLimitReached?: boolean;
     private _firefoxP2pEnabled: boolean;
     private _iceRestarts: number;
+    private _lastMediaConnectivity?: IMediaConnectivity;
     private _unsubscribers: Array<() => void>;
     private _xmpp: XMPP;
 
@@ -691,6 +696,9 @@ export default class JitsiConference extends Listenable {
 
         this._onP2PTerminationRequired = this._onP2PTerminationRequired.bind(this);
         this.room.addListener(XMPPEvents.P2P_TERMINATION_REQUIRED, this._onP2PTerminationRequired);
+
+        this._onMediaConnectivityChanged = this._onMediaConnectivityChanged.bind(this);
+        this.room.addListener(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, this._onMediaConnectivityChanged);
 
         this._updateProperties = this._updateProperties.bind(this);
         this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, this._updateProperties);
@@ -1296,6 +1304,7 @@ export default class JitsiConference extends Listenable {
             this,
             this.p2p);
         this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED, this.getActiveMediaSession());
+        this._maybeEmitMediaConnectivity();
 
         // Refresh connection interrupted/restored
         this.eventEmitter.emit(
@@ -2035,6 +2044,41 @@ export default class JitsiConference extends Listenable {
                 }, JVB_ICE_RESTART_RECOVERY_TIMEOUT);
             })
             .catch(error => fallback(`In-place ICE restart request failed (${error?.message ?? error})`));
+    }
+
+    /**
+     * Emits {@link JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED} when the assessment of the active media
+     * session differs from the last one emitted.
+     *
+     * @returns {void}
+     */
+    private _maybeEmitMediaConnectivity(): void {
+        const connectivity = this.getActiveMediaSession()?.getMediaConnectivity();
+        const last = this._lastMediaConnectivity;
+
+        // Keep the last assessment while a new session (e.g. after a session restart) has none yet, and keep a
+        // failure until a session connects rather than flapping with each restarted session's at-risk.
+        if (!connectivity
+                || isEqual(connectivity, last)
+                || (last?.status === MediaConnectivityStatus.FAILED
+                    && connectivity.status === MediaConnectivityStatus.AT_RISK)) {
+            return;
+        }
+
+        this._lastMediaConnectivity = connectivity;
+        this.eventEmitter.emit(JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED, connectivity);
+    }
+
+    /**
+     * Handles MEDIA_CONNECTIVITY_CHANGED, only the session carrying media is reported.
+     *
+     * @param {JingleSessionPC} session - The Jingle session.
+     * @returns {void}
+     */
+    private _onMediaConnectivityChanged(session: JingleSessionPC): void {
+        if (session === this.getActiveMediaSession()) {
+            this._maybeEmitMediaConnectivity();
+        }
     }
 
     /**
@@ -3124,6 +3168,7 @@ export default class JitsiConference extends Listenable {
 
         room.removeListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
         room.removeListener(XMPPEvents.P2P_TERMINATION_REQUIRED, this._onP2PTerminationRequired);
+        room.removeListener(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, this._onMediaConnectivityChanged);
         room.removeListener(XMPPEvents.SESSION_ACCEPT, this._updateRoomPresence);
         room.removeListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
         room.removeListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
@@ -4902,6 +4947,15 @@ export default class JitsiConference extends Listenable {
                 this.sendTextMessage(messageToSend, elementName, replyToId);
             }
         }
+    }
+
+    /**
+     * Returns the last assessment emitted with {@link JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED}.
+     *
+     * @returns {Optional<IMediaConnectivity>}
+     */
+    public getMediaConnectivity(): Optional<IMediaConnectivity> {
+        return this._lastMediaConnectivity;
     }
 
     /**

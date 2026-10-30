@@ -6,9 +6,13 @@ import { MockRTC } from '../RTC/MockClasses';
 import SDP from '../sdp/SDP';
 import EventEmitter from '../util/EventEmitter';
 import Statistics from '../statistics/statistics';
+import { nextTick } from '../util/TestUtils';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
+import { MediaConnectivityStatus } from '../../service/connectivity/MediaConnectivity';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -1158,4 +1162,95 @@ describe('JingleSessionPC in-place ICE restart', () => {
         });
     });
 
+});
+
+describe('JingleSessionPC media connectivity', () => {
+    const HOST_CANDIDATE = {
+        candidate: 'candidate:1 1 udp 2122260223 10.0.0.1 54321 typ host generation 0',
+        protocol: 'udp',
+        type: 'host'
+    };
+    let room;
+    let rtc;
+    let pc;
+    let sendAnalytics;
+    let session: JingleSessionPC;
+
+    beforeEach(() => {
+        room = new MockChatRoom();
+        room.connectionTimes = {};
+        rtc = new MockRTC();
+        sendAnalytics = spyOn(Statistics, 'sendAnalytics');
+        session = new JingleSessionPC('sid', 'peer1', 'focus', new MockStropheConnection(), { },
+            { iceServers: [ { urls: 'turn:turn.example.com:443' } ] }, false, false);
+        session.initialize(
+            room,
+            rtc,
+            // eslint-disable-next-line no-empty-function
+            { clearSyntheticSourceKinds: () => { }, setSSRCOwner: () => { }, removeSSRCOwners: () => { } },
+            { webrtcIceTcpDisable: true });
+        pc = session.peerconnection;
+    });
+
+    it('reports host-only gathering, skipping candidates of disabled protocols', () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.onicecandidateerror({ errorCode: 701, url: 'turn:turn.example.com:443' });
+        pc.onicecandidate({ candidate: { ...HOST_CANDIDATE, protocol: 'tcp', type: 'srflx' } });
+        pc.onicecandidate({ candidate: HOST_CANDIDATE });
+        pc.onicecandidate({ candidate: null });
+
+        const connectivity = session.getMediaConnectivity();
+
+        expect(connectivity).toEqual(jasmine.objectContaining({
+            candidates: { host: 1, prflx: 0, relay: 0, srflx: 0 },
+            iceServerErrors: [ { errorCode: 701, url: 'turn:turn.example.com:443' } ],
+            status: MediaConnectivityStatus.AT_RISK
+        }));
+        expect(emit).toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, connectivity);
+        expect(sendAnalytics).toHaveBeenCalledWith(AnalyticsEvents.MEDIA_CONNECTIVITY_CHANGED, jasmine.objectContaining({
+            'host_candidates': 1,
+            reasons: 'no-server-reflexive,turn-unreachable',
+            status: MediaConnectivityStatus.AT_RISK
+        }));
+    });
+
+    it('reports an ICE failure and disposes the monitor on close', () => {
+        pc.iceConnectionState = 'failed';
+        pc.oniceconnectionstatechange();
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.FAILED);
+
+        session.close();
+        expect(session.getMediaConnectivity()).toBeUndefined();
+    });
+
+    it('reports a PeerConnection failure that Chrome doesn\'t reflect in the ICE state', () => {
+        pc.iceConnectionState = 'disconnected';
+        pc.connectionState = 'failed';
+        pc.onconnectionstatechange();
+
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.FAILED);
+    });
+
+    it('follows the selected pair from its own peerconnection\'s stats poll until closed', async () => {
+        const tcpRelay = {
+            local: { candidateType: 'relay', id: 'L1', protocol: 'udp', relayProtocol: 'tls', type: 'local-candidate' },
+            pair: { id: 'CP1', type: 'candidate-pair' }
+        };
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.GOOD);
+
+        rtc.eventEmitter.emit(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, { }, tcpRelay);
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.GOOD);
+
+        rtc.eventEmitter.emit(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, pc, tcpRelay);
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.DEGRADED);
+
+        session.close();
+        expect(rtc.eventEmitter.listenerCount(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS)).toBe(0);
+    });
 });

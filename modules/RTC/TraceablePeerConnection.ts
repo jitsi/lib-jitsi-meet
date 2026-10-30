@@ -203,6 +203,7 @@ export default class TraceablePeerConnection {
     rtc: RTC;
     trace: ITraceFunction;
     onicecandidate?: ((event: RTCPeerConnectionIceEvent) => void);
+    onicecandidateerror?: ((event: RTCPeerConnectionIceErrorEvent) => void);
     onTrack: (evt: RTCTrackEvent) => void;
     onsignalingstatechange?: ((event: Event) => void);
     oniceconnectionstatechange?: ((event: Event) => void);
@@ -563,6 +564,13 @@ export default class TraceablePeerConnection {
 
             if (this.onicecandidate !== null) {
                 this.onicecandidate(event);
+            }
+        };
+        this.onicecandidateerror = null;
+        this.peerconnection.onicecandidateerror = event => {
+            this.trace('onicecandidateerror', `${event.url} ${event.errorCode} ${event.errorText}`);
+            if (this.onicecandidateerror !== null) {
+                this.onicecandidateerror(event);
             }
         };
 

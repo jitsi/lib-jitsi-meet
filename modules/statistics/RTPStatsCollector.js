@@ -2,7 +2,7 @@ import { getLogger } from '@jitsi/logger';
 
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
-import { getTransportCost } from '../../service/RTC/TransportCost';
+import { getSelectedCandidatePair, getTransportCost } from '../../service/RTC/TransportCost';
 import { StatisticsEvents } from '../../service/statistics/Events';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -570,8 +570,6 @@ export default class StatsCollector {
                 const remoteUsedCandidate = this.currentStatsReport.get(now.remoteCandidateId);
                 const localUsedCandidate = this.currentStatsReport.get(now.localCandidateId);
 
-                this.peerconnection.setSelectedTransportCost(getTransportCost(localUsedCandidate));
-
                 // RTCIceCandidateStats
                 // https://w3c.github.io/webrtc-stats/#icecandidate-dict*
                 if (remoteUsedCandidate && localUsedCandidate) {
@@ -790,10 +788,18 @@ export default class StatsCollector {
             this.eventEmitter.emit(StatisticsEvents.ENCODE_TIME_STATS, this.peerconnection, encodedTimeStatsPerSsrc);
         }
 
-        // Emitted on the RTC event bus (not the statistics one) so RemoteAudioWedgeDetector, which is scoped to a
-        // peerconnection, can consume it directly without threading through the conference-level stats plumbing.
+        // Being nominated and succeeded doesn't single out a pair, the one the transport points at carries the media.
+        const selectedPair = getSelectedCandidatePair(this.currentStatsReport);
+
+        this.peerconnection.setSelectedTransportCost(getTransportCost(selectedPair?.local));
+
+        // Emitted on the RTC event bus (not the statistics one) so RemoteAudioWedgeDetector and the
+        // MediaConnectivityMonitor, which are scoped to a peerconnection, can consume them directly without threading
+        // through the conference-level stats plumbing.
         this.peerconnection.eventEmitter.emit(
             RTCEvents.INBOUND_AUDIO_STATS, this.peerconnection, inboundAudioPacketsBySsrc);
+        this.peerconnection.eventEmitter.emit(
+            RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, this.peerconnection, selectedPair);
 
         this._processAndEmitReport();
     }
