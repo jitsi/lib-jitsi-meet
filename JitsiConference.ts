@@ -2584,6 +2584,16 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Checks whether the server advertised the given feature, see JitsiConnection.isServerFeatureSupported.
+     *
+     * @param {string} feature - The feature to check, e.g. 'http://jitsi.org/protocol/polls#single_answer'.
+     * @returns {boolean}
+     */
+    public isServerFeatureSupported(feature: string): boolean {
+        return Boolean(this.connection?.isServerFeatureSupported(feature));
+    }
+
+    /**
      * Checks whether an in-place ICE restart of the JVB session can be used: it must be enabled in the client
      * configuration ('enableIceRestart').
      *

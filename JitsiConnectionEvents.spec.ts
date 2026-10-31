@@ -11,6 +11,7 @@ describe( "/JitsiConnectionEvents members", () => {
         CONNECTION_TOKEN_EXPIRED,
         DISPLAY_NAME_REQUIRED,
         PROPERTIES_UPDATED,
+        SERVER_FEATURES_UPDATED,
         JitsiConnectionEvents,
         ...others
     } = exported;
@@ -23,6 +24,7 @@ describe( "/JitsiConnectionEvents members", () => {
         expect( CONNECTION_TOKEN_EXPIRED ).toBe( 'connection.token_expired' );
         expect( DISPLAY_NAME_REQUIRED ).toBe( 'connection.display_name_required' );
         expect( PROPERTIES_UPDATED ).toBe( 'connection.propertiesUpdated' );
+        expect( SERVER_FEATURES_UPDATED ).toBe( 'connection.serverFeaturesUpdated' );
 
         expect( JitsiConnectionEvents ).toBeDefined();
 
@@ -33,6 +35,7 @@ describe( "/JitsiConnectionEvents members", () => {
         expect( JitsiConnectionEvents.CONNECTION_TOKEN_EXPIRED ).toBe( 'connection.token_expired' );
         expect( JitsiConnectionEvents.DISPLAY_NAME_REQUIRED ).toBe( 'connection.display_name_required' );
         expect( JitsiConnectionEvents.PROPERTIES_UPDATED ).toBe( 'connection.propertiesUpdated' );
+        expect( JitsiConnectionEvents.SERVER_FEATURES_UPDATED ).toBe( 'connection.serverFeaturesUpdated' );
     } );
 
     it( "unknown members", () => {
