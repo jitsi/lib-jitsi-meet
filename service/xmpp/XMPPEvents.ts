@@ -310,6 +310,11 @@ export enum XMPPEvents {
     POLLS_ANSWER_EVENT = 'xmpp.polls.answer.event',
 
     /**
+     * Event fired when a poll was closed, thus it does not take answers anymore.
+     */
+    POLLS_CLOSE_EVENT = 'xmpp.polls.close.event',
+
+    /**
      * Event fired when we receive a message for polls.
      */
     POLLS_EVENT = 'xmpp.polls.event',
