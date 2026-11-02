@@ -565,6 +565,12 @@ export default class TraceablePeerConnection {
                 this.onicecandidate(event);
             }
         };
+        this.peerconnection.onicecandidateerror = (event: RTCPeerConnectionIceErrorEvent) => {
+            const { address, errorCode, errorText, port, url } = event;
+
+            logger.warn(`${this} ICE candidate error: url=${url} errorCode=${errorCode} errorText="${errorText}"`
+                + ` address=${address} port=${port}`);
+        };
 
         this.onTrack = evt => {
             const stream = evt.streams[0];
