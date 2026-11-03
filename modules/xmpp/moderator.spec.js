@@ -1,3 +1,4 @@
+import { JitsiConferenceErrors } from '../../JitsiConferenceErrors';
 import { CONNECTION_FAILED } from '../../JitsiConnectionEvents';
 import { CONFERENCE_REQUEST_FAILED, TIME_LIMIT_ERROR } from '../../JitsiConnectionErrors';
 
@@ -20,6 +21,70 @@ function errorIq(errorXml) {
 }
 
 describe('Moderator', () => {
+    describe('authenticate', () => {
+        /**
+         * Creates a moderator whose authentication IQ fails with the supplied response.
+         *
+         * @param {Element|null} response - The IQ error response, or null for a timeout.
+         * @returns {Moderator}
+         */
+        function moderatorWithError(response) {
+            const connection = {
+                jid: 'user@example.com/res',
+                sendIQ: jasmine.createSpy('sendIQ').and.callFake((iq, onSuccess, onError) => onError(response))
+            };
+
+            return new Moderator({
+                connection,
+                options: { hosts: {} }
+            });
+        }
+
+        it('parses a generic XMPP authentication error', async () => {
+            const moderator = moderatorWithError(errorIq(
+                '<service-unavailable xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"/>'
+                + '<text xmlns="urn:ietf:params:xml:ns:xmpp-stanzas">Service unavailable</text>'));
+
+            await expectAsync(moderator.authenticate('room@muc.example.com')).toBeRejectedWith({
+                error: 'service-unavailable',
+                message: 'Service unavailable'
+            });
+        });
+
+        it('preserves reservation error details', async () => {
+            const moderator = moderatorWithError(errorIq(
+                '<service-unavailable xmlns="urn:ietf:params:xml:ns:xmpp-stanzas"/>'
+                + '<text xmlns="urn:ietf:params:xml:ns:xmpp-stanzas">Room is not reserved</text>'
+                + '<reservation-error xmlns="http://jitsi.org/protocol/focus" error-code="403"/>'));
+
+            await expectAsync(moderator.authenticate('room@muc.example.com')).toBeRejectedWith({
+                error: JitsiConferenceErrors.RESERVATION_ERROR,
+                message: 'Room is not reserved',
+                reservationErrorCode: '403'
+            });
+        });
+
+        it('recognizes a reservation error without a text element', async () => {
+            const moderator = moderatorWithError(errorIq(
+                '<reservation-error xmlns="http://jitsi.org/protocol/focus" error-code="3"/>'));
+
+            await expectAsync(moderator.authenticate('room@muc.example.com')).toBeRejectedWith({
+                error: JitsiConferenceErrors.RESERVATION_ERROR,
+                message: '',
+                reservationErrorCode: '3'
+            });
+        });
+
+        it('rejects an IQ timeout without throwing while parsing the error', async () => {
+            const moderator = moderatorWithError(null);
+
+            await expectAsync(moderator.authenticate('room@muc.example.com')).toBeRejectedWith({
+                error: undefined,
+                message: ''
+            });
+        });
+    });
+
     describe('_handleIqError - room time limit', () => {
         let moderator;
         let emitterSpy;

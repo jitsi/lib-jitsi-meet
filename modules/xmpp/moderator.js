@@ -2,6 +2,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
 
+import { JitsiConferenceErrors } from '../../JitsiConferenceErrors';
 import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR, TIME_LIMIT_ERROR } from '../../JitsiConnectionErrors';
 import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
@@ -637,12 +638,25 @@ export default class Moderator extends Listenable {
                         userJid: this.connection.jid
                     });
 
-                    const errorEl = findFirst(errorIq, ':scope>iq>error');
+                    const errorEl = findFirst(errorIq, ':scope>error');
+                    const errorText = getText(findFirst(errorIq, ':scope>error>text'));
+                    const reservationErr = findFirst(errorIq, ':scope>error>reservation-error');
+
+                    if (reservationErr) {
+                        reject({
+                            error: JitsiConferenceErrors.RESERVATION_ERROR,
+                            message: errorText,
+                            reservationErrorCode: getAttribute(reservationErr, 'error-code')
+                        });
+
+                        return;
+                    }
+
                     const firstErrorChild = errorEl?.children?.length > 0 ? errorEl.children[0] : undefined;
 
                     reject({
                         error: firstErrorChild?.tagName,
-                        message: getText(findFirst(errorIq, ':scope>iq>error>text'))
+                        message: errorText
                     });
                 }
             );

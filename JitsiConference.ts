@@ -253,6 +253,7 @@ interface IUpgradeRoleError {
         password?: string;
     };
     message?: string;
+    reservationErrorCode?: string;
 }
 
 /**
@@ -2978,12 +2979,13 @@ export default class JitsiConference extends Listenable {
                                 resolve(undefined);
                             });
                     })
-                    .catch(({ error, message }) => {
+                    .catch(({ error, message, reservationErrorCode }) => {
                         xmpp.disconnect();
 
                         reject({
                             authenticationError: error,
-                            message
+                            message,
+                            reservationErrorCode
                         });
                     });
                 });
