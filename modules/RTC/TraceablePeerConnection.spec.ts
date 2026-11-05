@@ -187,4 +187,116 @@ describe('TraceablePeerConnection', () => {
             expect(ctx.eventEmitter.emit).not.toHaveBeenCalled();
         });
     });
+
+    describe('replaceTrack', () => {
+        const replaceTrack = TraceablePeerConnection.prototype.replaceTrack;
+
+        function transceiver(mid: string, senderTrack: object): any {
+            return {
+                mid,
+                receiver: { track: { kind: MediaType.AUDIO } },
+                sender: {
+                    replaceTrack: jasmine.createSpy('replaceTrack').and.returnValue(Promise.resolve()),
+                    track: senderTrack
+                }
+            };
+        }
+
+        function localTrack(rtcId: number, track: object): any {
+            return {
+                getSourceName: () => `endpoint-a${rtcId}`,
+                getTrack: () => track,
+                getType: () => MediaType.AUDIO,
+                getVideoType: () => undefined,
+                isMuted: () => false,
+                rtcId,
+                setSsrc: jasmine.createSpy('setSsrc')
+            };
+        }
+
+        function context(transceivers: object[], mids: Map<number, string>, tracks: any[] = []): any {
+            const localTracks = new Map(tracks.map(t => [ t.rtcId, t ]));
+
+            return {
+                _extractPrimarySSRC: (TraceablePeerConnection.prototype as any)._extractPrimarySSRC,
+                _midsWithSentTrack: new Set(),
+                _sendRtcStatsEvent: jasmine.createSpy('_sendRtcStatsEvent'),
+                audioTransferActive: true,
+                getLocalTracks: () => Array.from(localTracks.values()),
+                isP2P: false,
+                localSSRCs: new Map(),
+                localTrackTransceiverMids: mids,
+                localTracks,
+                peerconnection: { getTransceivers: () => transceivers }
+            };
+        }
+
+        it('replaces the track on the sender holding the old track', async () => {
+            const micTrack = {};
+            const first = transceiver('0', {});
+            const second = transceiver('1', micTrack);
+            const newTrack = localTrack(2, {});
+
+            // The sender match wins over a recorded mid that points elsewhere.
+            await replaceTrack.call(
+                context([ first, second ], new Map([ [ 1, '0' ] ])), localTrack(1, micTrack), newTrack, true);
+
+            expect(second.sender.replaceTrack).toHaveBeenCalledWith(newTrack.getTrack());
+            expect(first.sender.replaceTrack).not.toHaveBeenCalled();
+        });
+
+        it('uses the transceiver of the old track when the sender holds a track the old track no longer exposes', async () => {
+            // E.g. a track whose stream effect was stopped by stopStream() while the sender still has the
+            // effect's output track.
+            const first = transceiver('0', {});
+            const second = transceiver('1', { label: 'effect output' });
+            const newTrack = localTrack(2, {});
+
+            await replaceTrack.call(
+                context([ first, second ], new Map([ [ 1, '1' ] ])), localTrack(1, { label: 'mic' }), newTrack, true);
+
+            expect(second.sender.replaceTrack).toHaveBeenCalledWith(newTrack.getTrack());
+            expect(first.sender.replaceTrack).not.toHaveBeenCalled();
+        });
+
+        it('moves the mid and ssrc of the old track to the new one when replacing through its recorded mid', async () => {
+            const second = transceiver('1', { label: 'effect output' });
+            const oldTrack = localTrack(1, { label: 'mic' });
+            const newTrack = localTrack(2, {});
+            const ctx = context([ transceiver('0', {}), second ], new Map([ [ 1, '1' ] ]), [ oldTrack ]);
+            const ssrcInfo = { groups: [], msid: 'msid', ssrcs: [ 1111 ] };
+
+            ctx.localSSRCs.set(1, ssrcInfo);
+
+            await replaceTrack.call(ctx, oldTrack, newTrack, false);
+
+            expect(second.sender.replaceTrack).toHaveBeenCalledWith(newTrack.getTrack());
+            expect(Array.from(ctx.localTrackTransceiverMids)).toEqual([ [ 2, '1' ] ]);
+            expect(Array.from(ctx.localTracks.keys())).toEqual([ 2 ]);
+            expect(ctx.localSSRCs.get(2)).toBe(ssrcInfo);
+            expect(ctx.localSSRCs.has(1)).toBeFalse();
+            expect(newTrack.setSsrc).toHaveBeenCalledWith(1111);
+        });
+
+        it('rejects when the recorded mid of the old track is sending another local track', async () => {
+            const otherMicTrack = { label: 'other mic' };
+            const first = transceiver('0', otherMicTrack);
+            const oldTrack = localTrack(1, { label: 'mic' });
+
+            await expectAsync(replaceTrack.call(
+                context([ first ], new Map([ [ 1, '0' ] ]), [ oldTrack, localTrack(3, otherMicTrack) ]),
+                oldTrack, localTrack(2, {}), true))
+                .toBeRejectedWithError(/no transceiver/);
+            expect(first.sender.replaceTrack).not.toHaveBeenCalled();
+        });
+
+        it('rejects when the old track is on no sender and has no known transceiver', async () => {
+            const first = transceiver('0', {});
+
+            await expectAsync(replaceTrack.call(
+                context([ first ], new Map()), localTrack(1, {}), localTrack(2, {}), true))
+                .toBeRejectedWithError(/no transceiver/);
+            expect(first.sender.replaceTrack).not.toHaveBeenCalled();
+        });
+    });
 });

@@ -2440,6 +2440,25 @@ export default class TraceablePeerConnection {
         if (oldTrack && !oldTrack.isMuted()) {
             transceiver = this.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
 
+            // The sender can hold a track the old track no longer exposes, e.g. the output of a stream effect that
+            // was stopped by stopStream(), so fall back to the transceiver mid recorded for the old track. Don't take
+            // that transceiver over if it is sending another local track.
+            if (!transceiver) {
+                const oldMid = this.localTrackTransceiverMids.get(oldTrack.rtcId);
+                const midTransceiver = oldMid && this.peerconnection.getTransceivers().find(t => t.mid === oldMid);
+                const senderTrack = midTransceiver?.sender.track;
+                const owner = senderTrack
+                    && this.getLocalTracks().find(t => t !== oldTrack && t.getTrack() === senderTrack);
+
+                if (owner) {
+                    logger.error(`${this} replaceTrack: mid=${oldMid} of ${oldTrack} is in use by ${owner}`);
+                } else if (midTransceiver) {
+                    logger.warn(`${this} replaceTrack: ${oldTrack} is on no sender, using its mid=${oldMid}, sender `
+                        + `track id=${senderTrack?.id} label=${senderTrack?.label} state=${senderTrack?.readyState}`);
+                    transceiver = midTransceiver;
+                }
+            }
+
         // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
         // As part of the track addition, a new m-line was added to the remote description with direction set to
         // recvonly.
