@@ -32,11 +32,12 @@ describe('JitsiLocalTrack', () => {
         ];
     }
 
-    function createTrack(effects: IStreamEffect[] = []): { localTrack: any; micTrack: any; } {
-        const micTrack = fakeTrack(MIC_LABEL);
+    function createTrack(effects: IStreamEffect[] = [], deviceId = MIC_ID, label = MIC_LABEL)
+            : { localTrack: any; micTrack: any; } {
+        const micTrack = fakeTrack(label);
         const localTrack: any = new JitsiLocalTrack({
             constraints: {},
-            deviceId: MIC_ID,
+            deviceId,
             effects,
             mediaType: MediaType.AUDIO,
             rtcId: 1,
@@ -63,7 +64,22 @@ describe('JitsiLocalTrack', () => {
 
             localTrack._onDeviceListWillChange(micDevices());
 
-            expect(localTrack.getDeviceId()).toBe(MIC_ID);
+            // getDeviceId() falls back to the gUM device id, so check the matched one directly.
+            expect(localTrack._realDeviceId).toBe(MIC_ID);
+            expect(localTrack.isEnded()).toBeFalse();
+        });
+
+        it('follows a changed default device of a track with an active stream effect', () => {
+            // The track keeps its 'Default - A' label, while the list now shows B as default and A under its own id.
+            const { localTrack } = createTrack(
+                [ mixerEffect(fakeTrack('MediaStreamAudioDestinationNode')) ], 'default', `Default - ${MIC_LABEL}`);
+
+            localTrack._onDeviceListWillChange([
+                { deviceId: 'default', kind: 'audioinput', label: 'Default - Other mic' } as MediaDeviceInfo,
+                ...micDevices()
+            ]);
+
+            expect(localTrack._realDeviceId).toBe(MIC_ID);
             expect(localTrack.isEnded()).toBeFalse();
         });
 

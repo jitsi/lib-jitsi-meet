@@ -586,8 +586,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Returns the MediaStreamTrack captured from the device. While a stream effect is active, {@link getTrack} returns
-     * the effect's output track, which has its own label and state and doesn't match any device.
+     * Returns the MediaStreamTrack captured from the device. While a stream effect is active, {@link #getTrack} returns
+     * the effect's output track, which has its own label and readyState and doesn't match any device. Without an
+     * active effect (including after {@link #stopStream} stopped it) this is {@link #getTrack}.
      *
      * @private
      * @returns {MediaStreamTrack}
@@ -811,7 +812,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Returns if associated MediaStreamTrack is in the 'ended' state
+     * Returns whether the MediaStreamTrack captured from the device is in the 'ended' state or its device was found
+     * to be removed. While a stream effect is active this checks the device track, not the effect's output.
      *
      * @returns {boolean}
      */
@@ -879,7 +881,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // muted that means that we aren't receiving any data from the source. We want to notify the users for error if
         // the stream is muted or ended on it's creation.
 
-        // For video blur enabled use the original video stream
+        // While a stream effect is active, check the stream captured from the device, not the effect's output.
         const stream = this._effectEnabled ? this._originalStream : this.stream;
 
         return stream.getTracks().some(track =>
