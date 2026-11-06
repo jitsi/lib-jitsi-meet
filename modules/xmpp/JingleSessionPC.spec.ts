@@ -9,6 +9,7 @@ import Statistics from '../statistics/statistics';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -743,21 +744,37 @@ describe('processSourceMap - mute state of a re-mapped SSRC', () => {
         new JitsiConferenceEventManager(conference).setupChatRoomListeners();
     });
 
-    [ true, false ].forEach(muted => {
-        it(`applies muted=${muted} to the track under its new owner and source`, () => {
-            const track = audioTrack('aaaaaaaa', 'aaaaaaaa-a0', 1111, !muted);
+    [
+        { mediaType: MediaType.AUDIO, muted: false },
+        { mediaType: MediaType.AUDIO, muted: true },
+        { mediaType: MediaType.VIDEO, muted: false },
+        { mediaType: MediaType.VIDEO, muted: true }
+    ].forEach(({ mediaType, muted }) => {
+        it(`applies muted=${muted} to the new ${mediaType} owner and source`, () => {
+            const oldSource = `aaaaaaaa-${mediaType[0]}0`;
+            const newSource = `bbbbbbbb-${mediaType[0]}0`;
+            const videoType = mediaType === MediaType.VIDEO ? VideoType.DESKTOP : undefined;
+            const track = new JitsiRemoteTrack(
+                null, conference, 'aaaaaaaa', new MediaStream(),
+                jasmine.createSpyObj<MediaStreamTrack>('mediaTrack', [ 'addEventListener' ]),
+                mediaType, mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined,
+                1111, !muted, false, oldSource);
             const muteChanged = jasmine.createSpy('muteChanged');
 
             track.on(JitsiTrackEvents.TRACK_MUTE_CHANGED,
-                () => muteChanged(track.getParticipantId(), track.getSourceName(), track.isMuted()));
+                () => muteChanged(track.getParticipantId(), track.getSourceName(), track.isMuted(), track.getVideoType()));
             useTracks([ track ]);
-            spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted });
+            spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted, videoType });
 
             session.processSourceMap({
-                mappedSources: [ { owner: 'bbbbbbbb', rtx: '-1', source: 'bbbbbbbb-a0', ssrc: 1111 } ]
-            }, MediaType.AUDIO);
+                mappedSources: [ { owner: 'bbbbbbbb', rtx: '-1', source: newSource, ssrc: 1111 } ]
+            }, mediaType);
 
-            expect(muteChanged.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 'bbbbbbbb-a0', muted ] ]);
+            expect(track.getParticipantId()).toBe('bbbbbbbb');
+            expect(track.getSourceName()).toBe(newSource);
+            expect(track.isMuted()).toBe(muted);
+            expect(track.getVideoType()).toBe(videoType);
+            expect(muteChanged.calls.allArgs()).toEqual([ [ 'bbbbbbbb', newSource, muted, videoType ] ]);
         });
     });
 
