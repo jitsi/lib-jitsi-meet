@@ -70,8 +70,20 @@ describe('Moderator', () => {
 
             await expectAsync(moderator.authenticate('room@muc.example.com')).toBeRejectedWith({
                 error: JitsiConferenceErrors.RESERVATION_ERROR,
-                message: '',
+                message: undefined,
                 reservationErrorCode: '3'
+            });
+        });
+
+        it('leaves the reservation error code undefined when the attribute is missing', async () => {
+            const moderator = moderatorWithError(errorIq(
+                '<text xmlns="urn:ietf:params:xml:ns:xmpp-stanzas">Room is not reserved</text>'
+                + '<reservation-error xmlns="http://jitsi.org/protocol/focus"/>'));
+
+            await expectAsync(moderator.authenticate('room@muc.example.com')).toBeRejectedWith({
+                error: JitsiConferenceErrors.RESERVATION_ERROR,
+                message: 'Room is not reserved',
+                reservationErrorCode: undefined
             });
         });
 
