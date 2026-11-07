@@ -20,6 +20,7 @@ function hexdump(buffer) {
 /* TODO: more tests
  * - delta frames
  * - frame header is not encrypted
+ * 
  * - different sendCounts
  * - different key length
  * - ratcheting in decodeFunction
@@ -55,12 +56,27 @@ function makeEmptyAudioFrame() {
 }
 
 /**
- * generates a dummy video frame
+ * generates a dummy video key frame
  */
 function makeVideoFrame() {
     return {
         data: new Uint8Array(videoBytes).buffer,
         type: 'key',
+        getMetadata: () => {
+            return { synchronizationSource: 321 };
+        }
+    };
+}
+
+/**
+ * generates a dummy video delta (interframe) frame.
+ * Delta frames only have 3 bytes of unencrypted header (vs 10 for key frames).
+ * Uses the same payload bytes and SSRC as makeVideoFrame() for easy comparison.
+ */
+function makeDeltaVideoFrame() {
+    return {
+        data: new Uint8Array(videoBytes).buffer,
+        type: 'delta',
         getMetadata: () => {
             return { synchronizationSource: 321 };
         }
@@ -125,6 +141,72 @@ describe('E2EE Context', () => {
             sender.encodeFunction(makeVideoFrame(), sendController);
         });
 
+        it('with a video delta frame', done => {
+            sendController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    // A video delta (interframe) frame also has 30 bytes of JFrame trailer overhead:
+                    // 16 bytes authentication tag, 12 bytes iv, iv length (1 byte) and 1 byte key index.
+                    // The 3-byte unencrypted VP8 delta header (vs 10 bytes for a key frame) does not
+                    // change the overall overhead; it just shifts which bytes are plain vs encrypted.
+                    expect(data.byteLength).toEqual(videoBytes.length + 30);
+                    done();
+                }
+            };
+
+            sender.encodeFunction(makeDeltaVideoFrame(), sendController);
+        });
+
+        it('leaves the first byte unencrypted for audio frames', done => {
+            const inputFrame = makeAudioFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+
+                    expect(outputBytes[0]).toEqual(inputBytes[0]);
+                    done();
+                }
+            };
+
+            sender.encodeFunction(inputFrame, sendController);
+        });
+
+        it('leaves the first 3 bytes unencrypted for video delta frames', done => {
+            const inputFrame = makeDeltaVideoFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
+
+            sendController = {
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+
+                    for (let i = 0; i < 3; i++) {
+                        expect(outputBytes[i]).toEqual(inputBytes[i]);
+                    }
+                    done();
+                }
+            };
+
+            sender.encodeFunction(inputFrame, sendController);
+        });
+        
+            it('leave the first 10 bytes unencrypted for video keyframe', done => {
+            const inputFrame = makeVideoFrame();
+            const inputBytes = new Uint8Array(inputFrame.data);
+
+            sendController ={
+                enqueue: encodedFrame => {
+                    const outputBytes = new Uint8Array(encodedFrame.data);
+                    for(let i = 0;i<10;i++){
+                        expect(outputBytes[i]).toEqual(inputBytes[i]);
+                    }
+                    done();
+                }
+            };
+            sender.encodeFunction(inputFrame,sendController);
+        })
         it('passes an empty audio frame through', () => {
             const enqueued = [];
 
@@ -217,6 +299,109 @@ describe('E2EE Context', () => {
             sender.encodeFunction(makeVideoFrame(), sendController);
         });
 
+        it("works with 16 bytes key material lengths", done => {
+            const key128 = new Uint8Array(16);
+            key128.fill(0xAA);
+            
+            const setupKeys = async () => {
+                await sender.setKey(key128, 0);
+                await receiver.setKey(key128, 0);
+                
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+                        done();
+                    }
+                };
+                sender.encodeFunction(makeAudioFrame(), sendController);
+            };
+            
+            setupKeys();
+        });
+                
+        it("works with 32 bytes key material lengths", done => {
+            const key256 = new Uint8Array(32);
+            key256.fill(0xBB);
+            
+            const setupKeys = async () => {
+                await sender.setKey(key256, 0);
+                await receiver.setKey(key256, 0);
+                
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+                        done();
+                    }
+                };
+                sender.encodeFunction(makeAudioFrame(), sendController);
+            };
+            
+            setupKeys();
+        });
+        
+        it('encrypts multiple sequential frames with unique IVs', done => {
+            const totalFrames = 5;
+            let framesProcessed = 0;
+            const decryptedFrames = [];
+
+            receiveController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    expect(data.byteLength).toEqual(audioBytes.length);
+                    expect(Array.from(data)).toEqual(audioBytes);
+
+                    decryptedFrames.push(encodedFrame);
+                    framesProcessed++;
+
+                    if (framesProcessed === totalFrames) {
+                        done();
+                    }
+                }
+            };
+
+            for (let i = 0; i < totalFrames; i++) {
+                sender.encodeFunction(makeAudioFrame(), sendController);
+            }
+        });
+
+        it('maintains separate sendCounts for different SSRCs', done => {
+            const totalFrames = 4;
+            let framesProcessed = 0;
+
+            receiveController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    const isAudio = data.byteLength === audioBytes.length;
+                    const isVideo = data.byteLength === videoBytes.length;
+
+                    expect(isAudio || isVideo).toBe(true);
+
+                    if (isAudio) {
+                        expect(Array.from(data)).toEqual(audioBytes);
+                    } else {
+                        expect(Array.from(data)).toEqual(videoBytes);
+                    }
+
+                    framesProcessed++;
+
+                    if (framesProcessed === totalFrames) {
+                        done();
+                    }
+                }
+            };
+
+            sender.encodeFunction(makeAudioFrame(), sendController);
+            sender.encodeFunction(makeVideoFrame(), sendController);
+            sender.encodeFunction(makeAudioFrame(), sendController);
+            sender.encodeFunction(makeVideoFrame(), sendController);
+        });
+
         it('the receiver ratchets forward', done => {
             receiveController = {
                 enqueue: encodedFrame => {
@@ -238,6 +423,168 @@ describe('E2EE Context', () => {
             };
 
             encodeFunction();
+        });
+
+        describe('ratcheting in decodeFunction', () => {
+            it('receiver catches up when sender ratchets 1 time ahead', done => {
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+                        done();
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    material = await ratchet(material);
+                    await sender.setKey(material, 0);
+
+                    sender.encodeFunction(makeAudioFrame(), sendController);
+                };
+
+                encodeFunction();
+            });
+
+            it('receiver catches up when sender ratchets 3 times ahead', done => {
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+                        done();
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    for (let i = 0; i < 3; i++) {
+                        material = await importKey(await ratchet(material));
+                    }
+
+                    await sender.setKey(material, 0);
+                    sender.encodeFunction(makeAudioFrame(), sendController);
+                };
+
+                encodeFunction();
+            });
+<<<<<<< HEAD
+
+            it('receiver catches up at window boundary (8 ratchets)', done => {
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+                        done();
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    for (let i = 0; i < 8; i++) {
+                        material = await importKey(await ratchet(material));
+                    }
+
+                    await sender.setKey(material, 0);
+                    sender.encodeFunction(makeAudioFrame(), sendController);
+                };
+
+                encodeFunction();
+            });
+
+            it('fails gracefully when sender exceeds ratchet window', done => {
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        done.fail('Should not decrypt when beyond ratchet window');
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    for (let i = 0; i < 9; i++) {
+                        material = await importKey(await ratchet(material));
+                    }
+
+                    await sender.setKey(material, 0);
+                    sender.encodeFunction(makeAudioFrame(), sendController);
+
+                    setTimeout(() => {
+                        done();
+                    }, 100);
+                };
+
+                encodeFunction();
+            });
+
+            it('handles multiple frames with progressive ratcheting', done => {
+                const totalFrames = 3;
+                let framesProcessed = 0;
+
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+
+                        framesProcessed++;
+
+                        if (framesProcessed === totalFrames) {
+                            done();
+                        }
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+                        material = await importKey(await ratchet(material));
+                        await sender.setKey(material, 0);
+                        sender.encodeFunction(makeAudioFrame(), sendController);
+                    }
+                };
+
+                encodeFunction();
+            });
+
+            it('decrypts immediately when keys already match', done => {
+                receiveController = {
+                    enqueue: encodedFrame => {
+                        const data = new Uint8Array(encodedFrame.data);
+
+                        expect(data.byteLength).toEqual(audioBytes.length);
+                        expect(Array.from(data)).toEqual(audioBytes);
+                        done();
+                    }
+                };
+
+                const encodeFunction = async () => {
+                    let material = await importKey(key.buffer);
+
+                    for (let i = 0; i < 5; i++) {
+                        material = await importKey(await ratchet(material));
+                    }
+
+                    await sender.setKey(material, 0);
+                    await receiver.setKey(material, 0);
+
+                    sender.encodeFunction(makeAudioFrame(), sendController);
+                };
+
+                encodeFunction();
+            });
+=======
+>>>>>>> 0a86e6bd (test(modules/e2ee): test receiver catches up when sender ratchets 3 times ahead)
         });
     });
 });
