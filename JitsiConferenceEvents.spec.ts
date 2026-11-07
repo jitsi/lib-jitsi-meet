@@ -59,6 +59,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED ).toBe( 'conference.participant_property_changed' );
         expect( JitsiConferenceEvents.P2P_STATUS ).toBe( 'conference.p2pStatus' );
         expect( JitsiConferenceEvents.PHONE_NUMBER_CHANGED ).toBe( 'conference.phoneNumberChanged' );
+        expect( JitsiConferenceEvents.POLL_CLOSED ).toBe( 'conference.pollClosed' );
         expect( JitsiConferenceEvents.PROPERTIES_CHANGED ).toBe( 'conference.propertiesChanged' );
         expect( JitsiConferenceEvents.RECORDER_STATE_CHANGED ).toBe( 'conference.recorderStateChanged' );
         expect( JitsiConferenceEvents.VIDEO_SIP_GW_AVAILABILITY_CHANGED ).toBe( 'conference.videoSIPGWAvailabilityChanged' );

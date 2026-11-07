@@ -565,6 +565,12 @@ export default class TraceablePeerConnection {
                 this.onicecandidate(event);
             }
         };
+        this.peerconnection.onicecandidateerror = (event: RTCPeerConnectionIceErrorEvent) => {
+            const { address, errorCode, errorText, port, url } = event;
+
+            logger.warn(`${this} ICE candidate error: url=${url} errorCode=${errorCode} errorText="${errorText}"`
+                + ` address=${address} port=${port}`);
+        };
 
         this.onTrack = evt => {
             const stream = evt.streams[0];
@@ -1861,7 +1867,10 @@ export default class TraceablePeerConnection {
             return;
         }
 
-        const toBeRemoved = this.getRemoteTracks().find(
+        // getRemoteTracks() skips tracks whose owner was cleared, but those still hold an SSRC slot to release.
+        const candidates = FeatureFlags.isSsrcRewritingSupported()
+            ? Array.from(this.remoteTracksBySsrc.values()) : this.getRemoteTracks();
+        const toBeRemoved = candidates.find(
             remoteTrack => remoteTrack.getStreamId() === streamId && remoteTrack.getTrackId() === trackId);
 
         if (!toBeRemoved) {
@@ -1889,15 +1898,15 @@ export default class TraceablePeerConnection {
         toBeRemoved.dispose();
 
         if (FeatureFlags.isSsrcRewritingSupported()) {
-            if (!participantId) {
-                return;
-            }
-
             // Drop the SSRC->track entry so that a later source-add reusing the same rewritten SSRC (e.g. the wedge
             // recovery recycling a source via source-remove then source-add) is not discarded as a duplicate by
             // _createRemoteTrack. Guarded so a slot already remapped to a different current track is left alone.
             if (this.remoteTracksBySsrc.get(ssrc) === toBeRemoved) {
                 this.remoteTracksBySsrc.delete(ssrc);
+            }
+
+            if (!participantId) {
+                return;
             }
         } else {
             const userTracksByMediaType = this.remoteTracks.get(participantId);
@@ -2430,6 +2439,25 @@ export default class TraceablePeerConnection {
         // If old track exists, replace the track on the corresponding sender.
         if (oldTrack && !oldTrack.isMuted()) {
             transceiver = this.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
+
+            // The sender can hold a track the old track no longer exposes, e.g. the output of a stream effect that
+            // was stopped by stopStream(), so fall back to the transceiver mid recorded for the old track. Don't take
+            // that transceiver over if it is sending another local track.
+            if (!transceiver) {
+                const oldMid = this.localTrackTransceiverMids.get(oldTrack.rtcId);
+                const midTransceiver = oldMid && this.peerconnection.getTransceivers().find(t => t.mid === oldMid);
+                const senderTrack = midTransceiver?.sender.track;
+                const owner = senderTrack
+                    && this.getLocalTracks().find(t => t !== oldTrack && t.getTrack() === senderTrack);
+
+                if (owner) {
+                    logger.error(`${this} replaceTrack: mid=${oldMid} of ${oldTrack} is in use by ${owner}`);
+                } else if (midTransceiver) {
+                    logger.warn(`${this} replaceTrack: ${oldTrack} is on no sender, using its mid=${oldMid}, sender `
+                        + `track id=${senderTrack?.id} label=${senderTrack?.label} state=${senderTrack?.readyState}`);
+                    transceiver = midTransceiver;
+                }
+            }
 
         // Find the first recvonly transceiver when more than one track of the same media type is being added to the pc.
         // As part of the track addition, a new m-line was added to the remote description with direction set to

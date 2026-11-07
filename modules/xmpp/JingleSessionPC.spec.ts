@@ -1,9 +1,15 @@
+import JitsiConference from '../../JitsiConference';
+import JitsiConferenceEventManager from '../../JitsiConferenceEventManager';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import { MockRTC } from '../RTC/MockClasses';
 import SDP from '../sdp/SDP';
+import EventEmitter from '../util/EventEmitter';
 import Statistics from '../statistics/statistics';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -603,15 +609,19 @@ describe('JingleSessionPC', () => {
         });
 
         describe('an existing SSRC re-mapped to another source', () => {
-            const track = { getParticipantId: () => 'abcdef12', getSourceName: () => 'abcdef12-a0' };
             let muteChanges: Array<[ string, boolean ]>;
             let owners: string[];
+            let ownerSetSource: string;
+            const track = {
+                getParticipantId: () => 'abcdef12',
+                getSourceName: () => 'abcdef12-a0',
+                setMute: (muted: boolean) => muteChanges.push([ ownerSetSource, muted ])
+            };
 
             beforeEach(() => {
                 muteChanges = [];
                 owners = [];
                 session.peerconnection = {
-                    _sourceMutedChanged: (source: string, muted: boolean) => muteChanges.push([ source, muted ]),
                     addRemoteSsrc: () => false,
                     close: () => { /* no-op */ },
                     getRemoteSourceInfoBySourceName: () => undefined,
@@ -619,7 +629,10 @@ describe('JingleSessionPC', () => {
                 };
                 session.room = {
                     eventEmitter: {
-                        emit: (_event: string, _track: typeof track, owner: string) => owners.push(owner)
+                        emit: (_event: string, _track: typeof track, owner: string, source: string) => {
+                            owners.push(owner);
+                            ownerSetSource = source;
+                        }
                     }
                 };
             });
@@ -676,6 +689,113 @@ describe('JingleSessionPC', () => {
 
             expect(signalingLayer.getSyntheticSourceKind('agent-0dae1739-a0')).toBe('agent');
         });
+    });
+});
+
+describe('processSourceMap - mute state of a re-mapped SSRC', () => {
+    let session: JingleSessionPC;
+    let signalingLayer: SignalingLayerImpl;
+    let conference: JitsiConference;
+
+    function audioTrack(owner: string, sourceName: string, ssrc: number, muted: boolean): JitsiRemoteTrack {
+        return new JitsiRemoteTrack(
+            null, conference, owner, new MediaStream(),
+            jasmine.createSpyObj<MediaStreamTrack>('mediaTrack', [ 'addEventListener' ]),
+            MediaType.AUDIO, undefined, ssrc, muted, false, sourceName);
+    }
+
+    function useTracks(tracks: JitsiRemoteTrack[]): void {
+        Object.assign(session, {
+            peerconnection: {
+                _sourceMutedChanged: () => fail('the re-mapped track is known, no lookup by source name is needed'),
+                addRemoteSsrc: () => false,
+                getRemoteSourceInfoBySourceName: () => undefined,
+                getRemoteTracks: () => tracks,
+                getTrackBySSRC: (ssrc: number) => tracks.find(t => t.getSsrc() === ssrc)
+            }
+        });
+    }
+
+    beforeEach(() => {
+        const room = new EventEmitter();
+
+        spyOn(FeatureFlags, 'isSsrcRewritingSupported').and.returnValue(true);
+        signalingLayer = new SignalingLayerImpl();
+        const chatRoom = {
+            addListener: room.addListener.bind(room),
+            eventEmitter: room,
+            setParticipantPropertyListener: () => { /* no-op */ }
+        };
+
+        // The real prototypes with only the members processSourceMap and the TRACK_OWNER_SET handler use.
+        session = Object.assign(Object.create(JingleSessionPC.prototype), {
+            _signalingLayer: signalingLayer,
+            isP2P: false,
+            options: {},
+            room: chatRoom
+        });
+        conference = Object.assign(Object.create(JitsiConference.prototype), {
+            _remoteTrackRelays: new WeakMap(),
+            _signalingLayer: signalingLayer,
+            eventEmitter: new EventEmitter(),
+            getActivePeerConnection: () => undefined,
+            room: chatRoom
+        });
+        new JitsiConferenceEventManager(conference).setupChatRoomListeners();
+    });
+
+    [
+        { mediaType: MediaType.AUDIO, muted: false },
+        { mediaType: MediaType.AUDIO, muted: true },
+        { mediaType: MediaType.VIDEO, muted: false },
+        { mediaType: MediaType.VIDEO, muted: true }
+    ].forEach(({ mediaType, muted }) => {
+        it(`applies muted=${muted} to the new ${mediaType} owner and source`, () => {
+            const oldSource = `aaaaaaaa-${mediaType[0]}0`;
+            const newSource = `bbbbbbbb-${mediaType[0]}0`;
+            const videoType = mediaType === MediaType.VIDEO ? VideoType.DESKTOP : undefined;
+            const track = new JitsiRemoteTrack(
+                null, conference, 'aaaaaaaa', new MediaStream(),
+                jasmine.createSpyObj<MediaStreamTrack>('mediaTrack', [ 'addEventListener' ]),
+                mediaType, mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined,
+                1111, !muted, false, oldSource);
+            const muteChanged = jasmine.createSpy('muteChanged');
+
+            track.on(JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                () => muteChanged(track.getParticipantId(), track.getSourceName(), track.isMuted(), track.getVideoType()));
+            useTracks([ track ]);
+            spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted, videoType });
+
+            session.processSourceMap({
+                mappedSources: [ { owner: 'bbbbbbbb', rtx: '-1', source: newSource, ssrc: 1111 } ]
+            }, mediaType);
+
+            expect(track.getParticipantId()).toBe('bbbbbbbb');
+            expect(track.getSourceName()).toBe(newSource);
+            expect(track.isMuted()).toBe(muted);
+            expect(track.getVideoType()).toBe(videoType);
+            expect(muteChanged.calls.allArgs()).toEqual([ [ 'bbbbbbbb', newSource, muted, videoType ] ]);
+        });
+    });
+
+    it('gives each track its new source\'s mute state when one source map swaps sources between them', () => {
+        const movedFrom = audioTrack('aaaaaaaa', 'aaaaaaaa-a0', 1111, false);
+        const movedTo = audioTrack('cccccccc', 'cccccccc-a0', 2222, true);
+
+        // movedTo comes first, so a lookup by source name would find it last when searching from the end.
+        useTracks([ movedTo, movedFrom ]);
+        spyOn(signalingLayer, 'getPeerMediaInfo').and.callFake(
+            (_owner: string, _type: MediaType, source: string) => ({ muted: source !== 'aaaaaaaa-a0' }));
+
+        session.processSourceMap({
+            mappedSources: [
+                { owner: 'aaaaaaaa', rtx: '-1', source: 'aaaaaaaa-a0', ssrc: 2222 },
+                { owner: 'dddddddd', rtx: '-1', source: 'dddddddd-a0', ssrc: 1111 }
+            ]
+        }, MediaType.AUDIO);
+
+        expect([ movedTo.getSourceName(), movedTo.isMuted() ]).toEqual([ 'aaaaaaaa-a0', false ]);
+        expect([ movedFrom.getSourceName(), movedFrom.isMuted() ]).toEqual([ 'dddddddd-a0', true ]);
     });
 });
 

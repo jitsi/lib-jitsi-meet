@@ -37,6 +37,12 @@ export enum JitsiTrackEvents {
     TRACK_AUDIO_OUTPUT_CHANGED = 'track.audioOutputChanged',
 
     /**
+     * The audio output device could not be applied to an element the track is attached to. The element was reloaded
+     * on its previous output. The argument is the setSinkId error.
+     */
+    TRACK_AUDIO_OUTPUT_FAILED = 'track.audioOutputFailed',
+
+    /**
      * A media track mute status was changed.
      */
     TRACK_MUTE_CHANGED = 'track.trackMuteChanged',
