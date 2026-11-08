@@ -2551,6 +2551,15 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Returns all the features the server advertised so far, see JitsiConnection.getServerFeatures.
+     *
+     * @returns {string[]}
+     */
+    public getServerFeatures(): string[] {
+        return this.connection?.getServerFeatures() ?? [];
+    }
+
+    /**
      * Checks whether an in-place ICE restart of the JVB session can be used: it must be enabled in the client
      * configuration ('enableIceRestart').
      *

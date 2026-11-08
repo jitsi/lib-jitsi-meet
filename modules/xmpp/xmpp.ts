@@ -16,7 +16,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
-import { exists, findFirst, getText } from '../util/XMLUtils';
+import { exists, findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
 import Caps, { parseDiscoInfo } from './Caps';
 import ChatRoom from './ChatRoom';
@@ -170,6 +170,18 @@ const LOBBY_DISPLAY_NAME_REQUIRED_FEATURE = 'http://jitsi.org/protocol/lobbyroom
 const BREAKOUT_ROOMS_RENAME_FEATURE = 'http://jitsi.org/protocol/breakout_rooms#rename';
 
 /**
+ * The namespace of the element in the jiconop message that carries the server features, apart from the disco#info
+ * query that also carries the features of the room in the connection URL.
+ */
+const SERVER_FEATURES_NS = 'http://jitsi.org/protocol/server-features';
+
+/**
+ * Only the features of the Jitsi Prosody modules are reported as server features, the same on both paths: jiconop
+ * sends only those.
+ */
+const JITSI_FEATURE_PREFIX = 'http://jitsi.org/protocol/';
+
+/**
 * Regex to extract exact error message on jwt error.
 */
 const FAILURE_REGEX = /<failure.*><not-allowed\/><text>(.*)<\/text><\/failure>/gi;
@@ -280,7 +292,7 @@ export default class XMPP extends Listenable {
     private _disconnectInProgress: Optional<Promise<void>> | boolean;
     private _lastErrorMsg: Optional<string>;
     private _preComponentsMsgs: Element[];
-    private _serverFeatures = new Set<string>();
+    private _serverFeatures: Set<string>;
     private _sysMessageHandler: unknown;
     private _startConnecting: Optional<boolean>;
     private _unloadEventTypes: string[];
@@ -347,6 +359,8 @@ export default class XMPP extends Listenable {
         // We want to track messages that are received before we process the disco-info components
         // re-order of receiving we may drop some messages
         this._preComponentsMsgs = [];
+
+        this._serverFeatures = new Set();
 
         initStropheNativePlugins();
 
@@ -648,8 +662,6 @@ export default class XMPP extends Listenable {
      * @private
      */
     private _processDiscoInfoIdentities(identities: Set<IIdentity>, features?: Set<string>): void {
-        features && this._addServerFeatures(features);
-
         // check for speakerstats
         identities.forEach(identity => {
             if (identity.type === 'av_moderation') {
@@ -676,7 +688,6 @@ export default class XMPP extends Listenable {
                 this.lobbySupported = true;
                 const processLobbyFeatures = f => {
                     f.forEach(fr => {
-                        // The features of the main domain are in the same list (jiconop), so match the whole name.
                         if (fr === LOBBY_DISPLAY_NAME_REQUIRED_FEATURE) {
                             this.eventEmitter.emit(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
                         }
@@ -848,6 +859,10 @@ export default class XMPP extends Listenable {
 
         const { features, identities } = parseDiscoInfo(msg);
 
+        this._addServerFeatures(new Set(
+            findAll(msg, ':scope>features')
+                .filter(el => getAttribute(el, 'xmlns') === SERVER_FEATURES_NS)
+                .flatMap(el => findAll(el, ':scope>feature').map(f => getAttribute(f, 'var')))));
         this._processDiscoInfoIdentities(identities, features);
 
         if (identities.size > 0 || features.size > 0) {
@@ -974,10 +989,8 @@ export default class XMPP extends Listenable {
     }
 
     /**
-     * Adds features that the server advertised and emits SERVER_FEATURES_UPDATED when they change. Leaves out the
-     * lobby and breakout rooms features that jiconop adds for the room in the connection URL: they describe that
-     * room rather than the server, and _processDiscoInfoIdentities handles them. Any other feature that a component
-     * adds to the jiconop message with 'host-disco-info-node' would be taken as a server feature.
+     * Adds the 'http://jitsi.org/protocol/' features that the server advertised and emits SERVER_FEATURES_UPDATED
+     * when new ones are added.
      *
      * @param {Set<string>} features - The features to add.
      * @private
@@ -987,7 +1000,7 @@ export default class XMPP extends Listenable {
         const { size } = this._serverFeatures;
 
         features.forEach(feature => {
-            if (feature !== LOBBY_DISPLAY_NAME_REQUIRED_FEATURE && feature !== BREAKOUT_ROOMS_RENAME_FEATURE) {
+            if (feature?.startsWith(JITSI_FEATURE_PREFIX)) {
                 this._serverFeatures.add(feature);
             }
         });
@@ -1005,10 +1018,11 @@ export default class XMPP extends Listenable {
      * @returns {void}
      */
     private _clearServerFeatures(): void {
-        if (this._serverFeatures.size) {
-            this._serverFeatures.clear();
-            this.eventEmitter.emit(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, []);
-        }
+        const { size } = this._serverFeatures;
+
+        // A new set, so that a disco#info reply to the previous connection doesn't add to it.
+        this._serverFeatures = new Set();
+        size && this.eventEmitter.emit(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, []);
     }
 
     /**
@@ -1027,7 +1041,7 @@ export default class XMPP extends Listenable {
      * Checks whether the server advertised a feature, either in the disco#info of the main domain or in the
      * system message that jiconop sends on connect. Prosody modules advertise their features with the
      * 'jitsi-add-feature' event, so a client can enable an option only when the server supports it. Only the
-     * 'http://jitsi.org/protocol/' features advertised that way are reported the same way by both paths.
+     * 'http://jitsi.org/protocol/' features are reported.
      *
      * With jiconop the features are known before CONNECTION_ESTABLISHED. Without it they come with the reply to the
      * disco#info query sent once the connection is established, so listen for SERVER_FEATURES_UPDATED rather than
@@ -1038,6 +1052,15 @@ export default class XMPP extends Listenable {
      */
     public isServerFeatureSupported(feature: string): boolean {
         return this._serverFeatures.has(feature);
+    }
+
+    /**
+     * Returns all the features the server advertised so far, see isServerFeatureSupported.
+     *
+     * @returns {string[]}
+     */
+    public getServerFeatures(): string[] {
+        return Array.from(this._serverFeatures);
     }
 
     /**
@@ -1084,6 +1107,8 @@ export default class XMPP extends Listenable {
 
             // make sure we will send the info after the features request succeeds or fails
             this.sendDeploymentInfo = false;
+            const serverFeatures = this._serverFeatures;
+
             this.sendDiscoInfo && this.caps.getFeaturesAndIdentities(this.options.hosts.domain, undefined)
                 .then(({ features, identities }) => {
                     if (!features.has(Strophe.NS.PING)) {
@@ -1091,7 +1116,8 @@ export default class XMPP extends Listenable {
                             this.options.hosts.domain} - please enable ping in your XMPP server config`);
                     }
 
-                    this._addServerFeatures(features);
+                    // Skip a late reply to a previous connection.
+                    serverFeatures === this._serverFeatures && this._addServerFeatures(features);
 
                     this._processDiscoInfoIdentities(
                         identities, undefined /* when querying we will query for features */);

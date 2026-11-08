@@ -210,13 +210,23 @@ export default class JitsiConnection {
     /**
      * Checks whether the server advertised the given feature. Use it to enable an option only when the deployed
      * Prosody modules support it. The features can arrive after CONNECTION_ESTABLISHED, listen for
-     * SERVER_FEATURES_UPDATED to know when they change.
+     * SERVER_FEATURES_UPDATED to know when they are received.
      *
      * @param feature - The feature to check, e.g. 'http://jitsi.org/protocol/polls#single_answer'.
      * @returns Whether the server advertised the feature.
      */
     isServerFeatureSupported(feature: string): boolean {
         return this.xmpp.isServerFeatureSupported(feature);
+    }
+
+    /**
+     * Returns all the features the server advertised so far, e.g. to seed state in code that starts listening for
+     * SERVER_FEATURES_UPDATED after connect().
+     *
+     * @returns The features the server advertised.
+     */
+    getServerFeatures(): string[] {
+        return this.xmpp.getServerFeatures();
     }
 
     /**

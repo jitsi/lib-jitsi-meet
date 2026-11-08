@@ -59,10 +59,11 @@ export enum JitsiConnectionEvents {
     PROPERTIES_UPDATED = 'connection.propertiesUpdated',
 
     /**
-     * Indicates that the features the server advertises have been received or changed. Without jiconop they arrive
-     * with the reply to a disco#info query sent after CONNECTION_ESTABLISHED, so a UI that checks a feature should
-     * listen for this event rather than read the features once on connect.
-     * @param features {string[]} - All the features the server currently advertises, see
+     * Indicates that features the server advertises have been received. Within a connection the list only grows, it
+     * is emitted empty when a new connection starts. Without jiconop the features arrive with the reply to a disco#info
+     * query sent after CONNECTION_ESTABLISHED, so a UI that checks a feature should listen for this event rather than
+     * read the features once on connect; JitsiConnection.getServerFeatures gives the list received so far.
+     * @param features {string[]} - All the features the server advertised so far, see
      * JitsiConnection.isServerFeatureSupported.
      */
     SERVER_FEATURES_UPDATED = 'connection.serverFeaturesUpdated',
