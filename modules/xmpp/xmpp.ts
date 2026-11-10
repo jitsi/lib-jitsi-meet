@@ -16,7 +16,7 @@ import FeatureFlags from '../flags/FeatureFlags';
 import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
 import RandomUtil from '../util/RandomUtil';
-import { exists, findFirst, getText } from '../util/XMLUtils';
+import { exists, findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
 import Caps, { parseDiscoInfo } from './Caps';
 import ChatRoom from './ChatRoom';
@@ -160,6 +160,28 @@ interface IJsonMessage {
 }
 
 /**
+ * The feature that the lobby component advertises when the room requires a display name to join.
+ */
+const LOBBY_DISPLAY_NAME_REQUIRED_FEATURE = 'http://jitsi.org/protocol/lobbyrooms#displayname_required';
+
+/**
+ * The feature that the breakout rooms component advertises when breakout rooms can be renamed.
+ */
+const BREAKOUT_ROOMS_RENAME_FEATURE = 'http://jitsi.org/protocol/breakout_rooms#rename';
+
+/**
+ * The namespace of the element in the jiconop message that carries the server features, apart from the disco#info
+ * query that also carries the features of the room in the connection URL.
+ */
+const SERVER_FEATURES_NS = 'http://jitsi.org/protocol/server-features';
+
+/**
+ * Only the features of the Jitsi Prosody modules are reported as server features, the same on both paths: jiconop
+ * sends only those.
+ */
+const JITSI_FEATURE_PREFIX = 'http://jitsi.org/protocol/';
+
+/**
 * Regex to extract exact error message on jwt error.
 */
 const FAILURE_REGEX = /<failure.*><not-allowed\/><text>(.*)<\/text><\/failure>/gi;
@@ -270,6 +292,7 @@ export default class XMPP extends Listenable {
     private _disconnectInProgress: Optional<Promise<void>> | boolean;
     private _lastErrorMsg: Optional<string>;
     private _preComponentsMsgs: Element[];
+    private _serverFeatures: Set<string>;
     private _sysMessageHandler: unknown;
     private _startConnecting: Optional<boolean>;
     private _unloadEventTypes: string[];
@@ -336,6 +359,8 @@ export default class XMPP extends Listenable {
         // We want to track messages that are received before we process the disco-info components
         // re-order of receiving we may drop some messages
         this._preComponentsMsgs = [];
+
+        this._serverFeatures = new Set();
 
         initStropheNativePlugins();
 
@@ -663,7 +688,7 @@ export default class XMPP extends Listenable {
                 this.lobbySupported = true;
                 const processLobbyFeatures = f => {
                     f.forEach(fr => {
-                        if (fr.endsWith('#displayname_required')) {
+                        if (fr === LOBBY_DISPLAY_NAME_REQUIRED_FEATURE) {
                             this.eventEmitter.emit(JitsiConnectionEvents.DISPLAY_NAME_REQUIRED);
                         }
                     });
@@ -699,7 +724,7 @@ export default class XMPP extends Listenable {
                     this.breakoutRoomsFeatures = {};
 
                     f.forEach(fr => {
-                        if (fr.endsWith('#rename')) {
+                        if (fr === BREAKOUT_ROOMS_RENAME_FEATURE) {
                             this.breakoutRoomsFeatures.rename = true;
                         }
                     });
@@ -795,6 +820,7 @@ export default class XMPP extends Listenable {
         //  Status.ATTACHED - The connection has been attached
 
         this._resetState();
+        this._clearServerFeatures();
 
         // we want to send this only on the initial connect
         this.sendDiscoInfo = true;
@@ -833,6 +859,10 @@ export default class XMPP extends Listenable {
 
         const { features, identities } = parseDiscoInfo(msg);
 
+        this._addServerFeatures(new Set(
+            findAll(msg, ':scope>features')
+                .filter(el => getAttribute(el, 'xmlns') === SERVER_FEATURES_NS)
+                .flatMap(el => findAll(el, ':scope>feature').map(f => getAttribute(f, 'var')))));
         this._processDiscoInfoIdentities(identities, features);
 
         if (identities.size > 0 || features.size > 0) {
@@ -959,6 +989,43 @@ export default class XMPP extends Listenable {
     }
 
     /**
+     * Adds the 'http://jitsi.org/protocol/' features that the server advertised and emits SERVER_FEATURES_UPDATED
+     * when new ones are added.
+     *
+     * @param {Set<string>} features - The features to add.
+     * @private
+     * @returns {void}
+     */
+    private _addServerFeatures(features: Set<string>): void {
+        const { size } = this._serverFeatures;
+
+        features.forEach(feature => {
+            if (feature?.startsWith(JITSI_FEATURE_PREFIX)) {
+                this._serverFeatures.add(feature);
+            }
+        });
+
+        if (this._serverFeatures.size !== size) {
+            this.eventEmitter.emit(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, Array.from(this._serverFeatures));
+        }
+    }
+
+    /**
+     * Forgets the features of the server, before a new connection which can reach another shard. Not done in
+     * _resetState, which also runs when the connection is established, after jiconop sent the features.
+     *
+     * @private
+     * @returns {void}
+     */
+    private _clearServerFeatures(): void {
+        const { size } = this._serverFeatures;
+
+        // A new set, so that a disco#info reply to the previous connection doesn't add to it.
+        this._serverFeatures = new Set();
+        size && this.eventEmitter.emit(JitsiConnectionEvents.SERVER_FEATURES_UPDATED, []);
+    }
+
+    /**
      * Resets any state/flag before starting a new connection.
      * @private
      */
@@ -968,6 +1035,32 @@ export default class XMPP extends Listenable {
         this._lastErrorMsg = undefined;
         this._disconnectInProgress = undefined;
         this._wasDisconnected = false;
+    }
+
+    /**
+     * Checks whether the server advertised a feature, either in the disco#info of the main domain or in the
+     * system message that jiconop sends on connect. Prosody modules advertise their features with the
+     * 'jitsi-add-feature' event, so a client can enable an option only when the server supports it. Only the
+     * 'http://jitsi.org/protocol/' features are reported.
+     *
+     * With jiconop the features are known before CONNECTION_ESTABLISHED. Without it they come with the reply to the
+     * disco#info query sent once the connection is established, so listen for SERVER_FEATURES_UPDATED rather than
+     * check them once on connect. They are cleared when a new connection starts.
+     *
+     * @param {string} feature - The feature to check, e.g. 'http://jitsi.org/protocol/polls#single_answer'.
+     * @returns {boolean}
+     */
+    public isServerFeatureSupported(feature: string): boolean {
+        return this._serverFeatures.has(feature);
+    }
+
+    /**
+     * Returns all the features the server advertised so far, see isServerFeatureSupported.
+     *
+     * @returns {string[]}
+     */
+    public getServerFeatures(): string[] {
+        return Array.from(this._serverFeatures);
     }
 
     /**
@@ -1014,12 +1107,17 @@ export default class XMPP extends Listenable {
 
             // make sure we will send the info after the features request succeeds or fails
             this.sendDeploymentInfo = false;
+            const serverFeatures = this._serverFeatures;
+
             this.sendDiscoInfo && this.caps.getFeaturesAndIdentities(this.options.hosts.domain, undefined)
                 .then(({ features, identities }) => {
                     if (!features.has(Strophe.NS.PING)) {
                         logger.error(`Ping NOT supported by ${
                             this.options.hosts.domain} - please enable ping in your XMPP server config`);
                     }
+
+                    // Skip a late reply to a previous connection.
+                    serverFeatures === this._serverFeatures && this._addServerFeatures(features);
 
                     this._processDiscoInfoIdentities(
                         identities, undefined /* when querying we will query for features */);
@@ -1132,6 +1230,7 @@ export default class XMPP extends Listenable {
      */
     public attach(options: IConnectionCredentials): void {
         this._resetState();
+        this._clearServerFeatures();
 
         // we want to send this only on the initial connect
         this.sendDiscoInfo = true;
