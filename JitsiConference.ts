@@ -71,10 +71,12 @@ import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 import {
     ILegacyReceiverAudioSubscriptionMessage,
-    IReceiverAudioSubscriptionMessage
+    IReceiverAudioSubscriptionMessage,
+    SyntheticAudioService
 } from './service/RTC/ReceiverAudioSubscription';
 import { SignalingEvents } from './service/RTC/SignalingEvents';
 import {
+    SyntheticSourceKind,
     getMediaTypeFromSourceName,
     getSourceNameForJitsiTrack,
     isTranslatedSourceName
@@ -251,6 +253,7 @@ interface IUpgradeRoleError {
         password?: string;
     };
     message?: string;
+    reservationErrorCode?: string;
 }
 
 /**
@@ -295,6 +298,7 @@ interface IProcessWithCancel extends Promise<void> {
  */
 export default class JitsiConference extends Listenable {
     private _transcribingEnabled?: boolean;
+    private _hasVoiceAgents?: boolean;
     private _visitorCodecs?: string[];
     private _hasVisitors?: boolean;
     private _sessionInitiateTimeout?: number;
@@ -306,6 +310,11 @@ export default class JitsiConference extends Listenable {
     private _audioAnalyser?: VADAudioAnalyser;
     private _noAudioSignalDetection?: NoAudioSignalDetection;
     private _signalingLayer: SignalingLayerImpl;
+
+    /**
+     * Removes the listeners relaying a remote track's events to this conference, per track.
+     */
+    private _remoteTrackRelays = new WeakMap<JitsiRemoteTrack, () => void>();
 
     /**
      * The default language remote audio is translated into for every speaker, or null when off.
@@ -863,11 +872,11 @@ export default class JitsiConference extends Listenable {
                 localTrack.isVideoTrack() && this._sendBridgeVideoTypeMessage(localTrack);
             }
 
-            // (Re)establish the audio subscription on the bridge whenever the channel opens. Defaults to ALL
-            // until translation is enabled, at which point the Include list is sent instead. Only when the
-            // audio-translation feature is enabled — otherwise leave the bridge's default subscription untouched.
-            if (this.options.config.audioTranslation?.enabled) {
-                this.qualityController.audioController.resendSubscription();
+            const audioController = this.qualityController.audioController;
+
+            // A (re)opened channel starts from the bridge default, so any synthetic includes must be re-sent.
+            if (this.options.config.audioTranslation?.enabled || audioController.hasSyntheticIncludes()) {
+                audioController.resendSubscription();
             }
         });
     }
@@ -1454,9 +1463,13 @@ export default class JitsiConference extends Listenable {
         const peerCount = peers.length;
         const hasBotPeer = peers.find(p => p.getBotType() === 'poltergeist'
             || p.hasFeature(FEATURE_JIGASI)) !== undefined;
+        // Voice-agent audio is bridge-injected (like translation), so an active agent subscription needs JVB.
+        const hasAgentAudio = this.qualityController.audioController
+            .getServiceIncludes(SyntheticAudioService.VOICE_AGENTS).length > 0;
         const shouldBeInP2P = !this._p2pFallbackLatched
         && peerCount === 1 && !hasBotPeer && !this._hasVisitors
-        && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0;
+        && !this._transcribingEnabled && this._buildDesiredTranslations().size === 0
+        && !this._hasVoiceAgents && !hasAgentAudio;
 
         logger.debug(`P2P? peerCount: ${peerCount}, hasBotPeer: ${hasBotPeer}, `
             + `fallbackLatched: ${this._p2pFallbackLatched} => ${shouldBeInP2P}`);
@@ -2528,6 +2541,8 @@ export default class JitsiConference extends Listenable {
      * named by convention {endpointId}-a0.{language} so they can be requested before the source is signaled.
      * Keeping the baseline means the original audio still flows (and can be ducked); an empty include list
      * (no active translations) clears the opt-in set. Resilient to the source not yet being signaled.
+     * Managed as the audio-translation service's synthetic subscription, so it co-exists with other
+     * synthetic subscribers (e.g. voice agents).
      *
      * @returns {void}
      */
@@ -2537,7 +2552,36 @@ export default class JitsiConference extends Listenable {
             ([ endpointId, language ]) =>
                 `${getSourceNameForJitsiTrack(endpointId, MediaType.AUDIO, 0)}.${language}`);
 
-        this.qualityController.audioController.setIncludeSources(include);
+        this.qualityController.audioController.setServiceIncludes(SyntheticAudioService.AUDIO_TRANSLATION, include);
+    }
+
+    /**
+     * Replaces the set of voice-agent synthetic audio sources this receiver subscribes to (the source names
+     * come from the `agents` room metadata; subscribing is what makes an agent audible, after user consent).
+     * Managed as the voice-agents service's synthetic subscription, so it co-exists with audio translation.
+     *
+     * @param {Array<string>} sourceNames - The full desired set of agent source names; empty unsubscribes all.
+     * @returns {void}
+     */
+    public setAgentAudioSubscription(sourceNames: string[]): void {
+        this.qualityController.audioController.setServiceIncludes(SyntheticAudioService.VOICE_AGENTS, sourceNames);
+
+        // Adding bridge-injected agent audio forces JVB; like clearTranslation we don't renegotiate back to P2P on leave.
+        if (sourceNames.length > 0) {
+            this._maybeStartOrStopP2P();
+        }
+    }
+
+    /**
+     * Returns the kind of a bridge-injected (synthetic) audio source, so applications can tell voice-agent and
+     * translated sources apart without parsing source names.
+     *
+     * @param {string} sourceName - The source name, e.g. from {@link JitsiTrack#getSourceName}.
+     * @returns {Optional<SyntheticSourceKind>} 'agent' or 'translation', or undefined for regular sources and when
+     * the bridge did not signal a kind.
+     */
+    public getSyntheticSourceKind(sourceName: string): Optional<SyntheticSourceKind> {
+        return this._signalingLayer.getSyntheticSourceKind(sourceName);
     }
 
     /**
@@ -2786,6 +2830,27 @@ export default class JitsiConference extends Listenable {
         }
     }
 
+    /**
+     * Updates whether the room has a voice agent, from the agents advertised in room metadata. An agent's audio is
+     * bridge-injected, so the call leaves P2P as soon as one appears, before anyone subscribes to it, and the media
+     * path is ready when the agent starts talking. The metadata carries provisioning, connecting, active and failed
+     * agents, and removes ended ones; a failed or ended agent will never connect, so it does not count.
+     *
+     * @param {Object} agents - The room metadata's agents, keyed by agent id; undefined when there are none.
+     * @internal
+     */
+    _setVoiceAgents(agents?: Record<string, { state?: string; }>): void {
+        const hasVoiceAgents = Object.values(agents ?? {})
+            .some(agent => agent?.state !== 'failed' && agent?.state !== 'ended');
+
+        if (this._hasVoiceAgents !== hasVoiceAgents) {
+            this._hasVoiceAgents = hasVoiceAgents;
+
+            // Like the agent subscription, an agent leaving does not renegotiate back to P2P.
+            hasVoiceAgents && this._maybeStartOrStopP2P();
+        }
+    }
+
 
     /**
      * Get notified when we joined the room.
@@ -2933,12 +2998,13 @@ export default class JitsiConference extends Listenable {
                                 resolve(undefined);
                             });
                     })
-                    .catch(({ error, message }) => {
+                    .catch(({ error, message, reservationErrorCode }) => {
                         xmpp.disconnect();
 
                         reject({
                             authenticationError: error,
-                            message
+                            message,
+                            reservationErrorCode
                         });
                     });
                 });
@@ -4235,27 +4301,55 @@ export default class JitsiConference extends Listenable {
             logger.info(`Source signaling received before presence for ${id}`);
         }
 
+        this.attachRemoteTrackRelays(track);
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+    }
+
+    /**
+     * Attaches the listeners that relay a remote track's mute and audio-level events to this conference,
+     * replacing any attached before. With SSRC rewriting a track is reused for other sources, so the owner and
+     * whether the source is a translation are read when each event fires, not when the track was first added.
+     * Called again on every remap, which also restores the relays for an application that strips the track's
+     * listeners when it handles TRACK_REMOVED.
+     *
+     * @param {JitsiRemoteTrack} track - The remote track.
+     * @returns {void}
+     * @internal
+     */
+    attachRemoteTrackRelays(track: JitsiRemoteTrack): void {
+        this._remoteTrackRelays.get(track)?.();
+
         const emitter = this.eventEmitter;
+        const isTranslated = (): boolean => {
+            const sourceName = track.getSourceName();
+            const kind = this._signalingLayer.getSyntheticSourceKind(sourceName);
+
+            // The bridge-signaled kind wins; the name heuristic only covers bridges that do not send one.
+            return kind ? kind === 'translation' : isTranslatedSourceName(sourceName);
+        };
 
         // Translated tracks have no mute lifecycle (presence/source-info is only signaled for the original
-        // sources), so skip the relay for them.
-        !isTranslatedSourceName(track.getSourceName()) && track.addEventListener(
+        // sources), and their audio shares the participant id with the original source, so relaying their levels
+        // would clobber the original speaker's.
+        const cancelMute = track.addCancellableListener(
             JitsiTrackEvents.TRACK_MUTE_CHANGED,
-            () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
-        // Skip translated audio tracks. They share the participant id with the original source and would
-        // otherwise clobber the original speaker's levels on the conference-level event.
-        track.isAudioTrack() && !isTranslatedSourceName(track.getSourceName()) && track.addEventListener(
-            JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-            (audioLevel: number, tpc: TraceablePeerConnection) => {
-                const activeTPC = this.getActivePeerConnection();
+            () => !isTranslated() && emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
+        const cancelAudioLevel = track.isAudioTrack()
+            ? track.addCancellableListener(
+                JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                (audioLevel: number, tpc: TraceablePeerConnection) => {
+                    const participantId = track.getParticipantId();
 
-                if (activeTPC === tpc) {
-                    emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, id, audioLevel);
-                }
-            }
-        );
+                    if (tpc === this.getActivePeerConnection() && participantId && !isTranslated()) {
+                        emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, participantId, audioLevel);
+                    }
+                })
+            : undefined;
 
-        emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+        this._remoteTrackRelays.set(track, () => {
+            cancelMute();
+            cancelAudioLevel?.();
+        });
     }
 
 

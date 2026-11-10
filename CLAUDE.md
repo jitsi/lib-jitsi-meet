@@ -23,6 +23,7 @@ npm run watch           # Development build with file watching
 - `npm test` - Run all tests via Karma (single run)
 - `npm run test-watch` - Run tests in watch mode
 - Tests use Jasmine framework with Chrome headless browser
+- Karma bundles the specs with webpack (`karma-webpack`). If `node_modules` does not match `package-lock.json`, the run fails with `Cannot find module` from inside the webpack bundle, while `tsc` and ESLint pass. Run `npm ci` after you change to a branch with a different `package-lock.json`.
 
 **Code Quality:**
 - `npm run lint` - ESLint + TypeScript type checking
@@ -136,6 +137,8 @@ New features should be implemented only with TypeScript. When modifying existing
 - **NOT published to npm** - Uses GitHub releases for distribution
 - Default jitsi-meet dependency: `"lib-jitsi-meet": "https://github.com/jitsi/lib-jitsi-meet/releases/download/v<version>+<commit-hash>/lib-jitsi-meet.tgz"`
 - Package artifacts generated with `npm pack` command
+- `package.json` has no `types`, `typings` or `exports` field. `npm pack` includes `types/index.d.ts` (made by `npm run gen-types` in `prepack`), but no field points a consumer at it. A consumer `tsc` gets no type declarations for `lib-jitsi-meet`.
+- As a result, jitsi-meet imports the library with `@ts-ignore` (`react/features/base/lib-jitsi-meet/_.native.ts`). Every value that it reaches through the `JitsiMeetJS` object is `any`.
 
 ### Local Development Workflow
 1. **Using npm pack** (recommended):
@@ -166,6 +169,12 @@ New features should be implemented only with TypeScript. When modifying existing
 - **Full rebuild**: `npm install lib-jitsi-meet --force && make`
 - **Library only**: `npm install lib-jitsi-meet --force && make deploy-lib-jitsi-meet`
 - **Development changes**: Rebuild with `npm run build` in lib-jitsi-meet
+
+### Exposing Constants to jitsi-meet
+- jitsi-meet reaches an enum or constant of this library only through the `JitsiMeetJS` object. Add it to `JitsiMeetJS.constants`, `.errors` or `.events` in `JitsiMeetJS.ts`. See the existing entries, for example `trackStreamingStatus` and `recording`.
+- jitsi-meet then re-exports it from `react/features/base/lib-jitsi-meet/index.ts` as `Jitsi<Name>`, for example `JitsiConferenceErrors` and `JitsiTrackStreamingStatus`.
+- A new enum is not reachable from jitsi-meet until it has an entry in the `JitsiMeetJS` object. When you add an enum that jitsi-meet must use, add the entry too, as with `IceRestartReason` (`JitsiMeetJS.constants.iceRestartReason`).
+- Do not make consumers deep-import from `lib-jitsi-meet/dist/esm/...`. No `exports` map blocks such an import, but the path is build output and its layout can change.
 
 ## Code Style and Conventions
 
@@ -210,6 +219,7 @@ Module scope examples:
 - Use TraceablePeerConnection for enhanced debugging
 - Handle browser compatibility through RTCUtils abstraction
 - Implement proper track lifecycle management
+- Do not read `currentRemoteDescription`, `currentLocalDescription` or `pendingRemoteDescription` from the peer connection. react-native-webrtc does not define them, so the value is `undefined` on mobile. Read `remoteDescription`/`localDescription` instead, for example through the `TraceablePeerConnection` getters.
 
 ### XMPP Protocol Handling
 - Implement Strophe plugins for protocol extensions

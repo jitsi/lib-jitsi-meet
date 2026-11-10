@@ -1,14 +1,23 @@
+import JitsiConference from '../../JitsiConference';
+import JitsiConferenceEventManager from '../../JitsiConferenceEventManager';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import { MockRTC } from '../RTC/MockClasses';
 import SDP from '../sdp/SDP';
+import EventEmitter from '../util/EventEmitter';
 import Statistics from '../statistics/statistics';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
+import { MediaType } from '../../service/RTC/MediaType';
+import { VideoType } from '../../service/RTC/VideoType';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
+import FeatureFlags from '../flags/FeatureFlags';
 
 import JingleSessionPC from './JingleSessionPC';
 import {JingleSessionState} from './JingleSessionState';
 import { MediaSessionEvents } from './MediaSessionEvents';
 import { MockChatRoom, MockStropheConnection } from './MockClasses';
+import SignalingLayerImpl from './SignalingLayerImpl';
 
 /**
  * Creates 'content-modify' Jingle IQ.
@@ -555,6 +564,238 @@ describe('JingleSessionPC', () => {
             expect(pc.audioTransferActive).toBe(true);
             expect(pc.videoTransferActive).toBe(true);
         });
+    });
+
+    describe('synthetic source kinds', () => {
+        let session: any;
+        let signalingLayer: SignalingLayerImpl;
+
+        beforeEach(() => {
+            // Only the source-map bookkeeping is exercised: no remote track exists yet, so every mapped SSRC is
+            // skipped right after its kind is recorded.
+            spyOn(FeatureFlags, 'isSsrcRewritingSupported').and.returnValue(true);
+            signalingLayer = new SignalingLayerImpl();
+            session = Object.create(JingleSessionPC.prototype);
+            session._signalingLayer = signalingLayer;
+            session.isP2P = false;
+            session.options = {};
+            session.peerconnection = {
+                addRemoteSsrc: () => false,
+                close: () => { /* no-op */ },
+                getTrackBySSRC: () => null
+            };
+            session.modificationQueue = {
+                clear: () => { /* no-op */ },
+                push: (task: (done: () => void) => void) => task(() => { /* no-op */ }),
+                shutdown: () => { /* no-op */ }
+            };
+            session._iceRestartStatsTimer = null;
+        });
+
+        it('processSourceMap records the kind the bridge signals for each audio source', () => {
+            session.processSourceMap({
+                mappedSources: [
+                    { kind: 'agent', owner: 'agent-0dae1739', rtx: '-1', source: 'agent-0dae1739-a0', ssrc: 1111 },
+                    { kind: 'translation', owner: 'abcdef12', rtx: '-1', source: 'abcdef12-a0.en', ssrc: 2222 },
+                    { kind: 'bogus', owner: 'abcdef12', rtx: '-1', source: 'abcdef12-a0.de', ssrc: 3333 },
+                    { owner: 'abcdef12', rtx: '-1', source: 'abcdef12-a0', ssrc: 4444 }
+                ]
+            }, MediaType.AUDIO);
+
+            expect(signalingLayer.getSyntheticSourceKind('agent-0dae1739-a0')).toBe('agent');
+            expect(signalingLayer.getSyntheticSourceKind('abcdef12-a0.en')).toBe('translation');
+            expect(signalingLayer.getSyntheticSourceKind('abcdef12-a0.de')).toBeUndefined();
+            expect(signalingLayer.getSyntheticSourceKind('abcdef12-a0')).toBeUndefined();
+        });
+
+        describe('an existing SSRC re-mapped to another source', () => {
+            let muteChanges: Array<[ string, boolean ]>;
+            let owners: string[];
+            let ownerSetSource: string;
+            const track = {
+                getParticipantId: () => 'abcdef12',
+                getSourceName: () => 'abcdef12-a0',
+                setMute: (muted: boolean) => muteChanges.push([ ownerSetSource, muted ])
+            };
+
+            beforeEach(() => {
+                muteChanges = [];
+                owners = [];
+                session.peerconnection = {
+                    addRemoteSsrc: () => false,
+                    close: () => { /* no-op */ },
+                    getRemoteSourceInfoBySourceName: () => undefined,
+                    getTrackBySSRC: () => track
+                };
+                session.room = {
+                    eventEmitter: {
+                        emit: (_event: string, _track: typeof track, owner: string, source: string) => {
+                            owners.push(owner);
+                            ownerSetSource = source;
+                        }
+                    }
+                };
+            });
+
+            it('takes an agent source, which has no presence, unmuted and goes on with the message', () => {
+                session.processSourceMap({
+                    mappedSources: [
+                        { kind: 'agent', owner: 'agent-0dae1739', rtx: '-1', source: 'agent-0dae1739-a0', ssrc: 1111 },
+                        { owner: 'bbbbbbbb', rtx: '-1', source: 'bbbbbbbb-a0', ssrc: 2222 }
+                    ]
+                }, MediaType.AUDIO);
+
+                expect(muteChanges).toEqual([ [ 'agent-0dae1739-a0', false ] ]);
+                expect(owners).toEqual([ 'agent-0dae1739', 'bbbbbbbb' ]);
+            });
+
+            it('takes a translated source unmuted, whatever its owner\'s presence says', () => {
+                const presence = spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted: true });
+
+                session.processSourceMap({
+                    mappedSources: [
+                        { kind: 'translation', owner: 'abcdef12', rtx: '-1', source: 'abcdef12-a0.en', ssrc: 1111 }
+                    ]
+                }, MediaType.AUDIO);
+
+                expect(muteChanges).toEqual([ [ 'abcdef12-a0.en', false ] ]);
+                expect(presence).not.toHaveBeenCalled();
+            });
+
+            it('still takes a regular source\'s mute state from presence', () => {
+                spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted: true });
+
+                session.processSourceMap({
+                    mappedSources: [ { owner: 'bbbbbbbb', rtx: '-1', source: 'bbbbbbbb-a0', ssrc: 1111 } ]
+                }, MediaType.AUDIO);
+
+                expect(muteChanges).toEqual([ [ 'bbbbbbbb-a0', true ] ]);
+            });
+        });
+
+        it('close() forgets the kinds signaled on a JVB session', () => {
+            signalingLayer.setSyntheticSourceKind('agent-0dae1739-a0', 'agent');
+
+            session.close();
+
+            expect(signalingLayer.getSyntheticSourceKind('agent-0dae1739-a0')).toBeUndefined();
+        });
+
+        it('close() of a P2P session leaves the kinds signaled by the bridge alone', () => {
+            session.isP2P = true;
+            signalingLayer.setSyntheticSourceKind('agent-0dae1739-a0', 'agent');
+
+            session.close();
+
+            expect(signalingLayer.getSyntheticSourceKind('agent-0dae1739-a0')).toBe('agent');
+        });
+    });
+});
+
+describe('processSourceMap - mute state of a re-mapped SSRC', () => {
+    let session: JingleSessionPC;
+    let signalingLayer: SignalingLayerImpl;
+    let conference: JitsiConference;
+
+    function audioTrack(owner: string, sourceName: string, ssrc: number, muted: boolean): JitsiRemoteTrack {
+        return new JitsiRemoteTrack(
+            null, conference, owner, new MediaStream(),
+            jasmine.createSpyObj<MediaStreamTrack>('mediaTrack', [ 'addEventListener' ]),
+            MediaType.AUDIO, undefined, ssrc, muted, false, sourceName);
+    }
+
+    function useTracks(tracks: JitsiRemoteTrack[]): void {
+        Object.assign(session, {
+            peerconnection: {
+                _sourceMutedChanged: () => fail('the re-mapped track is known, no lookup by source name is needed'),
+                addRemoteSsrc: () => false,
+                getRemoteSourceInfoBySourceName: () => undefined,
+                getRemoteTracks: () => tracks,
+                getTrackBySSRC: (ssrc: number) => tracks.find(t => t.getSsrc() === ssrc)
+            }
+        });
+    }
+
+    beforeEach(() => {
+        const room = new EventEmitter();
+
+        spyOn(FeatureFlags, 'isSsrcRewritingSupported').and.returnValue(true);
+        signalingLayer = new SignalingLayerImpl();
+        const chatRoom = {
+            addListener: room.addListener.bind(room),
+            eventEmitter: room,
+            setParticipantPropertyListener: () => { /* no-op */ }
+        };
+
+        // The real prototypes with only the members processSourceMap and the TRACK_OWNER_SET handler use.
+        session = Object.assign(Object.create(JingleSessionPC.prototype), {
+            _signalingLayer: signalingLayer,
+            isP2P: false,
+            options: {},
+            room: chatRoom
+        });
+        conference = Object.assign(Object.create(JitsiConference.prototype), {
+            _remoteTrackRelays: new WeakMap(),
+            _signalingLayer: signalingLayer,
+            eventEmitter: new EventEmitter(),
+            getActivePeerConnection: () => undefined,
+            room: chatRoom
+        });
+        new JitsiConferenceEventManager(conference).setupChatRoomListeners();
+    });
+
+    [
+        { mediaType: MediaType.AUDIO, muted: false },
+        { mediaType: MediaType.AUDIO, muted: true },
+        { mediaType: MediaType.VIDEO, muted: false },
+        { mediaType: MediaType.VIDEO, muted: true }
+    ].forEach(({ mediaType, muted }) => {
+        it(`applies muted=${muted} to the new ${mediaType} owner and source`, () => {
+            const oldSource = `aaaaaaaa-${mediaType[0]}0`;
+            const newSource = `bbbbbbbb-${mediaType[0]}0`;
+            const videoType = mediaType === MediaType.VIDEO ? VideoType.DESKTOP : undefined;
+            const track = new JitsiRemoteTrack(
+                null, conference, 'aaaaaaaa', new MediaStream(),
+                jasmine.createSpyObj<MediaStreamTrack>('mediaTrack', [ 'addEventListener' ]),
+                mediaType, mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined,
+                1111, !muted, false, oldSource);
+            const muteChanged = jasmine.createSpy('muteChanged');
+
+            track.on(JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                () => muteChanged(track.getParticipantId(), track.getSourceName(), track.isMuted(), track.getVideoType()));
+            useTracks([ track ]);
+            spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted, videoType });
+
+            session.processSourceMap({
+                mappedSources: [ { owner: 'bbbbbbbb', rtx: '-1', source: newSource, ssrc: 1111 } ]
+            }, mediaType);
+
+            expect(track.getParticipantId()).toBe('bbbbbbbb');
+            expect(track.getSourceName()).toBe(newSource);
+            expect(track.isMuted()).toBe(muted);
+            expect(track.getVideoType()).toBe(videoType);
+            expect(muteChanged.calls.allArgs()).toEqual([ [ 'bbbbbbbb', newSource, muted, videoType ] ]);
+        });
+    });
+
+    it('gives each track its new source\'s mute state when one source map swaps sources between them', () => {
+        const movedFrom = audioTrack('aaaaaaaa', 'aaaaaaaa-a0', 1111, false);
+        const movedTo = audioTrack('cccccccc', 'cccccccc-a0', 2222, true);
+
+        // movedTo comes first, so a lookup by source name would find it last when searching from the end.
+        useTracks([ movedTo, movedFrom ]);
+        spyOn(signalingLayer, 'getPeerMediaInfo').and.callFake(
+            (_owner: string, _type: MediaType, source: string) => ({ muted: source !== 'aaaaaaaa-a0' }));
+
+        session.processSourceMap({
+            mappedSources: [
+                { owner: 'aaaaaaaa', rtx: '-1', source: 'aaaaaaaa-a0', ssrc: 2222 },
+                { owner: 'dddddddd', rtx: '-1', source: 'dddddddd-a0', ssrc: 1111 }
+            ]
+        }, MediaType.AUDIO);
+
+        expect([ movedTo.getSourceName(), movedTo.isMuted() ]).toEqual([ 'aaaaaaaa-a0', false ]);
+        expect([ movedFrom.getSourceName(), movedFrom.isMuted() ]).toEqual([ 'dddddddd-a0', true ]);
     });
 });
 

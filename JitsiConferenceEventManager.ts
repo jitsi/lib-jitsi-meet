@@ -17,6 +17,7 @@ import EventEmitterForwarder from './modules/util/EventEmitterForwarder';
 import JingleSessionPC from './modules/xmpp/JingleSessionPC';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
+import { ISyntheticSourceSendingChange } from './service/RTC/SignalingLayer';
 import { VideoType } from './service/RTC/VideoType';
 import { AuthenticationEvents } from './service/authentication/AuthenticationEvents';
 import {
@@ -203,7 +204,11 @@ export default class JitsiConferenceEventManager {
                 track.setOwner(owner);
                 track.setSourceName(sourceName);
                 track._setVideoType(videoType);
-                owner && conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+                if (owner) {
+                    // An application may have stripped the track's listeners when it handled TRACK_REMOVED.
+                    conference.attachRemoteTrackRelays(track);
+                    conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+                }
             }
         });
 
@@ -402,6 +407,8 @@ export default class JitsiConferenceEventManager {
             JitsiConferenceEvents.POLL_RECEIVED);
         this.chatRoomForwarder.forward(XMPPEvents.POLLS_ANSWER_EVENT,
             JitsiConferenceEvents.POLL_ANSWER_RECEIVED);
+        this.chatRoomForwarder.forward(XMPPEvents.POLLS_CLOSE_EVENT,
+            JitsiConferenceEvents.POLL_CLOSED);
 
         chatRoom.addListener(
             XMPPEvents.REACTION_RECEIVED,
@@ -517,6 +524,9 @@ export default class JitsiConferenceEventManager {
                 conference._setTranscribingEnabled(Boolean(metadata.recording.isTranscribingEnabled));
             }
 
+            // Each update carries the whole metadata, so a missing key means the last agent left.
+            conference._setVoiceAgents(metadata.agents);
+
             if (metadata.services) {
                 chatRoom.xmpp.connection.jingle.onReceiveStunAndTurnCredentials(metadata);
             }
@@ -602,8 +612,17 @@ export default class JitsiConferenceEventManager {
             conference.eventEmitter.emit(JitsiConferenceEvents.BRIDGE_BWE_STATS_RECEIVED, bwe);
         });
 
-        rtc.addListener(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, (change: any) => {
-            conference.eventEmitter.emit(JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED, change);
+        rtc.addListener(RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED, (change: ISyntheticSourceSendingChange) => {
+            // The kind in the event wins, then the one recorded from the sources map.
+            const payload = {
+                ...change,
+                kind: change.kind ?? conference.getSyntheticSourceKind(change.sourceName)
+            };
+
+            conference.eventEmitter.emit(JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED, payload);
+
+            // Deprecated alias, kept until consumers migrate to SYNTHETIC_SOURCE_SENDING_CHANGED.
+            conference.eventEmitter.emit(JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED, payload);
         });
 
         rtc.addListener(RTCEvents.ENDPOINT_MESSAGE_RECEIVED,

@@ -399,6 +399,22 @@ export enum JitsiConferenceEvents {
     POLL_ANSWER_RECEIVED = 'conference.pollAnswerReceived',
 
     /**
+     * A poll was closed, thus it does not take answers anymore. The listener receives the message of the polls
+     * component: {
+     *     pollId: string,       // the id of the closed poll
+     *     senderId?: string,    // the occupant id of the participant that closed it
+     *     answers?: Array<{     // the server's copy of the results, sent only where the client may not have them,
+     *         name: string,     // i.e. to visitors, whose node learns about the close from the main prosody;
+     *         voters?: Array<{  // when present it is the authoritative final result and replaces the local one
+     *             id: string,
+     *             name?: string
+     *         }>
+     *     }>
+     * }
+     */
+    POLL_CLOSED = 'conference.pollClosed',
+
+    /**
      * A new poll was received or a poll is loaded from the history.
      */
     POLL_RECEIVED = 'conference.pollReceived',
@@ -448,6 +464,15 @@ export enum JitsiConferenceEvents {
      * Indicates that DTMF support changed.
      */
     SUSPEND_DETECTED = 'conference.suspendDetected',
+
+    /**
+     * Indicates that a synthetic (bridge-injected) audio source started or stopped sending — e.g. a
+     * translated stream or a voice agent's audio. The listener receives { sourceName, sending, timestamp, kind }:
+     * timestamp is an RTP timestamp (48 kHz, wraps at 2^32) — not epoch ms; kind is 'agent' or 'translation'
+     * when the bridge classified the source (see {@link JitsiConference#getSyntheticSourceKind}) and undefined
+     * otherwise.
+     */
+    SYNTHETIC_SOURCE_SENDING_CHANGED = 'conference.syntheticSourceSendingChanged',
 
     /**
      * Event indicates that local user is talking while he muted himself
@@ -500,6 +525,9 @@ export enum JitsiConferenceEvents {
      * Indicates that a translated audio source started or stopped being forwarded to the local endpoint. The
      * listener receives { sourceName, sending, timestamp }; timestamp is an RTP timestamp (48 kHz, wraps at
      * 2^32) — not epoch ms.
+     *
+     * @deprecated Use {@link SYNTHETIC_SOURCE_SENDING_CHANGED}: the event fires for every synthetic source
+     * (translated audio, voice agents), not only translations. Both events currently carry the same payload.
      */
     TRANSLATED_SOURCE_SENDING_CHANGED = 'conference.translatedSourceSendingChanged',
 

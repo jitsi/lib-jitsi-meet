@@ -106,10 +106,16 @@ export default class Listenable {
     }
 
     /**
-     * Removes all listeners for the event emitter.
+     * Removes all listeners for the given event, or for every event when no event is given.
+     * @param {string} [eventName] - The name of the event.
      */
-    removeAllListeners(): void {
-        this.eventEmitter.removeAllListeners();
+    removeAllListeners(eventName?: string): void {
+        // EventEmitter removes nothing when passed an undefined event name.
+        if (eventName === undefined) {
+            this.eventEmitter.removeAllListeners();
+        } else {
+            this.eventEmitter.removeAllListeners(eventName);
+        }
     }
 
     /**

@@ -2,10 +2,164 @@ import { XMPPEvents } from './service/xmpp/XMPPEvents';
 import JitsiConference from './JitsiConference';
 import { JitsiConferenceEvents } from './JitsiConferenceEvents';
 import JitsiConferenceEventManager from './JitsiConferenceEventManager';
+import { JitsiTrackEvents } from './JitsiTrackEvents';
+import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { P2PFallbackReason } from './modules/qualitycontrol/QualityController';
+import { ReceiverAudioController } from './modules/qualitycontrol/ReceiveAudioController';
+import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
+import EventEmitter, { EventListener } from './modules/util/EventEmitter';
+import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
+import { MediaType } from './service/RTC/MediaType';
+import { RTCEvents } from './service/RTC/RTCEvents';
 import { TransportCost } from './service/RTC/TransportCost';
 
 describe('JitsiConference', () => {
+    describe('remote track relays across SSRC remaps', () => {
+        let activeTPC: TraceablePeerConnection;
+        let conference: JitsiConference;
+        let levels: jasmine.Spy;
+        let mutes: jasmine.Spy;
+        let room: EventEmitter;
+        let signalingLayer: SignalingLayerImpl;
+
+        function addAudioTrack(owner: string, sourceName: string): JitsiRemoteTrack {
+            const track = new JitsiRemoteTrack(
+                null, conference, owner, new MediaStream(),
+                jasmine.createSpyObj('MediaStreamTrack', [ 'addEventListener' ]),
+                MediaType.AUDIO, undefined, 1234, false, false, sourceName);
+
+            conference.onRemoteTrackAdded(track);
+
+            return track;
+        }
+
+        // Remaps the track the way the bridge's source map does, through the TRACK_OWNER_SET handler.
+        function remap(track: JitsiRemoteTrack, owner?: string, sourceName?: string): void {
+            room.emit(JitsiTrackEvents.TRACK_OWNER_SET, track, owner, sourceName, undefined);
+        }
+
+        beforeEach(() => {
+            activeTPC = Object.create(TraceablePeerConnection.prototype);
+            room = new EventEmitter();
+            signalingLayer = new SignalingLayerImpl();
+
+            // The real prototype with only the members the relays and the TRACK_OWNER_SET handler use.
+            conference = Object.assign(Object.create(JitsiConference.prototype), {
+                _remoteTrackRelays: new WeakMap(),
+                _signalingLayer: signalingLayer,
+                eventEmitter: new EventEmitter(),
+                getActivePeerConnection: () => activeTPC,
+                getParticipantById: () => undefined,
+                isP2PActive: () => false,
+                room: {
+                    addListener: room.addListener.bind(room),
+                    eventEmitter: room,
+                    setParticipantPropertyListener: () => { /* no-op */ }
+                }
+            });
+            new JitsiConferenceEventManager(conference).setupChatRoomListeners();
+
+            levels = jasmine.createSpy('levels');
+            mutes = jasmine.createSpy('mutes');
+            conference.eventEmitter.on(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, levels);
+            conference.eventEmitter.on(JitsiConferenceEvents.TRACK_MUTE_CHANGED,
+                (track: JitsiRemoteTrack) => mutes(track.getParticipantId(), track.isMuted()));
+        });
+
+        it('relays audio levels under the current owner', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            track.setAudioLevel(0.2, activeTPC);
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            track.setAudioLevel(0.4, activeTPC);
+            remap(track, 'aaaaaaaa', 'aaaaaaaa-a0');
+            track.setAudioLevel(0.6, activeTPC);
+
+            expect(levels.calls.allArgs()).toEqual([
+                [ 'aaaaaaaa', 0.2 ],
+                [ 'bbbbbbbb', 0.4 ],
+                [ 'aaaaaaaa', 0.6 ]
+            ]);
+        });
+
+        it('only relays levels from the currently active peer connection after a remap', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+            const previousTPC = activeTPC;
+
+            activeTPC = Object.create(TraceablePeerConnection.prototype);
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            track.setAudioLevel(0.2, previousTPC);
+
+            expect(levels).not.toHaveBeenCalled();
+
+            track.setAudioLevel(0.4, activeTPC);
+
+            expect(levels.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 0.4 ] ]);
+        });
+
+        [ null, undefined ].forEach(owner => {
+            it(`does not relay levels without an owner (${owner}) and resumes after reassignment`, () => {
+                const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+                remap(track, owner);
+                track.setAudioLevel(0.2, activeTPC);
+
+                expect(levels).not.toHaveBeenCalled();
+
+                remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+                track.setAudioLevel(0.4, activeTPC);
+
+                expect(levels.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 0.4 ] ]);
+            });
+        });
+
+        it('relays no audio level from a translation the track was remapped to', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            signalingLayer.setSyntheticSourceKind('bbbbbbbb-a0.fr', 'translation');
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0.fr');
+            track.setAudioLevel(0.2, activeTPC);
+
+            expect(levels).not.toHaveBeenCalled();
+        });
+
+        it('relays audio levels and mute changes of a speaker a translation track was remapped to', () => {
+            signalingLayer.setSyntheticSourceKind('aaaaaaaa-a0.fr', 'translation');
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0.fr');
+
+            track.setAudioLevel(0.2, activeTPC);
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            track.setAudioLevel(0.4, activeTPC);
+            track.setMute(true);
+
+            expect(levels.calls.allArgs()).toEqual([ [ 'bbbbbbbb', 0.4 ] ]);
+            expect(mutes.calls.allArgs()).toEqual([ [ 'bbbbbbbb', true ] ]);
+        });
+
+        it('keeps relaying mute changes when the application strips the track listeners on TRACK_REMOVED', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            conference.eventEmitter.on(JitsiConferenceEvents.TRACK_REMOVED,
+                (removed: JitsiRemoteTrack) => removed.removeAllListeners(JitsiTrackEvents.TRACK_MUTE_CHANGED));
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            track.setMute(true);
+
+            expect(mutes.calls.allArgs()).toEqual([ [ 'bbbbbbbb', true ] ]);
+        });
+
+        it('relays each event once however many times the track is remapped', () => {
+            const track = addAudioTrack('aaaaaaaa', 'aaaaaaaa-a0');
+
+            remap(track, 'bbbbbbbb', 'bbbbbbbb-a0');
+            remap(track, 'aaaaaaaa', 'aaaaaaaa-a0');
+            track.setAudioLevel(0.2, activeTPC);
+            track.setMute(true);
+
+            expect(levels.calls.allArgs()).toEqual([ [ 'aaaaaaaa', 0.2 ] ]);
+            expect(mutes.calls.allArgs()).toEqual([ [ 'aaaaaaaa', true ] ]);
+        });
+    });
+
     describe('JitsiConferenceEvents message handling', () => {
         let conference;
         let eventManager;
@@ -284,7 +438,14 @@ describe('JitsiConference', () => {
                 getParticipants: () => [ {
                     getBotType: () => undefined,
                     hasFeature: () => false
-                } ]
+                } ],
+
+                // The merged _shouldBeInP2PMode also checks for an active voice-agent subscription.
+                qualityController: {
+                    audioController: {
+                        getServiceIncludes: () => []
+                    }
+                }
             });
 
             it('allows p2p with a single peer before any fallback', () => {
@@ -477,5 +638,350 @@ describe('JitsiConference', () => {
             });
         });
 
+    });
+
+    describe('audio subscriptions (translation + voice agents)', () => {
+        let conference: any;
+        let sent: any[];
+
+        const participant = (id: string) => ({
+            getBotType: () => undefined,
+            getId: () => id,
+            hasFeature: () => false
+        });
+        const lastInclude = () => sent[sent.length - 1].include.sort();
+
+        beforeEach(() => {
+            sent = [];
+
+            // A fake conference over the REAL prototype (so the real translation/agent subscription wiring
+            // runs) with a REAL ReceiverAudioController over a captured bridge channel. Only the XMPP
+            // request stanza is stubbed out.
+            conference = Object.create(JitsiConference.prototype);
+            conference._receiverTranslationLanguage = null;
+            conference._participantTranslationLanguages = new Map();
+            conference._translationRequests = new Map();
+            conference.getParticipants = () => [ participant('aaaaaaaa'), participant('bbbbbbbb') ];
+            conference._sendTranslationRequestStanza = () => true;
+
+            // P2P management (translation forces JVB) is out of scope here and needs a full conference.
+            conference._maybeStartOrStopP2P = () => { /* stubbed */ };
+            conference.qualityController = {
+                audioController: new ReceiverAudioController({
+                    rtc: { sendReceiverAudioSubscriptionMessage: (message: any) => sent.push(message) }
+                } as any)
+            };
+        });
+
+        it('subscribes to every speaker\'s translated source for the default language', () => {
+            conference.setReceiverTranslationLanguage('en');
+
+            expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.en', 'bbbbbbbb-a0.en' ]);
+            expect(sent[sent.length - 1].all).toBe(true);
+        });
+
+        it('honors a per-participant language override', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.setParticipantTranslationLanguage('aaaaaaaa', 'de');
+
+            expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.de', 'bbbbbbbb-a0.en' ]);
+        });
+
+        it('clearTranslation empties the translation subscription', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.clearTranslation();
+
+            expect(lastInclude()).toEqual([]);
+        });
+
+        it('translation and voice-agent subscriptions co-exist', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+
+            expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.en', 'agent001-a0', 'bbbbbbbb-a0.en' ]);
+        });
+
+        it('clearing translation keeps the agent subscription intact', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+            conference.clearTranslation();
+
+            expect(lastInclude()).toEqual([ 'agent001-a0' ]);
+        });
+
+        it('unsubscribing agents keeps the translation subscription intact', () => {
+            conference.setReceiverTranslationLanguage('en');
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+            conference.setAgentAudioSubscription([]);
+
+            expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.en', 'bbbbbbbb-a0.en' ]);
+        });
+
+        it('an active agent subscription forces JVB (no P2P), like translation does', () => {
+            // P2P is only ever a 1:1 topology.
+            conference.getParticipants = () => [ participant('aaaaaaaa') ];
+
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+            expect(conference._shouldBeInP2PMode()).toBe(false);
+
+            conference.setAgentAudioSubscription([]);
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+
+            conference.setReceiverTranslationLanguage('en');
+            expect(conference._shouldBeInP2PMode()).toBe(false);
+        });
+
+        it('an agent advertised in room metadata forces JVB before anyone subscribes', () => {
+            conference.getParticipants = () => [ participant('aaaaaaaa') ];
+
+            conference._setVoiceAgents({ 'agent-support': { state: 'provisioning' } });
+            expect(conference._shouldBeInP2PMode()).toBe(false);
+
+            conference._setVoiceAgents(undefined);
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+        });
+
+        it('a failed or ended agent does not count as advertised', () => {
+            conference.getParticipants = () => [ participant('aaaaaaaa') ];
+
+            conference._setVoiceAgents({ 'agent-support': { state: 'failed' } });
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+
+            conference._setVoiceAgents({ 'agent-support': { state: 'ended' } });
+            expect(conference._shouldBeInP2PMode()).toBe(true);
+        });
+
+        it('re-evaluates P2P when the first agent appears, but not when the last one leaves', () => {
+            const p2pSpy = spyOn(conference, '_maybeStartOrStopP2P');
+
+            conference._setVoiceAgents({ 'agent-support': { state: 'connecting' } });
+            conference._setVoiceAgents({ 'agent-support': { state: 'active' } });
+            expect(p2pSpy).toHaveBeenCalledTimes(1);
+
+            conference._setVoiceAgents({});
+            expect(p2pSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('subscribing agent audio triggers the P2P re-evaluation', () => {
+            const p2pSpy = spyOn(conference, '_maybeStartOrStopP2P');
+
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+
+            expect(p2pSpy).toHaveBeenCalled();
+        });
+
+        it('does not re-evaluate P2P when the last agent unsubscribes (stays on JVB)', () => {
+            conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+            const p2pSpy = spyOn(conference, '_maybeStartOrStopP2P');
+
+            conference.setAgentAudioSubscription([]);
+
+            expect(p2pSpy).not.toHaveBeenCalled();
+        });
+
+        describe('on bridge channel (re)open', () => {
+            let onChannelOpen: () => void;
+
+            beforeEach(() => {
+                // The real listener registration over a captured RTC, so a (re)opened channel can be simulated.
+                conference.options = { config: {} };
+                conference.rtc = {
+                    addListener: (event: string, listener: () => void) => {
+                        if (event === RTCEvents.DATA_CHANNEL_OPEN) {
+                            onChannelOpen = listener;
+                        }
+                    },
+                    localTracks: []
+                };
+                conference._registerRtcListeners(conference.rtc);
+            });
+
+            it('re-sends a voice-agent subscription even without audio translation', () => {
+                conference.setAgentAudioSubscription([ 'agent001-a0' ]);
+                const sentBefore = sent.length;
+
+                onChannelOpen();
+
+                expect(sent.length).toBe(sentBefore + 1);
+                expect(sent[sent.length - 1].all).toBe(true);
+                expect(lastInclude()).toEqual([ 'agent001-a0' ]);
+            });
+
+            it('re-sends a translation subscription even without the audio-translation config', () => {
+                conference.setReceiverTranslationLanguage('en');
+                const sentBefore = sent.length;
+
+                onChannelOpen();
+
+                expect(sent.length).toBe(sentBefore + 1);
+                expect(lastInclude()).toEqual([ 'aaaaaaaa-a0.en', 'bbbbbbbb-a0.en' ]);
+            });
+
+            it('leaves the bridge default untouched when nothing is subscribed', () => {
+                onChannelOpen();
+
+                expect(sent.length).toBe(0);
+            });
+
+            it('re-sends the default subscription when audio translation is enabled', () => {
+                conference.options = { config: { audioTranslation: { enabled: true } } };
+
+                onChannelOpen();
+
+                expect(sent.length).toBe(1);
+                expect(sent[0]).toEqual({ all: true, exclude: [], include: [] });
+            });
+        });
+    });
+
+    describe('synthetic source kinds', () => {
+        let conference: any;
+        let emitted: any[][];
+        let onSendingChanged: (change: any) => void;
+
+        const payloadsOf = (event: string) => emitted.filter(([ name ]) => name === event).map(([ , payload ]) => payload);
+        const activeTPC = Object.create(TraceablePeerConnection.prototype);
+        const remoteTrack = (sourceName: string) => {
+            const listeners = new Map<string, EventListener>();
+
+            return {
+                addCancellableListener: (event: string, listener: EventListener) => {
+                    listeners.set(event, listener);
+
+                    return () => listeners.delete(event);
+                },
+                fire: (event: string, ...args: Parameters<EventListener>) => listeners.get(event)?.(...args),
+                getParticipantId: () => 'abcdef12',
+                getSourceName: () => sourceName,
+                isAudioTrack: () => true,
+                isP2P: false
+            };
+        };
+        const relayedFrom = (track: ReturnType<typeof remoteTrack>) => {
+            track.fire(JitsiTrackEvents.TRACK_MUTE_CHANGED, track);
+            track.fire(JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED, 0.5, activeTPC);
+
+            return [
+                ...payloadsOf(JitsiConferenceEvents.TRACK_MUTE_CHANGED),
+                ...payloadsOf(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED)
+            ];
+        };
+
+        beforeEach(() => {
+            emitted = [];
+
+            // The real prototype over a real signaling layer, with the event manager's RTC listeners captured
+            // so bridge-channel events can be simulated.
+            conference = Object.create(JitsiConference.prototype);
+            conference._remoteTrackRelays = new WeakMap();
+            conference._signalingLayer = new SignalingLayerImpl();
+            conference.eventEmitter = { emit: (...args: any[]) => emitted.push(args) };
+            conference.getParticipantById = () => undefined;
+            conference.getActivePeerConnection = () => activeTPC;
+            conference.isP2PActive = () => false;
+            conference.rtc = {
+                addListener: (event: string, listener: (...args: any[]) => void) => {
+                    if (event === RTCEvents.TRANSLATED_SOURCE_SENDING_CHANGED) {
+                        onSendingChanged = listener;
+                    }
+                }
+            };
+            new JitsiConferenceEventManager(conference).setupRTCListeners();
+        });
+
+        it('getSyntheticSourceKind exposes the bridge-signaled kind', () => {
+            conference._signalingLayer.setSyntheticSourceKind('agent-0dae1739-a0', 'agent');
+            conference._signalingLayer.setSyntheticSourceKind('abcdef12-a0.en', 'translation');
+
+            expect(conference.getSyntheticSourceKind('agent-0dae1739-a0')).toBe('agent');
+            expect(conference.getSyntheticSourceKind('abcdef12-a0.en')).toBe('translation');
+            expect(conference.getSyntheticSourceKind('abcdef12-a0')).toBeUndefined();
+        });
+
+        describe('SYNTHETIC_SOURCE_SENDING_CHANGED', () => {
+            it('carries the kind from the bridge event', () => {
+                onSendingChanged({ kind: 'agent', sending: true, sourceName: 'agent-0dae1739-a0', timestamp: 1 });
+
+                expect(payloadsOf(JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED)).toEqual([ {
+                    kind: 'agent',
+                    sending: true,
+                    sourceName: 'agent-0dae1739-a0',
+                    timestamp: 1
+                } ]);
+            });
+
+            it('falls back to the kind recorded from the sources map', () => {
+                conference._signalingLayer.setSyntheticSourceKind('abcdef12-a0.en', 'translation');
+
+                onSendingChanged({ sending: false, sourceName: 'abcdef12-a0.en', timestamp: 2 });
+
+                expect(payloadsOf(JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED)).toEqual([ {
+                    kind: 'translation',
+                    sending: false,
+                    sourceName: 'abcdef12-a0.en',
+                    timestamp: 2
+                } ]);
+            });
+
+            it('prefers the kind in the event over the recorded one', () => {
+                conference._signalingLayer.setSyntheticSourceKind('abcdef12-a0.en', 'translation');
+
+                onSendingChanged({ kind: 'agent', sending: true, sourceName: 'abcdef12-a0.en', timestamp: 3 });
+
+                expect(payloadsOf(JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED)[0].kind).toBe('agent');
+            });
+
+            it('leaves the kind undefined when neither the event nor the sources map carried one', () => {
+                onSendingChanged({ sending: true, sourceName: 'abcdef12-a0.en', timestamp: 4 });
+
+                const [ payload ] = payloadsOf(JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED);
+
+                expect(payload.kind).toBeUndefined();
+                expect(payload.sourceName).toBe('abcdef12-a0.en');
+                expect(payload.sending).toBe(true);
+            });
+
+            it('sends the same payload on the deprecated alias', () => {
+                onSendingChanged({ kind: 'agent', sending: true, sourceName: 'agent-0dae1739-a0', timestamp: 5 });
+
+                expect(payloadsOf(JitsiConferenceEvents.TRANSLATED_SOURCE_SENDING_CHANGED))
+                    .toEqual(payloadsOf(JitsiConferenceEvents.SYNTHETIC_SOURCE_SENDING_CHANGED));
+            });
+        });
+
+        describe('onRemoteTrackAdded', () => {
+            it('skips the mute/audio-level relay for a track the bridge marked as translation, whatever its name', () => {
+                conference._signalingLayer.setSyntheticSourceKind('abcdef12-a1', 'translation');
+                const track = remoteTrack('abcdef12-a1');
+
+                conference.onRemoteTrackAdded(track);
+
+                expect(relayedFrom(track)).toEqual([]);
+                expect(payloadsOf(JitsiConferenceEvents.TRACK_ADDED)).toEqual([ track ]);
+            });
+
+            it('keeps the relay for a track the bridge marked as agent', () => {
+                conference._signalingLayer.setSyntheticSourceKind('agent-0dae1739-a0', 'agent');
+                const track = remoteTrack('agent-0dae1739-a0');
+
+                conference.onRemoteTrackAdded(track);
+
+                expect(relayedFrom(track)).toEqual([ track, 'abcdef12' ]);
+            });
+
+            it('falls back to the language-suffix heuristic when the bridge sent no kind', () => {
+                const translated = remoteTrack('abcdef12-a0.en');
+
+                conference.onRemoteTrackAdded(translated);
+                expect(relayedFrom(translated)).toEqual([]);
+
+                const regular = remoteTrack('abcdef12-a0');
+
+                conference.onRemoteTrackAdded(regular);
+                expect(relayedFrom(regular)).toEqual([ regular, 'abcdef12' ]);
+            });
+        });
     });
 });

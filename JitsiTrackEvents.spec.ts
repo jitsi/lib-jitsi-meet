@@ -14,6 +14,7 @@ describe( "/JitsiTrackEvents members", () => {
         expect( JitsiTrackEvents.LOCAL_TRACK_STOPPED ).toBe( 'track.stopped' );
         expect( JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED ).toBe( 'track.audioLevelsChanged' );
         expect( JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED ).toBe( 'track.audioOutputChanged' );
+        expect( JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED ).toBe( 'track.audioOutputFailed' );
         expect( JitsiTrackEvents.TRACK_MUTE_CHANGED ).toBe( 'track.trackMuteChanged' );
         expect( JitsiTrackEvents.TRACK_OWNER_SET ).toBe( 'track.owner_set' );
         expect( JitsiTrackEvents.TRACK_STREAMING_STATUS_CHANGED ).toBe( 'track.streaming_status_changed' );
