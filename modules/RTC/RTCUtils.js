@@ -464,7 +464,11 @@ class RTCUtils extends Listenable {
                 .then(stream => {
                     logger.info('onUserMediaSuccess');
                     this._updateGrantedPermissions(umDevices, stream);
-                    if (!timeoutExpired) {
+                    if (timeoutExpired) {
+                        // The caller already got the timeout error, so nobody else will release the devices.
+                        logger.warn('getUserMedia resolved after the timeout, stopping the tracks');
+                        stream.getTracks().forEach(track => track.stop());
+                    } else {
                         if (typeof gumTimeout !== 'undefined') {
                             clearTimeout(gumTimeout);
                         }

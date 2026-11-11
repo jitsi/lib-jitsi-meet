@@ -236,6 +236,50 @@ describe('RTCUtils', () => {
             jasmine.clock().uninstall();
         });
 
+        it('stops the tracks of a stream that getUserMedia returns after the timeout fired', async () => {
+            jasmine.clock().install();
+
+            let resolveGum: ((stream: unknown) => void) | undefined;
+            const track = jasmine.createSpyObj('MediaStreamTrack', [ 'stop' ]);
+            const lateStream = {
+                getAudioTracks: () => [ track ],
+                getTracks: () => [ track ],
+                getVideoTracks: () => []
+            };
+
+            getUserMediaSpy.and.returnValue(new Promise(resolve => {
+                resolveGum = resolve;
+            }));
+
+            const gumPromise = (RTCUtils as any)._getUserMedia([ 'audio' ], {}, 100);
+
+            jasmine.clock().tick(150);
+            await expectAsync(gumPromise).toBeRejected();
+
+            resolveGum?.(lateStream);
+            await Promise.resolve();
+            await Promise.resolve();
+
+            expect(track.stop).toHaveBeenCalledTimes(1);
+
+            jasmine.clock().uninstall();
+        });
+
+        it('does not stop the tracks of a stream that getUserMedia returns before the timeout', async () => {
+            const track = jasmine.createSpyObj('MediaStreamTrack', [ 'stop' ]);
+            const stream = {
+                getAudioTracks: () => [ track ],
+                getTracks: () => [ track ],
+                getVideoTracks: () => []
+            };
+
+            getUserMediaSpy.and.returnValue(Promise.resolve(stream));
+
+            await expectAsync((RTCUtils as any)._getUserMedia([ 'audio' ], {}, 100)).toBeResolvedTo(stream);
+
+            expect(track.stop).not.toHaveBeenCalled();
+        });
+
         it('does not emit GET_USER_MEDIA_ERROR_EVENT when getUserMedia succeeds', async () => {
             const fakeStream = {
                 getAudioTracks: () => [],

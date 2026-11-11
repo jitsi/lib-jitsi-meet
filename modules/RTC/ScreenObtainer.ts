@@ -368,11 +368,11 @@ class ScreenObtainer {
                 if (errorDetails.errorCode === DOMException.NOT_SUPPORTED_ERR) {
                     // This error is thrown when an Electron client has not set a permissions handler.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR));
-                } else if (errorDetails.errorMsg?.indexOf('denied by system') !== -1) {
+                } else if (errorDetails.errorMsg?.includes('denied by system')) {
                     // On Chrome this is the only thing different between error returned when user cancels
                     // and when no permission was given on the OS level.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.PERMISSION_DENIED));
-                } else if (errorDetails.errorMsg === 'NotReadableError') {
+                } else if (errorDetails.errorName === 'NotReadableError') {
                     // This can happen under some weird conditions:
                     //  - https://issues.chromium.org/issues/369103607
                     //  - https://issues.chromium.org/issues/353555347
