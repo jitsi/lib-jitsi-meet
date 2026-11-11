@@ -2291,9 +2291,9 @@ export default class TraceablePeerConnection {
      * Sets the codec preference on the peerconnection. The codec preference goes into effect when
      * the next renegotiation happens for older clients that do not support the codec selection API.
      *
-     * @param {Array<CodecMimeType>} codecList - Preferred codecs for video.
-     * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare.
-     * @returns {boolean} - Returns true if the codec settings were updated, false otherwise.
+     * @param {Array<CodecMimeType>} codecList - Compatible codecs for video in preference order.
+     * @param {CodecMimeType} screenshareCodec - The preferred codec for screenshare, used when compatible.
+     * @returns {boolean} - Returns true if sender encodings were reconfigured, false otherwise.
      */
     setVideoCodecs(codecList: CodecMimeType[], screenshareCodec: CodecMimeType): boolean {
         let updated = false;
@@ -2311,21 +2311,22 @@ export default class TraceablePeerConnection {
             return updated;
         }
 
+        const preferredScreenshareCodec = this._getPreferredCodecForScreenshare(codecList[0]);
+
         for (const track of this.getLocalVideoTracks()) {
             const currentCodec = this.tpcUtils.getConfiguredVideoCodec(track);
+            const preferredCodec = track.getVideoType() === VideoType.DESKTOP
+                ? preferredScreenshareCodec : codecList[0];
 
-            if (screenshareCodec && track.getVideoType() === VideoType.DESKTOP && screenshareCodec !== currentCodec) {
-                this.configureVideoSenderEncodings(track, screenshareCodec);
-                updated = true;
-            } else if (currentCodec !== codecList[0]) {
-                this.configureVideoSenderEncodings(track);
+            if (currentCodec !== preferredCodec) {
+                this.configureVideoSenderEncodings(track, preferredCodec);
                 updated = true;
             }
         }
 
         updated && RTCStats.sendStatsEntry(RTCStatsEvents.CODEC_CHANGED_EVENT, this._pcId, {
             camera: codecList[0],
-            screenshare: screenshareCodec
+            screenshare: preferredScreenshareCodec
         });
 
         return updated;

@@ -1,13 +1,129 @@
+import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
+import { VideoType } from '../../service/RTC/VideoType';
+import RTCStats from '../RTCStats/RTCStats';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
+import JitsiLocalTrack from './JitsiLocalTrack';
 import RTCUtils from './RTCUtils';
+import { TPCUtils } from './TPCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
 describe('TraceablePeerConnection', () => {
+    describe('setVideoCodecs', () => {
+        let tpc: TraceablePeerConnection;
+        let camera: jasmine.SpyObj<JitsiLocalTrack>;
+        let desktop: jasmine.SpyObj<JitsiLocalTrack>;
+        let configuredCodecs: Map<JitsiLocalTrack, CodecMimeType>;
+        let configureEncodings: jasmine.Spy;
+        let getLocalVideoTracks: jasmine.Spy;
+        let sendStats: jasmine.Spy;
+        let usesCodecSelectionAPI: jasmine.Spy;
+        const compatibleCodecs = [ CodecMimeType.VP9, CodecMimeType.VP8 ];
+
+        beforeEach(() => {
+            tpc = Object.create(TraceablePeerConnection.prototype);
+            tpc.codecSettings = { codecList: compatibleCodecs };
+            camera = jasmine.createSpyObj<JitsiLocalTrack>('camera', [ 'getVideoType' ]);
+            desktop = jasmine.createSpyObj<JitsiLocalTrack>('desktop', [ 'getVideoType' ]);
+            camera.getVideoType.and.returnValue(VideoType.CAMERA);
+            desktop.getVideoType.and.returnValue(VideoType.DESKTOP);
+            configuredCodecs = new Map([
+                [ camera, CodecMimeType.VP9 ],
+                [ desktop, CodecMimeType.VP9 ]
+            ]);
+            tpc.tpcUtils = jasmine.createSpyObj<TPCUtils>('tpcUtils', [ 'getConfiguredVideoCodec' ]);
+            getLocalVideoTracks = spyOn(tpc, 'getLocalVideoTracks').and.returnValue([ camera, desktop ]);
+            usesCodecSelectionAPI = spyOn(tpc, 'usesCodecSelectionAPI').and.returnValue(true);
+            tpc.tpcUtils.getConfiguredVideoCodec = track => configuredCodecs.get(track);
+            configureEncodings = spyOn(tpc, 'configureVideoSenderEncodings').and.callFake(
+                (track, codec) => {
+                    configuredCodecs.set(track, codec ?? tpc.codecSettings.codecList[0]);
+
+                    return Promise.resolve();
+                });
+            sendStats = spyOn(RTCStats, 'sendStatsEntry');
+        });
+
+        it('does not reconfigure a compatible desktop track to an unsupported preference', () => {
+            expect(tpc.setVideoCodecs(compatibleCodecs, CodecMimeType.AV1)).toBeFalse();
+            expect(configureEncodings).not.toHaveBeenCalled();
+            expect(sendStats).not.toHaveBeenCalled();
+        });
+
+        it('keeps distinct camera and desktop codecs without reconfiguring on repeated calls', () => {
+            const codecs = [ ...compatibleCodecs, CodecMimeType.AV1 ];
+
+            expect(tpc.setVideoCodecs(codecs, CodecMimeType.AV1)).toBeTrue();
+            expect(configureEncodings).toHaveBeenCalledOnceWith(desktop, CodecMimeType.AV1);
+            expect(tpc.setVideoCodecs(codecs, CodecMimeType.AV1)).toBeFalse();
+            expect(configureEncodings).toHaveBeenCalledTimes(1);
+            expect(sendStats).toHaveBeenCalledTimes(1);
+        });
+
+        it('downgrades and upgrades the desktop codec without losing the configured preference', () => {
+            configuredCodecs.set(desktop, CodecMimeType.AV1);
+
+            expect(tpc.setVideoCodecs(compatibleCodecs, CodecMimeType.AV1)).toBeTrue();
+            expect(configureEncodings).toHaveBeenCalledOnceWith(desktop, CodecMimeType.VP9);
+            expect(sendStats.calls.mostRecent().args[2]).toEqual({
+                camera: CodecMimeType.VP9,
+                screenshare: CodecMimeType.VP9
+            });
+            expect(tpc.codecSettings.screenshareCodec).toBe(CodecMimeType.AV1);
+
+            expect(tpc.setVideoCodecs([ ...compatibleCodecs, CodecMimeType.AV1 ], undefined)).toBeTrue();
+            expect(configureEncodings).toHaveBeenCalledWith(desktop, CodecMimeType.AV1);
+            expect(sendStats.calls.mostRecent().args[2]).toEqual({
+                camera: CodecMimeType.VP9,
+                screenshare: CodecMimeType.AV1
+            });
+        });
+
+        it('applies screenshare preference changes independently of the camera codec', () => {
+            const codecs = [ ...compatibleCodecs, CodecMimeType.AV1 ];
+
+            configuredCodecs.set(desktop, CodecMimeType.AV1);
+            expect(tpc.setVideoCodecs(codecs, CodecMimeType.VP8)).toBeTrue();
+            expect(configureEncodings).toHaveBeenCalledOnceWith(desktop, CodecMimeType.VP8);
+            expect(tpc.setVideoCodecs(codecs, CodecMimeType.VP8)).toBeFalse();
+            expect(configureEncodings).toHaveBeenCalledTimes(1);
+        });
+
+        it('updates camera-only connections to the first compatible codec', () => {
+            getLocalVideoTracks.and.returnValue([ camera ]);
+
+            expect(tpc.setVideoCodecs([ CodecMimeType.VP8 ], CodecMimeType.AV1)).toBeTrue();
+            expect(configuredCodecs.get(camera)).toBe(CodecMimeType.VP8);
+            expect(tpc.setVideoCodecs([ CodecMimeType.VP8 ], CodecMimeType.AV1)).toBeFalse();
+            expect(configureEncodings).toHaveBeenCalledTimes(1);
+        });
+
+        it('only stores preferences when the codec selection API is unavailable', () => {
+            usesCodecSelectionAPI.and.returnValue(false);
+
+            expect(tpc.setVideoCodecs([ CodecMimeType.VP8 ], CodecMimeType.AV1)).toBeFalse();
+            expect(tpc.codecSettings).toEqual({
+                codecList: [ CodecMimeType.VP8 ],
+                screenshareCodec: CodecMimeType.AV1
+            });
+            expect(configureEncodings).not.toHaveBeenCalled();
+            expect(sendStats).not.toHaveBeenCalled();
+        });
+
+        it('ignores empty codec lists and missing codec settings', () => {
+            expect(tpc.setVideoCodecs([], CodecMimeType.AV1)).toBeFalse();
+            expect(tpc.codecSettings.codecList).toEqual(compatibleCodecs);
+            tpc.codecSettings = undefined;
+            expect(tpc.setVideoCodecs(compatibleCodecs, CodecMimeType.AV1)).toBeFalse();
+            expect(configureEncodings).not.toHaveBeenCalled();
+            expect(sendStats).not.toHaveBeenCalled();
+        });
+    });
+
     // These helpers encode the sender-side direction logic used to suspend/resume a sender. The behaviour is
     // load-bearing on Firefox: unlike Chromium/WebKit, Firefox does not stop outgoing media when only the
     // encoding's active flag is set to false, so the transceiver direction has to be used instead. Without this,
