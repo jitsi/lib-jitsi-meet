@@ -3,8 +3,40 @@ import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 
 import RTCUtils from './RTCUtils';
+import screenObtainer from './ScreenObtainer';
 
 describe('RTCUtils', () => {
+    describe('init', () => {
+        it('refreshes ScreenObtainer options when initialized more than once', () => {
+            const firstOptions = {
+                desktopSharingFrameRate: { max: 5 },
+                screenShareSettings: { desktopSystemAudio: 'include' }
+            };
+            const secondOptions = {
+                desktopSharingFrameRate: { max: 30 },
+                screenShareSettings: { desktopSystemAudio: 'exclude' }
+            };
+            const enumerateDevices = spyOn(RTCUtils, 'enumerateDevices').and.callFake(callback => callback([]));
+            const screenObtainerInit = spyOn(screenObtainer as any, 'init').and.callThrough();
+            const initialInitOnce = (RTCUtils as any)._initOnce;
+            const initialOptions = (screenObtainer as any).options;
+
+            try {
+                (RTCUtils as any)._initOnce = false;
+                RTCUtils.init(firstOptions);
+                RTCUtils.init(secondOptions);
+
+                expect(enumerateDevices).toHaveBeenCalledTimes(1);
+                expect(screenObtainerInit).toHaveBeenCalledWith(firstOptions);
+                expect(screenObtainerInit).toHaveBeenCalledWith(secondOptions);
+                expect((screenObtainer as any).options).toBe(secondOptions);
+            } finally {
+                (RTCUtils as any)._initOnce = initialInitOnce;
+                (screenObtainer as any).options = initialOptions;
+            }
+        });
+    });
+
     describe('reloadMediaElement', () => {
         const stream = {} as MediaStream;
         const aborted = new DOMException('aborted', 'AbortError');

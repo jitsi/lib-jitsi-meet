@@ -310,6 +310,8 @@ class RTCUtils extends Listenable {
             logger.info(`Stereo: ${stereo}`);
         }
 
+        screenObtainer.init(options);
+
         if (this._initOnce) {
             return;
         }
@@ -319,8 +321,6 @@ class RTCUtils extends Listenable {
 
         window.clearInterval(availableDevicesPollTimer);
         availableDevicesPollTimer = undefined;
-
-        screenObtainer.init(options);
 
         this.enumerateDevices(ds => {
             availableDevices = ds.slice(0);
