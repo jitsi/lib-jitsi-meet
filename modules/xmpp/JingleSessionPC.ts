@@ -2700,6 +2700,9 @@ export default class JingleSessionPC extends JingleSession {
             });
         }
 
+        // P2P media moves to the bridge right away, only the end of a bridge session interrupts it.
+        !this.isP2P && this._mediaConnectivityMonitor?.onSessionEnded();
+
         this.close();
     }
 

@@ -2058,10 +2058,12 @@ export default class JitsiConference extends Listenable {
         const last = this._lastMediaConnectivity;
 
         // Keep the last assessment while a new session (e.g. after a session restart) has none yet, and keep a
-        // failure until a session connects rather than flapping with each restarted session's at-risk.
+        // failure or an interruption until a session connects rather than flapping with each restarted session's
+        // at-risk.
         if (!connectivity
                 || isEqual(connectivity, last)
-                || (last?.status === MediaConnectivityStatus.FAILED
+                || ((last?.status === MediaConnectivityStatus.FAILED
+                        || last?.status === MediaConnectivityStatus.INTERRUPTED)
                     && connectivity.status === MediaConnectivityStatus.AT_RISK)) {
             return;
         }

@@ -298,8 +298,9 @@ export enum JitsiConferenceEvents {
     /**
      * Indicates that the expected media quality of the active media session, assessed from its ICE establishment,
      * has changed. Fired while media is being established, e.g. when ICE is slow to connect, only host candidates
-     * could be gathered or ICE failed, and once ICE connects with the transport that was selected. The first
-     * argument is an {@link IMediaConnectivity}.
+     * could be gathered or ICE failed, once ICE connects with the transport that was selected, and when media stops
+     * after ICE connected (ICE disconnected or failed, or the bridge session ended), until the connection is
+     * restored. The first argument is an {@link IMediaConnectivity}.
      */
     MEDIA_CONNECTIVITY_CHANGED = 'conference.mediaConnectivityChanged',
 

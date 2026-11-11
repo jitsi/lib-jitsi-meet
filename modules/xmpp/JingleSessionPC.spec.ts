@@ -12,7 +12,7 @@ import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { VideoType } from '../../service/RTC/VideoType';
-import { MediaConnectivityStatus } from '../../service/connectivity/MediaConnectivity';
+import { MediaConnectivityReason, MediaConnectivityStatus } from '../../service/connectivity/MediaConnectivity';
 import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
@@ -1247,6 +1247,22 @@ describe('JingleSessionPC media connectivity', () => {
         pc.onconnectionstatechange();
 
         expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.FAILED);
+    });
+
+    it('reports an interruption when the bridge session is terminated while media flows', async () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        session.onTerminated('success', 'reinvite requested');
+
+        expect(emit).toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, jasmine.objectContaining({
+            reasons: [ MediaConnectivityReason.SESSION_ENDED ],
+            status: MediaConnectivityStatus.INTERRUPTED
+        }));
+        expect(session.getMediaConnectivity()).toBeUndefined();
     });
 
     it('follows the selected pair from its own peerconnection\'s stats poll until closed', async () => {

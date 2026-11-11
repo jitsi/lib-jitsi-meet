@@ -60,8 +60,8 @@ function getCandidateType(candidate: RTCIceCandidate): Optional<string> {
 /**
  * Assesses the expected media quality of one media session from its ICE establishment: the local candidates that
  * were gathered, STUN/TURN errors, the progress of ICE checking and the candidate pair that ICE selected. The
- * establishment assessment ends once ICE connects for the first time, after that only the transport of the selected
- * pair is followed.
+ * establishment assessment ends once ICE connects, after that only the transport of the selected pair is followed
+ * until ICE disconnects or fails, which reports the interruption and assesses the recovery as a new establishment.
  */
 export default class MediaConnectivityMonitor {
     private _candidates: ICandidateCounts;
@@ -72,6 +72,7 @@ export default class MediaConnectivityMonitor {
     private _expectsRelay: boolean;
     private _expectsServerReflexive: boolean;
     private _getStats: () => Promise<RTCStatsReport>;
+    private _hasConnected: boolean;
     private _iceServerErrors: IIceServerError[];
     private _isP2P: boolean;
     private _isTcp: boolean;
@@ -97,6 +98,7 @@ export default class MediaConnectivityMonitor {
         this._expectsRelay = urls.some(url => url.startsWith('turn:') || url.startsWith('turns:'));
         this._expectsServerReflexive = urls.some(url => url.startsWith('stun:') || url.startsWith('turn:'));
         this._getStats = options.getStats;
+        this._hasConnected = false;
         this._iceServerErrors = [];
         this._isP2P = options.isP2P;
         this._isTcp = false;
@@ -133,6 +135,11 @@ export default class MediaConnectivityMonitor {
         }
     }
 
+    /** Whether ICE failed to connect or the connection was interrupted. */
+    private _isDown(): boolean {
+        return this._status === MediaConnectivityStatus.FAILED || this._status === MediaConnectivityStatus.INTERRUPTED;
+    }
+
     /**
      * Whether the assessment has ended.
      *
@@ -150,8 +157,8 @@ export default class MediaConnectivityMonitor {
     private _onCheckingTimeout(): void {
         this._checkingTimer = undefined;
 
-        // An ICE restart goes through checking again, don't hide the failure behind a milder status.
-        if (this._isFinal() || this._status === MediaConnectivityStatus.FAILED) {
+        // An ICE restart goes through checking again, don't hide the failure or interruption behind a milder status.
+        if (this._isFinal() || this._isDown()) {
             return;
         }
 
@@ -175,7 +182,8 @@ export default class MediaConnectivityMonitor {
                 logger.warn(`Failed to read the selected candidate pair: ${error}`);
             })
             .then(() => {
-                if (!this._disposed) {
+                // ICE may have failed while the stats were read.
+                if (this._done && !this._disposed) {
                     this._updateTransport();
                 }
             });
@@ -190,11 +198,17 @@ export default class MediaConnectivityMonitor {
         const reasons = this._candidateReasons();
 
         // P2P peers can still reach each other over host candidates on the same network.
-        if (this._isP2P || !reasons.length || this._status === MediaConnectivityStatus.FAILED) {
+        if (this._isP2P || !reasons.length || this._isDown()) {
             return;
         }
 
         this._update(MediaConnectivityStatus.AT_RISK, reasons);
+    }
+
+    /** Reports media loss after ICE connected, its recovery is then assessed as a new establishment. */
+    private _onInterrupted(reason: MediaConnectivityReason): void {
+        this._done = false;
+        this._update(MediaConnectivityStatus.INTERRUPTED, [ reason ]);
     }
 
     /**
@@ -245,6 +259,8 @@ export default class MediaConnectivityMonitor {
 
     /** Reports whether the selected candidate pair uses TCP. */
     private _updateTransport(): void {
+        this._hasConnected = true;
+
         if (this._isTcp) {
             this._update(MediaConnectivityStatus.DEGRADED, [ MediaConnectivityReason.TCP_TRANSPORT ]);
         } else {
@@ -308,19 +324,22 @@ export default class MediaConnectivityMonitor {
      * @returns {void}
      */
     onIceConnectionStateChange(state: RTCIceConnectionState): void {
-        if (this._isFinal()) {
+        if (this._disposed) {
             return;
         }
 
         switch (state) {
         case 'checking':
-            if (this._checkingTimer === undefined) {
+            if (!this._done && this._checkingTimer === undefined) {
                 this._checkingTimer = window.setTimeout(() => this._onCheckingTimeout(), this._checkingTimeout);
             }
             break;
         case 'connected':
         case 'completed':
-            this._onConnected();
+            !this._done && this._onConnected();
+            break;
+        case 'disconnected':
+            this._done && this._onInterrupted(MediaConnectivityReason.ICE_DISCONNECTED);
             break;
         case 'failed':
             this.onIceFailed();
@@ -329,16 +348,25 @@ export default class MediaConnectivityMonitor {
     }
 
     /**
-     * Handles an ICE failure, including the PeerConnection failures Chrome doesn't reflect in the ICE state.
+     * Handles an ICE failure, including the PeerConnection failures Chrome doesn't reflect in the ICE state. Once
+     * the session has connected, a failure is an interruption that the ICE restart recovers from.
      *
      * @returns {void}
      */
     onIceFailed(): void {
-        if (this._isFinal()) {
+        if (this._disposed) {
             return;
         }
 
         this._clearCheckingTimer();
+
+        if (this._hasConnected) {
+            this._onInterrupted(MediaConnectivityReason.ICE_FAILED);
+
+            return;
+        }
+
+        this._done = false;
         this._update(MediaConnectivityStatus.FAILED, [ MediaConnectivityReason.ICE_FAILED, ...this._candidateReasons() ]);
     }
 
@@ -379,5 +407,17 @@ export default class MediaConnectivityMonitor {
 
         this._setSelectedPair(selected);
         this._updateTransport();
+    }
+
+    /**
+     * Reports the interruption when the session is terminated while media flows. A session that never connected
+     * or already failed keeps its status.
+     *
+     * @returns {void}
+     */
+    onSessionEnded(): void {
+        if (this._status === MediaConnectivityStatus.GOOD || this._status === MediaConnectivityStatus.DEGRADED) {
+            this._onInterrupted(MediaConnectivityReason.SESSION_ENDED);
+        }
     }
 }

@@ -241,6 +241,96 @@ describe('MediaConnectivityMonitor', () => {
         expect(monitor.getConnectivity()?.selectedPair?.localType).toBe('srflx');
     });
 
+    it('reports interrupted when ICE fails after connecting, until the ICE restart connects', async () => {
+        const udpPair = getSelectedCandidatePair(connectedStats({ candidateType: 'srflx', protocol: 'udp' }));
+        const monitor = createMonitor();
+
+        monitor.onLocalCandidate(candidate('host'));
+        monitor.onIceConnectionStateChange('connected');
+        await nextTick();
+        monitor.onIceConnectionStateChange('disconnected');
+        monitor.onIceConnectionStateChange('failed');
+
+        // The stats poll keeps reporting the pair that failed.
+        monitor.onSelectedCandidatePair(udpPair);
+        monitor.onIceConnectionStateChange('checking');
+        monitor.onLocalCandidate(null);
+        jasmine.clock().tick(DEFAULT_CHECKING_TIMEOUT);
+
+        stats = Promise.resolve(connectedStats({ candidateType: 'relay', protocol: 'udp', relayProtocol: 'tls' }));
+        monitor.onIceConnectionStateChange('connected');
+        await nextTick();
+
+        const { DEGRADED, GOOD, INTERRUPTED } = MediaConnectivityStatus;
+        const { ICE_DISCONNECTED, ICE_FAILED, TCP_TRANSPORT } = MediaConnectivityReason;
+
+        expect(changes.map(c => [ c.status, c.reasons ])).toEqual([
+            [ GOOD, [] ],
+            [ INTERRUPTED, [ ICE_DISCONNECTED ] ],
+            [ INTERRUPTED, [ ICE_FAILED ] ],
+            [ DEGRADED, [ TCP_TRANSPORT ] ]
+        ]);
+    });
+
+    it('keeps failed when the PeerConnection fails before the connected stats are read', async () => {
+        const monitor = createMonitor();
+
+        monitor.onLocalCandidate(candidate('srflx'));
+        monitor.onIceConnectionStateChange('connected');
+        monitor.onIceFailed();
+        await nextTick();
+
+        expect(changes.map(c => c.status)).toEqual([ MediaConnectivityStatus.FAILED ]);
+    });
+
+    it('reports interrupted when ICE disconnects or fails after connecting, until it reconnects', async () => {
+        const udpPair = getSelectedCandidatePair(connectedStats({ candidateType: 'srflx', protocol: 'udp' }));
+        const monitor = createMonitor();
+
+        monitor.onLocalCandidate(candidate('srflx'));
+        monitor.onIceConnectionStateChange('connected');
+        await nextTick();
+        monitor.onIceConnectionStateChange('disconnected');
+        monitor.onSelectedCandidatePair(udpPair);
+        monitor.onIceConnectionStateChange('connected');
+        await nextTick();
+        monitor.onIceConnectionStateChange('disconnected');
+        monitor.onIceFailed();
+
+        const { GOOD, INTERRUPTED } = MediaConnectivityStatus;
+        const { ICE_DISCONNECTED, ICE_FAILED } = MediaConnectivityReason;
+
+        expect(changes.map(c => [ c.status, c.reasons ])).toEqual([
+            [ GOOD, [] ],
+            [ INTERRUPTED, [ ICE_DISCONNECTED ] ],
+            [ GOOD, [] ],
+            [ INTERRUPTED, [ ICE_DISCONNECTED ] ],
+            [ INTERRUPTED, [ ICE_FAILED ] ]
+        ]);
+    });
+
+    it('reports interrupted only when the session ends while media flows', async () => {
+        const failed = createMonitor();
+
+        failed.onLocalCandidate(candidate('srflx'));
+        failed.onIceFailed();
+        failed.onSessionEnded();
+
+        const monitor = createMonitor();
+
+        monitor.onSessionEnded();
+        monitor.onLocalCandidate(candidate('srflx'));
+        monitor.onIceConnectionStateChange('connected');
+        await nextTick();
+        monitor.onSessionEnded();
+
+        expect(changes.map(c => [ c.status, c.reasons ])).toEqual([
+            [ MediaConnectivityStatus.FAILED, [ MediaConnectivityReason.ICE_FAILED ] ],
+            [ MediaConnectivityStatus.GOOD, [] ],
+            [ MediaConnectivityStatus.INTERRUPTED, [ MediaConnectivityReason.SESSION_ENDED ] ]
+        ]);
+    });
+
     it('adds the checking timeout to the gathering reasons, then reports good', async () => {
         const monitor = createMonitor({ checkingTimeout: 1000 });
 
@@ -291,7 +381,6 @@ describe('MediaConnectivityMonitor', () => {
 
         monitor.onCandidateError(error('turn:late.example.com'));
         monitor.onLocalCandidate(candidate('srflx'));
-        monitor.onIceFailed();
 
         expect(changes.map(c => c.status)).toEqual([ MediaConnectivityStatus.FAILED, MediaConnectivityStatus.GOOD ]);
         expect(changes[0].iceServerErrors.length).toBe(10);

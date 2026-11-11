@@ -15,14 +15,20 @@ export enum MediaConnectivityStatus {
     DEGRADED = 'degraded',
 
     /**
-     * ICE failed. No media flows until a restart succeeds.
+     * ICE failed before the session connected. No media flows until a restart succeeds.
      */
     FAILED = 'failed',
 
     /**
      * Connected over UDP, directly or through a TURN/UDP relay.
      */
-    GOOD = 'good'
+    GOOD = 'good',
+
+    /**
+     * Media was flowing and stopped, because ICE disconnected or failed or the session ended, and the connection
+     * is being restored.
+     */
+    INTERRUPTED = 'interrupted'
 }
 
 /**
@@ -36,6 +42,11 @@ export enum MediaConnectivityReason {
     CHECKING_TIMEOUT = 'checking-timeout',
 
     /**
+     * ICE moved to disconnected after it connected.
+     */
+    ICE_DISCONNECTED = 'ice-disconnected',
+
+    /**
      * ICE moved to failed.
      */
     ICE_FAILED = 'ice-failed',
@@ -45,6 +56,11 @@ export enum MediaConnectivityReason {
      * means that UDP traffic to them is blocked.
      */
     NO_SERVER_REFLEXIVE = 'no-server-reflexive',
+
+    /**
+     * The session carrying media was terminated, by Jicofo or for a session restart.
+     */
+    SESSION_ENDED = 'session-ended',
 
     /**
      * The selected candidate pair uses TCP.

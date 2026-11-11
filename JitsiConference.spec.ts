@@ -455,16 +455,16 @@ describe('JitsiConference', () => {
             ]);
         });
 
-        it('keeps a failure through restarted sessions until one connects', () => {
-            const { AT_RISK, FAILED, GOOD } = MediaConnectivityStatus;
+        it('keeps a failure or an interruption through restarted sessions until one connects', () => {
+            const { AT_RISK, FAILED, GOOD, INTERRUPTED } = MediaConnectivityStatus;
 
-            for (const status of [ AT_RISK, FAILED, AT_RISK, FAILED, AT_RISK, GOOD ]) {
+            for (const status of [ AT_RISK, FAILED, AT_RISK, FAILED, AT_RISK, GOOD, INTERRUPTED, AT_RISK, GOOD ]) {
                 jvb = { getMediaConnectivity: () => assessment(status) };
                 onChanged(jvb);
             }
 
             expect(conference.eventEmitter.emit.calls.allArgs().map(([ , e ]) => e.status))
-                .toEqual([ AT_RISK, FAILED, GOOD ]);
+                .toEqual([ AT_RISK, FAILED, GOOD, INTERRUPTED, GOOD ]);
             expect(proto.getMediaConnectivity.call(conference)).toEqual(assessment(GOOD));
         });
 
