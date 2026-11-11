@@ -5,6 +5,7 @@ import 'webrtc-adapter';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
+import { MediaPermissionState, PermissionDenialReason } from '../../service/RTC/MediaPermission';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import Resolutions from '../../service/RTC/Resolutions';
 import { VideoType } from '../../service/RTC/VideoType';
@@ -22,6 +23,11 @@ import screenObtainer from './ScreenObtainer';
 const logger = getLogger('rtc:RTCUtils');
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
+
+/**
+ * A permission denial faster than this (in ms) can't have been answered by a person at the browser's prompt.
+ */
+const PROMPT_ANSWER_MIN_TIME = 300;
 
 /**
  * Default MediaStreamConstraints to use for calls to getUserMedia.
@@ -475,6 +481,8 @@ class RTCUtils extends Listenable {
                 }, timeout);
             }
 
+            const startTime = Date.now();
+
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
                     logger.info('onUserMediaSuccess');
@@ -490,30 +498,32 @@ class RTCUtils extends Listenable {
                         resolve(stream);
                     }
                 })
-                .catch(error => {
-                    logger.warn(`Failed to get access to local media. ${error} ${JSON.stringify(constraints)}`);
-                    const jitsiError = new JitsiTrackError(error, constraints, umDevices);
+                .catch(error => this._getPermissionDenialReason(error, umDevices, Date.now() - startTime)
+                    .then(reason => {
+                        logger.warn(`Failed to get access to local media. ${error} ${JSON.stringify(constraints)}`
+                            + `${reason ? ` denied by ${reason}` : ''}`);
+                        const jitsiError = new JitsiTrackError(error, constraints, umDevices, reason);
 
-                    if (!timeoutExpired) {
-                        // Skip emitting when the timeout already fired and reported the failure,
-                        // to avoid double-reporting a single gUM call.
-                        RTCStats.sendStatsEntry(RTCStatsEvents.GET_USER_MEDIA_ERROR_EVENT, null, {
-                            constraint: error.constraint,
-                            devices: umDevices,
-                            message: error.message,
-                            name: error.name
-                        });
+                        if (!timeoutExpired) {
+                            // Skip emitting when the timeout already fired and reported the failure,
+                            // to avoid double-reporting a single gUM call.
+                            RTCStats.sendStatsEntry(RTCStatsEvents.GET_USER_MEDIA_ERROR_EVENT, null, {
+                                constraint: error.constraint,
+                                devices: umDevices,
+                                message: error.message,
+                                name: error.name
+                            });
 
-                        if (typeof gumTimeout !== 'undefined') {
-                            clearTimeout(gumTimeout);
+                            if (typeof gumTimeout !== 'undefined') {
+                                clearTimeout(gumTimeout);
+                            }
+                            reject(jitsiError);
                         }
-                        reject(jitsiError);
-                    }
 
-                    if (jitsiError.name === JitsiTrackErrors.PERMISSION_DENIED) {
-                        this._updateGrantedPermissions(umDevices, undefined);
-                    }
-                });
+                        if (jitsiError.name === JitsiTrackErrors.PERMISSION_DENIED) {
+                            this._updateGrantedPermissions(umDevices, undefined, reason);
+                        }
+                    }));
         });
     }
 
@@ -625,26 +635,76 @@ class RTCUtils extends Listenable {
     }
 
     /**
+     * Finds out why getUserMedia was denied access to the devices.
+     *
+     * @param {Error} error - The getUserMedia error.
+     * @param {Array<string>} umDevices - The requested devices.
+     * @param {number} elapsed - How long getUserMedia took to fail, in ms.
+     * @returns {Promise<PermissionDenialReason|undefined>} - Undefined when the error isn't a permission denial.
+     */
+    _getPermissionDenialReason(error, umDevices, elapsed) {
+        const { message = '', name } = error ?? {};
+
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+            if (/denied by system/i.test(message)) {
+                return Promise.resolve(PermissionDenialReason.OS);
+            }
+
+            return Promise.resolve(
+                elapsed < PROMPT_ANSWER_MIN_TIME ? PermissionDenialReason.BROWSER : PermissionDenialReason.USER);
+        }
+
+        // Firefox on macOS reports a device blocked by the OS as not found, tell it apart from a missing device. The
+        // error is also thrown while another Firefox tab captures the device.
+        if (name === 'NotFoundError' && browser.isFirefox() && browser.getOS() === 'Mac OS'
+                && !/concurrent/i.test(message)) {
+            return navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    const found = umDevices.every(type => devices.some(device => device.kind === `${type}input`));
+
+                    return found ? PermissionDenialReason.OS : undefined;
+                })
+                .catch(() => undefined);
+        }
+
+        return Promise.resolve();
+    }
+
+    /**
      * Updates the granted permissions based on the options we requested and the
      * streams we received.
      * @param um the options we requested to getUserMedia.
      * @param stream the stream we received from calling getUserMedia.
+     * @param {PermissionDenialReason} [reason] - Why access was denied, when getUserMedia failed.
      */
-    _updateGrantedPermissions(um, stream) {
+    _updateGrantedPermissions(um, stream, reason) {
         const audioTracksReceived
             = Boolean(stream) && stream.getAudioTracks().length > 0;
         const videoTracksReceived
             = Boolean(stream) && stream.getVideoTracks().length > 0;
         const grantedPermissions = {};
+        const statuses = {};
+        const toStatus = granted => {
+            if (granted) {
+                return { state: MediaPermissionState.GRANTED };
+            }
+
+            return {
+                reason,
+                state: MediaPermissionState.DENIED
+            };
+        };
 
         if (um.indexOf('video') !== -1) {
             grantedPermissions.video = videoTracksReceived;
+            statuses.video = toStatus(videoTracksReceived);
         }
         if (um.indexOf('audio') !== -1) {
             grantedPermissions.audio = audioTracksReceived;
+            statuses.audio = toStatus(audioTracksReceived);
         }
 
-        this.eventEmitter.emit(RTCEvents.PERMISSIONS_CHANGED, grantedPermissions);
+        this.eventEmitter.emit(RTCEvents.PERMISSIONS_CHANGED, grantedPermissions, statuses);
     }
 
     /**

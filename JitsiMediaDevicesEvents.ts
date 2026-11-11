@@ -26,5 +26,14 @@ export enum JitsiMediaDevicesEvents {
      *  |'react-native'|'android'} environmentType - type of browser or
      *  other execution environment.
      */
-    PERMISSION_PROMPT_IS_SHOWN = 'mediaDevices.permissionPromptIsShown'
+    PERMISSION_PROMPT_IS_SHOWN = 'mediaDevices.permissionPromptIsShown',
+
+    /**
+     * Indicates that the permission status of the camera or the microphone changed, e.g. from prompt to granted, or
+     * to denied with the reason. The event provides the following parameters to its listeners:
+     *
+     * @param {Object} statuses - {@link IPermissionStatus} by media type, `audio` and `video`. A type is missing
+     * while its status is unknown.
+     */
+    PERMISSION_STATUS_CHANGED = 'mediaDevices.permissionStatusChanged'
 }

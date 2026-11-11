@@ -1,4 +1,5 @@
 import * as JitsiTrackErrors from './JitsiTrackErrors';
+import { PermissionDenialReason } from './service/RTC/MediaPermission';
 
 export interface IGumError {
     constraint?: string;
@@ -47,14 +48,21 @@ export default class JitsiTrackError extends Error {
     public gum?: IGum;
 
     /**
+     * Why access was denied, set for {@link JitsiTrackErrors.PERMISSION_DENIED} errors of getUserMedia.
+     */
+    public reason?: PermissionDenialReason;
+
+    /**
      * @param {IGumError|string} error - error object or error name
      * @param {IGumOptions|string} [options] - getUserMedia constraints object or error message
      * @param {DeviceType[]} [devices] - list of getUserMedia requested devices
+     * @param {PermissionDenialReason} [reason] - why access was denied, makes the error a permission denial
      */
     constructor(
             error: IGumError | string,
             options?: IGumOptions | string,
-            devices?: DeviceType[]
+            devices?: DeviceType[],
+            reason?: PermissionDenialReason
     ) {
         super();
 
@@ -70,12 +78,13 @@ export default class JitsiTrackError extends Error {
                 error
             };
 
-            switch (error.name) {
+            switch (reason ? 'NotAllowedError' : error.name) {
             case 'NotAllowedError':
             case 'PermissionDeniedError':
             case 'SecurityError':
                 this.name = JitsiTrackErrors.PERMISSION_DENIED;
                 this.message = TRACK_ERROR_TO_MESSAGE_MAP[this.name] + (this.gum.devices || []).join(', ');
+                this.reason = reason;
                 break;
             case 'DevicesNotFoundError':
             case 'NotFoundError':

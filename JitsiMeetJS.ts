@@ -36,6 +36,7 @@ import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
 import { IceRestartReason } from './service/RTC/IceRestartReason';
+import { MediaPermissionState, PermissionDenialReason } from './service/RTC/MediaPermission';
 import { MediaType } from './service/RTC/MediaType';
 import { VideoType } from './service/RTC/VideoType';
 import { ConnectionQualityEvents } from './service/connectivity/ConnectionQualityEvents';
@@ -167,6 +168,8 @@ const JitsiMeetJS = {
         iceRestartReason: IceRestartReason,
         mediaConnectivityReason: MediaConnectivityReason,
         mediaConnectivityStatus: MediaConnectivityStatus,
+        mediaPermissionState: MediaPermissionState,
+        permissionDenialReason: PermissionDenialReason,
         recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
         trackStreamingStatus: TrackStreamingStatus,
@@ -274,6 +277,9 @@ const JitsiMeetJS = {
                         = getAnalyticsAttributesFromOptions(options);
 
                     attributes.reason = error.name;
+                    if (error.reason) {
+                        attributes.denial_reason = error.reason;
+                    }
                     Statistics.sendAnalytics(
                         createGetUserMediaEvent('error', attributes));
                 }
