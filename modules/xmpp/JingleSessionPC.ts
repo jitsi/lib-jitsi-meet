@@ -3073,10 +3073,16 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {void}
      */
     public setReceiverVideoConstraint(sourceReceiverConstraints: Map<string, number>): void {
-        logger.info(`${this} setReceiverVideoConstraint - constraints: ${JSON.stringify(sourceReceiverConstraints)}`);
+        logger.info(`${this} setReceiverVideoConstraint - constraints: ${
+            JSON.stringify(Object.fromEntries(sourceReceiverConstraints ?? []))}`);
+
+        // While the session is active every change has been sent, so an unchanged map is what the peer already has.
+        // Do not send it again: a burst of these IQs can trip the server's rate limit and drop the connection.
+        const unchanged = isEqual(this._sourceReceiverConstraints, sourceReceiverConstraints);
+
         this._sourceReceiverConstraints = sourceReceiverConstraints;
 
-        if (this.isP2P) {
+        if (this.isP2P && !unchanged) {
             // Tell the remote peer about our receive constraint. If Jingle session is not yet active the state will
             // be synced after offer/answer.
             if (this.state === JingleSessionState.ACTIVE) {

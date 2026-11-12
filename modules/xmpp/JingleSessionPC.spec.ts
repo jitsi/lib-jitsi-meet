@@ -112,6 +112,31 @@ describe('JingleSessionPC', () => {
                     + '</iq>');
             });
         });
+        it('does not send content-modify again for unchanged recv frame sizes', () => {
+            const sendIQSpy = spyOn(connection, 'sendIQ').and.callThrough();
+            const constraints = (v1Height: number) => new Map([ [ '8d519815-v0', 180 ], [ '8d519815-v1', v1Height ] ]);
+
+            return new Promise((resolve, reject) => {
+                jingleSession.acceptOffer(
+                    offerIQ,
+                    resolve,
+                    reject,
+                    /* local tracks */ []);
+            }).then(() => {
+                expect(jingleSession.getState()).toBe(JingleSessionState.ACTIVE);
+                sendIQSpy.calls.reset();
+
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                expect(sendIQSpy.calls.count()).toBe(1);
+
+                jingleSession.setReceiverVideoConstraint(constraints(-1));
+                expect(sendIQSpy.calls.count()).toBe(2);
+                expect((sendIQSpy.calls.mostRecent().args[0] as any).toString()).toContain(
+                    '<source-frame-height maxHeight="-1" sourceName="8d519815-v1"');
+            });
+        });
         it('fires an event when remote peer sends content-modify', () => {
             let remoteSourcesRecvMaxFrameHeight;
             const remoteVideoConstraintsListener = () => {
