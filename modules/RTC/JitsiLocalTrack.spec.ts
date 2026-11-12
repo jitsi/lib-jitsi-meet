@@ -2,6 +2,7 @@ import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 
 import JitsiLocalTrack, { IStreamEffect } from './JitsiLocalTrack';
+import RTCUtils from './RTCUtils';
 
 describe('JitsiLocalTrack', () => {
     const MIC_ID = 'mic-1';
@@ -268,6 +269,56 @@ describe('JitsiLocalTrack', () => {
             await localTrack.mute();
 
             expect(effect.stopEffect).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not report a video track unmuted after its effect was removed as ended', async () => {
+            const videoTrack = (label: string): any => {
+                const track = fakeTrack(label);
+
+                track.kind = 'video';
+
+                return track;
+            };
+            const videoStream = (track: any): MediaStream => ({
+                get active() {
+                    return track.readyState === 'live';
+                },
+                getTracks: () => [ track ],
+                getVideoTracks: () => [ track ]
+            }) as unknown as MediaStream;
+            const cameraTrack = videoTrack('FaceTime HD Camera');
+            const newCameraTrack = videoTrack('FaceTime HD Camera');
+            const outputTrack = videoTrack('canvas');
+            const localTrack: any = new JitsiLocalTrack({
+                constraints: { height: { ideal: 720 }, width: { ideal: 1280 } },
+                deviceId: 'camera-1',
+
+                // Like the virtual background, the effect has no mute state of its own.
+                effects: [ {
+                    isEnabled: () => true,
+                    startEffect: () => videoStream(outputTrack),
+                    stopEffect: () => undefined
+                } as unknown as IStreamEffect ],
+                mediaType: MediaType.VIDEO,
+                rtcId: 1,
+                stream: videoStream(cameraTrack),
+                track: cameraTrack,
+                videoType: 'camera'
+            });
+
+            spyOn(RTCUtils, 'obtainAudioAndVideoPermissions').and.returnValue(Promise.resolve([ {
+                stream: videoStream(newCameraTrack),
+                track: newCameraTrack,
+                videoType: 'camera'
+            } ]));
+
+            // The stopped stream reads as muted, so the effect is only dropped, without restoring the stream.
+            localTrack.stopStream();
+            await localTrack.setEffect(undefined);
+            await localTrack.unmute();
+
+            expect(localTrack.getTrack()).toBe(newCameraTrack);
+            expect(localTrack.isEnded()).toBeFalse();
         });
 
         it('stops a new effect started after stopStream', async () => {

@@ -518,6 +518,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     this._setStream(streamInfo.stream);
                     this.track = streamInfo.track;
 
+                    // Drop the effect state left by stopStream() if the effect was removed while muted.
+                    this._effectEnabled = false;
+                    this._originalStream = null;
+                    this._effectStoppedByStopStream = false;
+
                     // This is not good when video type changes after
                     // unmute, but let's not crash here
                     if (this.videoType !== streamInfo.videoType) {
