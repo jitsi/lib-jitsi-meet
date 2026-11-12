@@ -357,10 +357,10 @@ class ScreenObtainer {
             })
             .catch(error => {
                 const errorDetails = {
-                    errorCode: error.code,
-                    errorMsg: error.message,
-                    errorName: error.name,
-                    errorStack: error.stack
+                    errorCode: error?.code,
+                    errorMsg: error?.message,
+                    errorName: error?.name,
+                    errorStack: error?.stack
                 };
 
                 logger.warn('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
@@ -372,10 +372,12 @@ class ScreenObtainer {
                     // On Chrome this is the only thing different between error returned when user cancels
                     // and when no permission was given on the OS level.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.PERMISSION_DENIED));
-                } else if (errorDetails.errorName === 'NotReadableError') {
-                    // This can happen under some weird conditions:
+                } else if (errorDetails.errorName === 'NotReadableError' || !(error instanceof DOMException)) {
+                    // NotReadableError can happen under some weird conditions:
                     //  - https://issues.chromium.org/issues/369103607
                     //  - https://issues.chromium.org/issues/353555347
+                    // A user cancel is always a DOMException, so report anything else (e.g. a TypeError for invalid
+                    // constraints) as a failure instead of hiding it.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR));
                 } else {
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));

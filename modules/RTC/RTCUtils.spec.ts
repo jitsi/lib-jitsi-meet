@@ -145,6 +145,10 @@ describe('RTCUtils', () => {
             getUserMediaSpy = spyOn(navigator.mediaDevices, 'getUserMedia');
         });
 
+        afterEach(() => {
+            jasmine.clock().uninstall();
+        });
+
         it('emits GET_USER_MEDIA_ERROR_EVENT when getUserMedia rejects', async () => {
             const error = Object.assign(new Error('Permission denied by user'), {
                 name: 'NotAllowedError'
@@ -205,8 +209,6 @@ describe('RTCUtils', () => {
                     devices: [ 'audio' ],
                     name: JitsiTrackErrors.TIMEOUT
                 }));
-
-            jasmine.clock().uninstall();
         });
 
         it('emits the error event only once when timeout fires before gUM rejects', async () => {
@@ -232,8 +234,6 @@ describe('RTCUtils', () => {
             await Promise.resolve();
 
             expect(rtcStatsSpy).toHaveBeenCalledTimes(1);
-
-            jasmine.clock().uninstall();
         });
 
         it('stops the tracks of a stream that getUserMedia returns after the timeout fired', async () => {
@@ -261,8 +261,6 @@ describe('RTCUtils', () => {
             await Promise.resolve();
 
             expect(track.stop).toHaveBeenCalledTimes(1);
-
-            jasmine.clock().uninstall();
         });
 
         it('does not stop the tracks of a stream that getUserMedia returns before the timeout', async () => {

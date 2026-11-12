@@ -27,10 +27,22 @@ describe('ScreenObtainer', () => {
             expect(error.name).toBe(JitsiTrackErrors.SCREENSHARING_USER_CANCELED);
         });
 
-        it('does not report PERMISSION_DENIED for an error without a message', async () => {
+        it('reports SCREENSHARING_GENERIC_ERROR for an error without a message', async () => {
             const error = await obtainScreenError({ name: 'NotAllowedError' });
 
-            expect(error.name).toBe(JitsiTrackErrors.SCREENSHARING_USER_CANCELED);
+            expect(error.name).toBe(JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR);
+        });
+
+        it('reports SCREENSHARING_GENERIC_ERROR for an error that is not a DOMException', async () => {
+            const error = await obtainScreenError(new TypeError('Invalid constraints'));
+
+            expect(error.name).toBe(JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR);
+        });
+
+        it('reports SCREENSHARING_GENERIC_ERROR when getDisplayMedia rejects with undefined', async () => {
+            const error = await obtainScreenError(undefined);
+
+            expect(error.name).toBe(JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR);
         });
 
         it('reports SCREENSHARING_GENERIC_ERROR for a NotReadableError', async () => {
