@@ -297,9 +297,21 @@ describe('TraceablePeerConnection', () => {
             expect(Array.from(ctx.localTracks.keys())).toEqual([ 2 ]);
         });
 
+        it('uses the transceiver of the old track when its sender holds no track', async () => {
+            // E.g. after applyConstraints() removed the track from the pc and failed to get a new stream.
+            const first = transceiver('0', {});
+            const second = transceiver('1', null);
+            const newTrack = localTrack(2, {});
+
+            await replaceTrack.call(
+                context([ first, second ], new Map([ [ 1, '1' ] ])), localTrack(1, { label: 'mic' }), newTrack, true);
+
+            expect(second.sender.replaceTrack).toHaveBeenCalledWith(newTrack.getTrack());
+            expect(first.sender.replaceTrack).not.toHaveBeenCalled();
+        });
+
         it('uses the transceiver of the old track when the sender holds a track the old track no longer exposes', async () => {
-            // E.g. a track whose stream effect was stopped by stopStream() while the sender still has the
-            // effect's output track.
+            // The sender holds a track that no local track owns.
             const first = transceiver('0', {});
             const second = transceiver('1', { label: 'effect output' });
             const newTrack = localTrack(2, {});
