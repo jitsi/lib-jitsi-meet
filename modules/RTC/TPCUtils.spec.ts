@@ -4,6 +4,7 @@ import { MediaType } from '../../service/RTC/MediaType';
 import { SIM_LAYERS } from '../../service/RTC/StandardVideoQualitySettings';
 import { VideoEncoderScalabilityMode } from '../../service/RTC/VideoEncoderScalabilityMode';
 import { VideoType } from '../../service/RTC/VideoType';
+import browser from '../browser';
 
 import { MockJitsiLocalTrack, MockPeerConnection } from './MockClasses';
 import { TPCUtils } from './TPCUtils';
@@ -3082,6 +3083,45 @@ describe('TPCUtils', () => {
             expect(result.media[0].fmtp[0].config).toContain('sprop-stereo=1');
             expect(result.media[0].fmtp[0].config).toContain('useinbandfec=1');
             expect(result.media[0].fmtp[0].config).toContain('dtx=0');
+        });
+    });
+
+    describe('Firefox simulcast order of desktop encodings', () => {
+        const track = new MockJitsiLocalTrack(1080, MediaType.VIDEO, VideoType.DESKTOP);
+        const codec = CodecMimeType.VP8;
+        let pc, tpcUtils;
+
+        beforeEach(() => {
+            pc = new MockPeerConnection('1', true, true /* simulcast */);
+            pc.videoTransferActive = true;
+            tpcUtils = new TPCUtils(pc);
+            spyOn(browser, 'isFirefox').and.returnValue(true);
+            spyOn(browser, 'supportsScalabilityModeAPI').and.returnValue(false);
+        });
+
+        afterEach(() => {
+            pc = null;
+            tpcUtils = null;
+        });
+
+        it('keeps the low to high order on Firefox 134 and newer', () => {
+            spyOn(browser, 'isVersionLessThan').and.callFake(version => 158 < Number(version));
+
+            const scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, 1080);
+
+            expect(scaleFactor[0]).toBe(SIM_LAYERS[0].scaleFactor);
+            expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor);
+            expect(scaleFactor[2]).toBe(SIM_LAYERS[2].scaleFactor);
+        });
+
+        it('reverses the order on Firefox older than 134', () => {
+            spyOn(browser, 'isVersionLessThan').and.callFake(version => 133 < Number(version));
+
+            const scaleFactor = tpcUtils.calculateEncodingsScaleFactor(track, codec, 1080);
+
+            expect(scaleFactor[0]).toBe(SIM_LAYERS[2].scaleFactor);
+            expect(scaleFactor[1]).toBe(SIM_LAYERS[1].scaleFactor);
+            expect(scaleFactor[2]).toBe(SIM_LAYERS[0].scaleFactor);
         });
     });
 });
