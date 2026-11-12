@@ -4,6 +4,7 @@ import { RTCEvents } from '../../service/RTC/RTCEvents';
 import browser from '../browser';
 import FeatureFlags from '../flags/FeatureFlags';
 
+import JitsiLocalTrack, { IStreamEffect } from './JitsiLocalTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
 
@@ -243,6 +244,57 @@ describe('TraceablePeerConnection', () => {
 
             expect(second.sender.replaceTrack).toHaveBeenCalledWith(newTrack.getTrack());
             expect(first.sender.replaceTrack).not.toHaveBeenCalled();
+        });
+
+        it('replaces the track of a local track whose stream was stopped while a stream effect was active', async () => {
+            const audioTrack = (label: string): any => {
+                const track = {
+                    enabled: true,
+                    getConstraints: () => ({}),
+                    getSettings: () => ({}),
+                    kind: 'audio',
+                    label,
+                    readyState: 'live',
+                    stop: () => {
+                        track.readyState = 'ended';
+                    }
+                };
+
+                return track;
+            };
+            const stream = (track: MediaStreamTrack): MediaStream => ({
+                getAudioTracks: () => [ track ],
+                getTracks: () => [ track ],
+                getVideoTracks: () => []
+            }) as unknown as MediaStream;
+            const effectOutput = audioTrack('MediaStreamAudioDestinationNode');
+            const micTrack = audioTrack('mic');
+            const effect = {
+                isEnabled: () => true,
+                startEffect: () => stream(effectOutput),
+                stopEffect: () => undefined
+            } as unknown as IStreamEffect;
+            const oldTrack = new JitsiLocalTrack({
+                constraints: {},
+                deviceId: 'mic',
+                effects: [ effect ],
+                mediaType: MediaType.AUDIO,
+                rtcId: 1,
+                stream: stream(micTrack),
+                track: micTrack
+            });
+            const first = transceiver('0', oldTrack.getTrack());
+            const newTrack = localTrack(2, {});
+
+            // No mid is recorded, so the sender must be found by the track it holds.
+            const ctx = context([ first ], new Map(), [ oldTrack ]);
+
+            oldTrack.stopStream();
+            await replaceTrack.call(ctx, oldTrack, newTrack, false);
+
+            expect(first.sender.replaceTrack).toHaveBeenCalledWith(newTrack.getTrack());
+            expect(Array.from(ctx.localTrackTransceiverMids)).toEqual([ [ 2, '0' ] ]);
+            expect(Array.from(ctx.localTracks.keys())).toEqual([ 2 ]);
         });
 
         it('uses the transceiver of the old track when the sender holds a track the old track no longer exposes', async () => {

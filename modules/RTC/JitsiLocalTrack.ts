@@ -97,6 +97,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     private _originalStream?: MediaStream;
     private _stopStreamInProgress: boolean;
     private _effectEnabled?: boolean;
+    private _effectStoppedByStopStream?: boolean;
     public metadata: ITrackMetadata;
     public rtcId: number;
     public sourceId?: string;
@@ -588,7 +589,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     /**
      * Returns the MediaStreamTrack captured from the device. While a stream effect is active, {@link #getTrack} returns
      * the effect's output track, which has its own label and readyState and doesn't match any device. Without an
-     * active effect (including after {@link #stopStream} stopped it) this is {@link #getTrack}.
+     * active effect this is {@link #getTrack}.
      *
      * @private
      * @returns {MediaStreamTrack}
@@ -610,6 +611,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._setStream(this._streamEffect.startEffect(this._originalStream));
         this.track = this.stream.getTracks()[0];
         this._effectEnabled = true;
+        this._effectStoppedByStopStream = false;
     }
 
     /**
@@ -619,13 +621,16 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {void}
      */
     private _stopStreamEffect(): void {
-        // Guard on _effectEnabled so a repeat call (e.g. dispose after stopStream) can't swap in a null stream.
+        // Guard on _effectEnabled so a repeat call can't swap in a null stream.
         if (this._effectEnabled && this._streamEffect) {
-            this._streamEffect.stopEffect();
+            if (!this._effectStoppedByStopStream) {
+                this._streamEffect.stopEffect();
+            }
             this._setStream(this._originalStream);
             this._originalStream = null;
             this.track = this.stream ? this.stream.getTracks()[0] : null;
             this._effectEnabled = false;
+            this._effectStoppedByStopStream = false;
         }
     }
 
@@ -1042,9 +1047,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._stopStreamInProgress = true;
 
         try {
-            // Stop the effect first so its pipeline isn't left running against a dead stream; this also
-            // releases the original device stream rather than only the effect's output stream.
-            this._stopStreamEffect();
+            // Keep the effect output as this.track: the senders hold it.
+            if (this._effectEnabled && this._streamEffect && !this._effectStoppedByStopStream) {
+                this._streamEffect.stopEffect();
+                this._effectStoppedByStopStream = true;
+                RTCUtils.stopMediaStream(this._originalStream);
+
+                // The device stream already reports LOCAL_TRACK_STOPPED.
+                this.stream.oninactive = undefined;
+            }
             RTCUtils.stopMediaStream(this.stream);
         } finally {
             this._stopStreamInProgress = false;
