@@ -175,6 +175,7 @@ export default class MediaConnectivityMonitor {
     private _onConnected(): void {
         this._clearCheckingTimer();
         this._done = true;
+        this._hasConnected = true;
 
         this._getStats()
             .then(stats => this._setSelectedPair(getSelectedCandidatePair(stats)))
@@ -259,8 +260,6 @@ export default class MediaConnectivityMonitor {
 
     /** Reports whether the selected candidate pair uses TCP. */
     private _updateTransport(): void {
-        this._hasConnected = true;
-
         if (this._isTcp) {
             this._update(MediaConnectivityStatus.DEGRADED, [ MediaConnectivityReason.TCP_TRANSPORT ]);
         } else {

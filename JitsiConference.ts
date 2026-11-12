@@ -2048,8 +2048,8 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
-     * Emits {@link JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED} when the assessment of the active media
-     * session differs from the last one emitted.
+     * Emits {@link JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED} when the status or the reasons of the active
+     * media session, or the active session itself, differ from the last ones emitted.
      *
      * @returns {void}
      */
@@ -2061,7 +2061,9 @@ export default class JitsiConference extends Listenable {
         // failure or an interruption until a session connects rather than flapping with each restarted session's
         // at-risk.
         if (!connectivity
-                || isEqual(connectivity, last)
+                || (connectivity.status === last?.status
+                    && connectivity.p2p === last.p2p
+                    && isEqual(connectivity.reasons, last.reasons))
                 || ((last?.status === MediaConnectivityStatus.FAILED
                         || last?.status === MediaConnectivityStatus.INTERRUPTED)
                     && connectivity.status === MediaConnectivityStatus.AT_RISK)) {

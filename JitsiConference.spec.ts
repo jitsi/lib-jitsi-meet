@@ -482,6 +482,25 @@ describe('JitsiConference', () => {
             expect(conference.eventEmitter.emit).toHaveBeenCalledWith(
                 JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED, assessment(MediaConnectivityStatus.GOOD));
         });
+
+        it('doesn\'t emit again when only the round trip time changed', () => {
+            const good = (isP2P: boolean, rtt: number) => ({
+                p2p: isP2P,
+                reasons: [],
+                selectedPair: { rtt },
+                status: MediaConnectivityStatus.GOOD
+            });
+
+            jvb.getMediaConnectivity = () => good(false, 20);
+            onChanged(jvb);
+            jvb.getMediaConnectivity = () => good(false, 35);
+            proto._maybeEmitMediaConnectivity.call(conference);
+            p2p.getMediaConnectivity = () => good(true, 5);
+            conference.p2p = true;
+            proto._maybeEmitMediaConnectivity.call(conference);
+
+            expect(conference.eventEmitter.emit.calls.allArgs().map(([ , e ]) => e.selectedPair.rtt)).toEqual([ 20, 5 ]);
+        });
     });
 
     describe('P2P quality fallback', () => {

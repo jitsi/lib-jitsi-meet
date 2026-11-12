@@ -1198,6 +1198,9 @@ describe('JingleSessionPC media connectivity', () => {
         room.connectionTimes = {};
         rtc = new MockRTC();
         sendAnalytics = spyOn(Statistics, 'sendAnalytics');
+
+        // Another spec can leave SSRC rewriting on, which starts the audio wedge detector the mocks can't serve.
+        spyOn(FeatureFlags, 'isSsrcRewritingSupported').and.returnValue(false);
         session = new JingleSessionPC('sid', 'peer1', 'focus', new MockStropheConnection(), { },
             { iceServers: [ { urls: 'turn:turn.example.com:443' } ] }, false, false);
         session.initialize(

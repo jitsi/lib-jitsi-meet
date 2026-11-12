@@ -52,10 +52,13 @@ export function getSelectedCandidatePair(stats: RTCStatsReport): Optional<ISelec
 
     const entries = Array.from(reports.values());
     const transport = entries.find(report => report.type === 'transport' && report.selectedCandidatePairId);
+    const pairs = entries.filter(report => report.type === 'candidate-pair');
+
+    // A pair left nominated and succeeded by an ICE restart can be listed before the one flagged as selected.
     const pair = transport
         ? reports.get(transport.selectedCandidatePairId)
-        : entries.find(report => report.type === 'candidate-pair'
-            && (report.selected || (report.nominated && report.state === 'succeeded')));
+        : pairs.find(report => report.selected)
+            ?? pairs.find(report => report.nominated && report.state === 'succeeded');
 
     if (!pair) {
         return undefined;

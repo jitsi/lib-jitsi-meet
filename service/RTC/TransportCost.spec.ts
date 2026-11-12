@@ -36,6 +36,17 @@ describe('getSelectedCandidatePair', () => {
         expect(getSelectedCandidatePair(report(LOCAL, REMOTE, selected))?.pair).toBe(selected);
     });
 
+    it('prefers the flagged pair over one left nominated by an ICE restart', () => {
+        const selected = pair('CP2', { selected: true });
+
+        expect(getSelectedCandidatePair(report(
+            LOCAL,
+            REMOTE,
+            pair('CP1', { nominated: true, state: 'succeeded' }),
+            selected
+        ))?.pair).toBe(selected);
+    });
+
     it('returns undefined before ICE selects a pair', () => {
         expect(getSelectedCandidatePair(report(LOCAL, REMOTE, pair('CP1', { state: 'in-progress' }))))
             .toBeUndefined();

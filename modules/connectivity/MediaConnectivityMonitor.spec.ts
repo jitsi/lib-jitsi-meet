@@ -272,7 +272,7 @@ describe('MediaConnectivityMonitor', () => {
         ]);
     });
 
-    it('keeps failed when the PeerConnection fails before the connected stats are read', async () => {
+    it('reports interrupted when the PeerConnection fails before the connected stats are read', async () => {
         const monitor = createMonitor();
 
         monitor.onLocalCandidate(candidate('srflx'));
@@ -280,7 +280,9 @@ describe('MediaConnectivityMonitor', () => {
         monitor.onIceFailed();
         await nextTick();
 
-        expect(changes.map(c => c.status)).toEqual([ MediaConnectivityStatus.FAILED ]);
+        expect(changes.map(c => [ c.status, c.reasons ])).toEqual([
+            [ MediaConnectivityStatus.INTERRUPTED, [ MediaConnectivityReason.ICE_FAILED ] ]
+        ]);
     });
 
     it('reports interrupted when ICE disconnects or fails after connecting, until it reconnects', async () => {
