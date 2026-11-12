@@ -128,6 +128,13 @@ export enum RTCEvents {
     REMOTE_UFRAG_CHANGED = 'rtc.remote_ufrag_changed',
 
     /**
+     * Per-poll selected candidate pair emitted by the {@code StatsCollector} on each stats cycle. The payload is the
+     * source {@code TraceablePeerConnection} and the {@code ISelectedCandidatePairStats}, undefined until ICE selects
+     * a pair. Consumed by {@link MediaConnectivityMonitor} to follow the transport after ICE connects.
+     */
+    SELECTED_CANDIDATE_PAIR_STATS = 'rtc.selected_candidate_pair_stats',
+
+    /**
      * Indicates that sender constraints requested by the bridge for this endpoint have changed.
      */
     SENDER_VIDEO_CONSTRAINTS_CHANGED = 'rtc.sender_video_constraints_changed',
