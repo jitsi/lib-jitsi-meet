@@ -204,7 +204,11 @@ export default class JitsiConferenceEventManager {
                 track.setOwner(owner);
                 track.setSourceName(sourceName);
                 track._setVideoType(videoType);
-                owner && conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+                if (owner) {
+                    // An application may have stripped the track's listeners when it handled TRACK_REMOVED.
+                    conference.attachRemoteTrackRelays(track);
+                    conference.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+                }
             }
         });
 
@@ -403,6 +407,8 @@ export default class JitsiConferenceEventManager {
             JitsiConferenceEvents.POLL_RECEIVED);
         this.chatRoomForwarder.forward(XMPPEvents.POLLS_ANSWER_EVENT,
             JitsiConferenceEvents.POLL_ANSWER_RECEIVED);
+        this.chatRoomForwarder.forward(XMPPEvents.POLLS_CLOSE_EVENT,
+            JitsiConferenceEvents.POLL_CLOSED);
 
         chatRoom.addListener(
             XMPPEvents.REACTION_RECEIVED,

@@ -49,6 +49,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.SERVER_REGION_CHANGED ).toBe( 'conference.server_region_changed' );
         expect( JitsiConferenceEvents._MEDIA_SESSION_STARTED ).toBe( 'conference.media_session.started' );
         expect( JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED ).toBe( 'conference.media_session.active_changed' );
+        expect( JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED ).toBe( 'conference.mediaConnectivityChanged' );
         expect( JitsiConferenceEvents.MEMBERS_ONLY_CHANGED ).toBe( 'conference.membersOnlyChanged' );
         expect( JitsiConferenceEvents.MESSAGE_RECEIVED ).toBe( 'conference.messageReceived' );
         expect( JitsiConferenceEvents.NO_AUDIO_INPUT ).toBe( 'conference.no_audio_input' );
@@ -59,6 +60,7 @@ describe( "/JitsiConferenceEvents members", () => {
         expect( JitsiConferenceEvents.PARTICIPANT_PROPERTY_CHANGED ).toBe( 'conference.participant_property_changed' );
         expect( JitsiConferenceEvents.P2P_STATUS ).toBe( 'conference.p2pStatus' );
         expect( JitsiConferenceEvents.PHONE_NUMBER_CHANGED ).toBe( 'conference.phoneNumberChanged' );
+        expect( JitsiConferenceEvents.POLL_CLOSED ).toBe( 'conference.pollClosed' );
         expect( JitsiConferenceEvents.PROPERTIES_CHANGED ).toBe( 'conference.propertiesChanged' );
         expect( JitsiConferenceEvents.RECORDER_STATE_CHANGED ).toBe( 'conference.recorderStateChanged' );
         expect( JitsiConferenceEvents.VIDEO_SIP_GW_AVAILABILITY_CHANGED ).toBe( 'conference.videoSIPGWAvailabilityChanged' );

@@ -197,6 +197,11 @@ export enum XMPPEvents {
     LOCAL_ROLE_CHANGED = 'xmpp.localrole_changed',
 
     /**
+     * Designates an event indicating that the connectivity assessment of a media session changed.
+     */
+    MEDIA_CONNECTIVITY_CHANGED = 'xmpp.media_connectivity.changed',
+
+    /**
      * Event fired when the unique meeting id is set.
      */
     MEETING_ID_SET = 'xmpp.meeting_id_set',
@@ -308,6 +313,11 @@ export enum XMPPEvents {
      * Event fired when we receive an answer for a poll.
      */
     POLLS_ANSWER_EVENT = 'xmpp.polls.answer.event',
+
+    /**
+     * Event fired when a poll was closed, thus it does not take answers anymore.
+     */
+    POLLS_CLOSE_EVENT = 'xmpp.polls.close.event',
 
     /**
      * Event fired when we receive a message for polls.

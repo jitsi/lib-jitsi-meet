@@ -39,6 +39,7 @@ import { IceRestartReason } from './service/RTC/IceRestartReason';
 import { MediaType } from './service/RTC/MediaType';
 import { VideoType } from './service/RTC/VideoType';
 import { ConnectionQualityEvents } from './service/connectivity/ConnectionQualityEvents';
+import { MediaConnectivityReason, MediaConnectivityStatus } from './service/connectivity/MediaConnectivity';
 import { E2ePingEvents } from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import { COMMIT_HASH } from './version';
@@ -160,6 +161,8 @@ const JitsiMeetJS = {
      */
     constants: {
         iceRestartReason: IceRestartReason,
+        mediaConnectivityReason: MediaConnectivityReason,
+        mediaConnectivityStatus: MediaConnectivityStatus,
         recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
         trackStreamingStatus: TrackStreamingStatus,

@@ -84,6 +84,7 @@ import {
 import { TransportCost } from './service/RTC/TransportCost';
 import { VideoType } from './service/RTC/VideoType';
 import { MAX_CONNECTION_RETRIES } from './service/connectivity/Constants';
+import { IMediaConnectivity, MediaConnectivityStatus } from './service/connectivity/MediaConnectivity';
 import {
     AnalyticsEvents,
     createConferenceEvent,
@@ -124,6 +125,9 @@ export interface IConferenceOptions {
         enableNoisyMicDetection?: boolean;
         enableTalkWhileMuted?: boolean;
         hiddenDomain?: string;
+        mediaConnectivity?: {
+            checkingTimeout?: number;
+        };
         p2p?: {
             backToP2PDelay?: number;
             codecPreferenceOrder?: string[];
@@ -253,6 +257,7 @@ interface IUpgradeRoleError {
         password?: string;
     };
     message?: string;
+    reservationErrorCode?: string;
 }
 
 /**
@@ -311,6 +316,11 @@ export default class JitsiConference extends Listenable {
     private _signalingLayer: SignalingLayerImpl;
 
     /**
+     * Removes the listeners relaying a remote track's events to this conference, per track.
+     */
+    private _remoteTrackRelays = new WeakMap<JitsiRemoteTrack, () => void>();
+
+    /**
      * The default language remote audio is translated into for every speaker, or null when off.
      * Per-participant overrides in {@link _participantTranslationLanguages} take precedence over this.
      */
@@ -355,6 +365,7 @@ export default class JitsiConference extends Listenable {
     private _videoSenderLimitReached?: boolean;
     private _firefoxP2pEnabled: boolean;
     private _iceRestarts: number;
+    private _lastMediaConnectivity?: IMediaConnectivity;
     private _unsubscribers: Array<() => void>;
     private _xmpp: XMPP;
 
@@ -686,6 +697,9 @@ export default class JitsiConference extends Listenable {
 
         this._onP2PTerminationRequired = this._onP2PTerminationRequired.bind(this);
         this.room.addListener(XMPPEvents.P2P_TERMINATION_REQUIRED, this._onP2PTerminationRequired);
+
+        this._onMediaConnectivityChanged = this._onMediaConnectivityChanged.bind(this);
+        this.room.addListener(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, this._onMediaConnectivityChanged);
 
         this._updateProperties = this._updateProperties.bind(this);
         this.room.addListener(XMPPEvents.CONFERENCE_PROPERTIES_CHANGED, this._updateProperties);
@@ -1291,6 +1305,7 @@ export default class JitsiConference extends Listenable {
             this,
             this.p2p);
         this.eventEmitter.emit(JitsiConferenceEvents._MEDIA_SESSION_ACTIVE_CHANGED, this.getActiveMediaSession());
+        this._maybeEmitMediaConnectivity();
 
         // Refresh connection interrupted/restored
         this.eventEmitter.emit(
@@ -2033,6 +2048,45 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Emits {@link JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED} when the status or the reasons of the active
+     * media session, or the active session itself, differ from the last ones emitted.
+     *
+     * @returns {void}
+     */
+    private _maybeEmitMediaConnectivity(): void {
+        const connectivity = this.getActiveMediaSession()?.getMediaConnectivity();
+        const last = this._lastMediaConnectivity;
+
+        // Keep the last assessment while a new session (e.g. after a session restart) has none yet, and keep a
+        // failure or an interruption until a session connects rather than flapping with each restarted session's
+        // at-risk.
+        if (!connectivity
+                || (connectivity.status === last?.status
+                    && connectivity.p2p === last.p2p
+                    && isEqual(connectivity.reasons, last.reasons))
+                || ((last?.status === MediaConnectivityStatus.FAILED
+                        || last?.status === MediaConnectivityStatus.INTERRUPTED)
+                    && connectivity.status === MediaConnectivityStatus.AT_RISK)) {
+            return;
+        }
+
+        this._lastMediaConnectivity = connectivity;
+        this.eventEmitter.emit(JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED, connectivity);
+    }
+
+    /**
+     * Handles MEDIA_CONNECTIVITY_CHANGED, only the session carrying media is reported.
+     *
+     * @param {JingleSessionPC} session - The Jingle session.
+     * @returns {void}
+     */
+    private _onMediaConnectivityChanged(session: JingleSessionPC): void {
+        if (session === this.getActiveMediaSession()) {
+            this._maybeEmitMediaConnectivity();
+        }
+    }
+
+    /**
      * Handles P2P_TERMINATION_REQUIRED event. Fired when a source-remove is detected on a P2P connection, which
      * indicates that the browser has regenerated SSRCs for an existing source. The P2P session is stopped so the
      * call falls back to JVB.
@@ -2579,6 +2633,25 @@ export default class JitsiConference extends Listenable {
     }
 
     /**
+     * Checks whether the server advertised the given feature, see JitsiConnection.isServerFeatureSupported.
+     *
+     * @param {string} feature - The feature to check, e.g. 'http://jitsi.org/protocol/polls#single_answer'.
+     * @returns {boolean}
+     */
+    public isServerFeatureSupported(feature: string): boolean {
+        return Boolean(this.connection?.isServerFeatureSupported(feature));
+    }
+
+    /**
+     * Returns all the features the server advertised so far, see JitsiConnection.getServerFeatures.
+     *
+     * @returns {string[]}
+     */
+    public getServerFeatures(): string[] {
+        return this.connection?.getServerFeatures() ?? [];
+    }
+
+    /**
      * Checks whether an in-place ICE restart of the JVB session can be used: it must be enabled in the client
      * configuration ('enableIceRestart').
      *
@@ -2973,12 +3046,13 @@ export default class JitsiConference extends Listenable {
                                 resolve(undefined);
                             });
                     })
-                    .catch(({ error, message }) => {
+                    .catch(({ error, message, reservationErrorCode }) => {
                         xmpp.disconnect();
 
                         reject({
                             authenticationError: error,
-                            message
+                            message,
+                            reservationErrorCode
                         });
                     });
                 });
@@ -3119,6 +3193,7 @@ export default class JitsiConference extends Listenable {
 
         room.removeListener(XMPPEvents.MEETING_ID_SET, this._sendConferenceJoinAnalyticsEvent);
         room.removeListener(XMPPEvents.P2P_TERMINATION_REQUIRED, this._onP2PTerminationRequired);
+        room.removeListener(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, this._onMediaConnectivityChanged);
         room.removeListener(XMPPEvents.SESSION_ACCEPT, this._updateRoomPresence);
         room.removeListener(XMPPEvents.SOURCE_ADD, this._updateRoomPresence);
         room.removeListener(XMPPEvents.SOURCE_ADD_ERROR, this._removeLocalSourceOnReject);
@@ -4275,32 +4350,55 @@ export default class JitsiConference extends Listenable {
             logger.info(`Source signaling received before presence for ${id}`);
         }
 
-        const emitter = this.eventEmitter;
-        const sourceName = track.getSourceName();
-        const kind = this._signalingLayer.getSyntheticSourceKind(sourceName);
+        this.attachRemoteTrackRelays(track);
+        this.eventEmitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+    }
 
-        // The bridge-signaled kind wins; the name heuristic only covers bridges that do not send one.
-        const isTranslated = kind ? kind === 'translation' : isTranslatedSourceName(sourceName);
+    /**
+     * Attaches the listeners that relay a remote track's mute and audio-level events to this conference,
+     * replacing any attached before. With SSRC rewriting a track is reused for other sources, so the owner and
+     * whether the source is a translation are read when each event fires, not when the track was first added.
+     * Called again on every remap, which also restores the relays for an application that strips the track's
+     * listeners when it handles TRACK_REMOVED.
+     *
+     * @param {JitsiRemoteTrack} track - The remote track.
+     * @returns {void}
+     * @internal
+     */
+    attachRemoteTrackRelays(track: JitsiRemoteTrack): void {
+        this._remoteTrackRelays.get(track)?.();
+
+        const emitter = this.eventEmitter;
+        const isTranslated = (): boolean => {
+            const sourceName = track.getSourceName();
+            const kind = this._signalingLayer.getSyntheticSourceKind(sourceName);
+
+            // The bridge-signaled kind wins; the name heuristic only covers bridges that do not send one.
+            return kind ? kind === 'translation' : isTranslatedSourceName(sourceName);
+        };
 
         // Translated tracks have no mute lifecycle (presence/source-info is only signaled for the original
-        // sources), so skip the relay for them.
-        !isTranslated && track.addEventListener(
+        // sources), and their audio shares the participant id with the original source, so relaying their levels
+        // would clobber the original speaker's.
+        const cancelMute = track.addCancellableListener(
             JitsiTrackEvents.TRACK_MUTE_CHANGED,
-            () => emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
-        // Skip translated audio tracks. They share the participant id with the original source and would
-        // otherwise clobber the original speaker's levels on the conference-level event.
-        track.isAudioTrack() && !isTranslated && track.addEventListener(
-            JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
-            (audioLevel: number, tpc: TraceablePeerConnection) => {
-                const activeTPC = this.getActivePeerConnection();
+            () => !isTranslated() && emitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track));
+        const cancelAudioLevel = track.isAudioTrack()
+            ? track.addCancellableListener(
+                JitsiTrackEvents.TRACK_AUDIO_LEVEL_CHANGED,
+                (audioLevel: number, tpc: TraceablePeerConnection) => {
+                    const participantId = track.getParticipantId();
 
-                if (activeTPC === tpc) {
-                    emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, id, audioLevel);
-                }
-            }
-        );
+                    if (tpc === this.getActivePeerConnection() && participantId && !isTranslated()) {
+                        emitter.emit(JitsiConferenceEvents.TRACK_AUDIO_LEVEL_CHANGED, participantId, audioLevel);
+                    }
+                })
+            : undefined;
 
-        emitter.emit(JitsiConferenceEvents.TRACK_ADDED, track);
+        this._remoteTrackRelays.set(track, () => {
+            cancelMute();
+            cancelAudioLevel?.();
+        });
     }
 
 
@@ -4874,6 +4972,15 @@ export default class JitsiConference extends Listenable {
                 this.sendTextMessage(messageToSend, elementName, replyToId);
             }
         }
+    }
+
+    /**
+     * Returns the last assessment emitted with {@link JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED}.
+     *
+     * @returns {Optional<IMediaConnectivity>}
+     */
+    public getMediaConnectivity(): Optional<IMediaConnectivity> {
+        return this._lastMediaConnectivity;
     }
 
     /**

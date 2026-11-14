@@ -1,9 +1,19 @@
+import JitsiConference from '../../JitsiConference';
+import JitsiConferenceEventManager from '../../JitsiConferenceEventManager';
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
+import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import { MockRTC } from '../RTC/MockClasses';
 import SDP from '../sdp/SDP';
+import EventEmitter from '../util/EventEmitter';
 import Statistics from '../statistics/statistics';
+import { nextTick } from '../util/TestUtils';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
+import { VideoType } from '../../service/RTC/VideoType';
+import { MediaConnectivityReason, MediaConnectivityStatus } from '../../service/connectivity/MediaConnectivity';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -100,6 +110,31 @@ describe('JingleSessionPC', () => {
                     + '</content>'
                     + '</jingle>'
                     + '</iq>');
+            });
+        });
+        it('does not send content-modify again for unchanged recv frame sizes', () => {
+            const sendIQSpy = spyOn(connection, 'sendIQ').and.callThrough();
+            const constraints = (v1Height: number) => new Map([ [ '8d519815-v0', 180 ], [ '8d519815-v1', v1Height ] ]);
+
+            return new Promise((resolve, reject) => {
+                jingleSession.acceptOffer(
+                    offerIQ,
+                    resolve,
+                    reject,
+                    /* local tracks */ []);
+            }).then(() => {
+                expect(jingleSession.getState()).toBe(JingleSessionState.ACTIVE);
+                sendIQSpy.calls.reset();
+
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                expect(sendIQSpy.calls.count()).toBe(1);
+
+                jingleSession.setReceiverVideoConstraint(constraints(-1));
+                expect(sendIQSpy.calls.count()).toBe(2);
+                expect((sendIQSpy.calls.mostRecent().args[0] as any).toString()).toContain(
+                    '<source-frame-height maxHeight="-1" sourceName="8d519815-v1"');
             });
         });
         it('fires an event when remote peer sends content-modify', () => {
@@ -603,15 +638,19 @@ describe('JingleSessionPC', () => {
         });
 
         describe('an existing SSRC re-mapped to another source', () => {
-            const track = { getParticipantId: () => 'abcdef12', getSourceName: () => 'abcdef12-a0' };
             let muteChanges: Array<[ string, boolean ]>;
             let owners: string[];
+            let ownerSetSource: string;
+            const track = {
+                getParticipantId: () => 'abcdef12',
+                getSourceName: () => 'abcdef12-a0',
+                setMute: (muted: boolean) => muteChanges.push([ ownerSetSource, muted ])
+            };
 
             beforeEach(() => {
                 muteChanges = [];
                 owners = [];
                 session.peerconnection = {
-                    _sourceMutedChanged: (source: string, muted: boolean) => muteChanges.push([ source, muted ]),
                     addRemoteSsrc: () => false,
                     close: () => { /* no-op */ },
                     getRemoteSourceInfoBySourceName: () => undefined,
@@ -619,7 +658,10 @@ describe('JingleSessionPC', () => {
                 };
                 session.room = {
                     eventEmitter: {
-                        emit: (_event: string, _track: typeof track, owner: string) => owners.push(owner)
+                        emit: (_event: string, _track: typeof track, owner: string, source: string) => {
+                            owners.push(owner);
+                            ownerSetSource = source;
+                        }
                     }
                 };
             });
@@ -676,6 +718,113 @@ describe('JingleSessionPC', () => {
 
             expect(signalingLayer.getSyntheticSourceKind('agent-0dae1739-a0')).toBe('agent');
         });
+    });
+});
+
+describe('processSourceMap - mute state of a re-mapped SSRC', () => {
+    let session: JingleSessionPC;
+    let signalingLayer: SignalingLayerImpl;
+    let conference: JitsiConference;
+
+    function audioTrack(owner: string, sourceName: string, ssrc: number, muted: boolean): JitsiRemoteTrack {
+        return new JitsiRemoteTrack(
+            null, conference, owner, new MediaStream(),
+            jasmine.createSpyObj<MediaStreamTrack>('mediaTrack', [ 'addEventListener' ]),
+            MediaType.AUDIO, undefined, ssrc, muted, false, sourceName);
+    }
+
+    function useTracks(tracks: JitsiRemoteTrack[]): void {
+        Object.assign(session, {
+            peerconnection: {
+                _sourceMutedChanged: () => fail('the re-mapped track is known, no lookup by source name is needed'),
+                addRemoteSsrc: () => false,
+                getRemoteSourceInfoBySourceName: () => undefined,
+                getRemoteTracks: () => tracks,
+                getTrackBySSRC: (ssrc: number) => tracks.find(t => t.getSsrc() === ssrc)
+            }
+        });
+    }
+
+    beforeEach(() => {
+        const room = new EventEmitter();
+
+        spyOn(FeatureFlags, 'isSsrcRewritingSupported').and.returnValue(true);
+        signalingLayer = new SignalingLayerImpl();
+        const chatRoom = {
+            addListener: room.addListener.bind(room),
+            eventEmitter: room,
+            setParticipantPropertyListener: () => { /* no-op */ }
+        };
+
+        // The real prototypes with only the members processSourceMap and the TRACK_OWNER_SET handler use.
+        session = Object.assign(Object.create(JingleSessionPC.prototype), {
+            _signalingLayer: signalingLayer,
+            isP2P: false,
+            options: {},
+            room: chatRoom
+        });
+        conference = Object.assign(Object.create(JitsiConference.prototype), {
+            _remoteTrackRelays: new WeakMap(),
+            _signalingLayer: signalingLayer,
+            eventEmitter: new EventEmitter(),
+            getActivePeerConnection: () => undefined,
+            room: chatRoom
+        });
+        new JitsiConferenceEventManager(conference).setupChatRoomListeners();
+    });
+
+    [
+        { mediaType: MediaType.AUDIO, muted: false },
+        { mediaType: MediaType.AUDIO, muted: true },
+        { mediaType: MediaType.VIDEO, muted: false },
+        { mediaType: MediaType.VIDEO, muted: true }
+    ].forEach(({ mediaType, muted }) => {
+        it(`applies muted=${muted} to the new ${mediaType} owner and source`, () => {
+            const oldSource = `aaaaaaaa-${mediaType[0]}0`;
+            const newSource = `bbbbbbbb-${mediaType[0]}0`;
+            const videoType = mediaType === MediaType.VIDEO ? VideoType.DESKTOP : undefined;
+            const track = new JitsiRemoteTrack(
+                null, conference, 'aaaaaaaa', new MediaStream(),
+                jasmine.createSpyObj<MediaStreamTrack>('mediaTrack', [ 'addEventListener' ]),
+                mediaType, mediaType === MediaType.VIDEO ? VideoType.CAMERA : undefined,
+                1111, !muted, false, oldSource);
+            const muteChanged = jasmine.createSpy('muteChanged');
+
+            track.on(JitsiTrackEvents.TRACK_MUTE_CHANGED,
+                () => muteChanged(track.getParticipantId(), track.getSourceName(), track.isMuted(), track.getVideoType()));
+            useTracks([ track ]);
+            spyOn(signalingLayer, 'getPeerMediaInfo').and.returnValue({ muted, videoType });
+
+            session.processSourceMap({
+                mappedSources: [ { owner: 'bbbbbbbb', rtx: '-1', source: newSource, ssrc: 1111 } ]
+            }, mediaType);
+
+            expect(track.getParticipantId()).toBe('bbbbbbbb');
+            expect(track.getSourceName()).toBe(newSource);
+            expect(track.isMuted()).toBe(muted);
+            expect(track.getVideoType()).toBe(videoType);
+            expect(muteChanged.calls.allArgs()).toEqual([ [ 'bbbbbbbb', newSource, muted, videoType ] ]);
+        });
+    });
+
+    it('gives each track its new source\'s mute state when one source map swaps sources between them', () => {
+        const movedFrom = audioTrack('aaaaaaaa', 'aaaaaaaa-a0', 1111, false);
+        const movedTo = audioTrack('cccccccc', 'cccccccc-a0', 2222, true);
+
+        // movedTo comes first, so a lookup by source name would find it last when searching from the end.
+        useTracks([ movedTo, movedFrom ]);
+        spyOn(signalingLayer, 'getPeerMediaInfo').and.callFake(
+            (_owner: string, _type: MediaType, source: string) => ({ muted: source !== 'aaaaaaaa-a0' }));
+
+        session.processSourceMap({
+            mappedSources: [
+                { owner: 'aaaaaaaa', rtx: '-1', source: 'aaaaaaaa-a0', ssrc: 2222 },
+                { owner: 'dddddddd', rtx: '-1', source: 'dddddddd-a0', ssrc: 1111 }
+            ]
+        }, MediaType.AUDIO);
+
+        expect([ movedTo.getSourceName(), movedTo.isMuted() ]).toEqual([ 'aaaaaaaa-a0', false ]);
+        expect([ movedFrom.getSourceName(), movedFrom.isMuted() ]).toEqual([ 'dddddddd-a0', true ]);
     });
 });
 
@@ -1055,4 +1204,114 @@ describe('JingleSessionPC in-place ICE restart', () => {
         });
     });
 
+});
+
+describe('JingleSessionPC media connectivity', () => {
+    const HOST_CANDIDATE = {
+        candidate: 'candidate:1 1 udp 2122260223 10.0.0.1 54321 typ host generation 0',
+        protocol: 'udp',
+        type: 'host'
+    };
+    let room;
+    let rtc;
+    let pc;
+    let sendAnalytics;
+    let session: JingleSessionPC;
+
+    beforeEach(() => {
+        room = new MockChatRoom();
+        room.connectionTimes = {};
+        rtc = new MockRTC();
+        sendAnalytics = spyOn(Statistics, 'sendAnalytics');
+
+        // Another spec can leave SSRC rewriting on, which starts the audio wedge detector the mocks can't serve.
+        spyOn(FeatureFlags, 'isSsrcRewritingSupported').and.returnValue(false);
+        session = new JingleSessionPC('sid', 'peer1', 'focus', new MockStropheConnection(), { },
+            { iceServers: [ { urls: 'turn:turn.example.com:443' } ] }, false, false);
+        session.initialize(
+            room,
+            rtc,
+            // eslint-disable-next-line no-empty-function
+            { clearSyntheticSourceKinds: () => { }, setSSRCOwner: () => { }, removeSSRCOwners: () => { } },
+            { webrtcIceTcpDisable: true });
+        pc = session.peerconnection;
+    });
+
+    it('reports host-only gathering, skipping candidates of disabled protocols', () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.onicecandidateerror({ errorCode: 701, url: 'turn:turn.example.com:443' });
+        pc.onicecandidate({ candidate: { ...HOST_CANDIDATE, protocol: 'tcp', type: 'srflx' } });
+        pc.onicecandidate({ candidate: HOST_CANDIDATE });
+        pc.onicecandidate({ candidate: null });
+
+        const connectivity = session.getMediaConnectivity();
+
+        expect(connectivity).toEqual(jasmine.objectContaining({
+            candidates: { host: 1, prflx: 0, relay: 0, srflx: 0 },
+            iceServerErrors: [ { errorCode: 701, url: 'turn:turn.example.com:443' } ],
+            status: MediaConnectivityStatus.AT_RISK
+        }));
+        expect(emit).toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, connectivity);
+        expect(sendAnalytics).toHaveBeenCalledWith(AnalyticsEvents.MEDIA_CONNECTIVITY_CHANGED, jasmine.objectContaining({
+            'host_candidates': 1,
+            reasons: 'no-server-reflexive,turn-unreachable',
+            status: MediaConnectivityStatus.AT_RISK
+        }));
+    });
+
+    it('reports an ICE failure and disposes the monitor on close', () => {
+        pc.iceConnectionState = 'failed';
+        pc.oniceconnectionstatechange();
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.FAILED);
+
+        session.close();
+        expect(session.getMediaConnectivity()).toBeUndefined();
+    });
+
+    it('reports a PeerConnection failure that Chrome doesn\'t reflect in the ICE state', () => {
+        pc.iceConnectionState = 'disconnected';
+        pc.connectionState = 'failed';
+        pc.onconnectionstatechange();
+
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.FAILED);
+    });
+
+    it('reports an interruption when the bridge session is terminated while media flows', async () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        session.onTerminated('success', 'reinvite requested');
+
+        expect(emit).toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, jasmine.objectContaining({
+            reasons: [ MediaConnectivityReason.SESSION_ENDED ],
+            status: MediaConnectivityStatus.INTERRUPTED
+        }));
+        expect(session.getMediaConnectivity()).toBeUndefined();
+    });
+
+    it('follows the selected pair from its own peerconnection\'s stats poll until closed', async () => {
+        const tcpRelay = {
+            local: { candidateType: 'relay', id: 'L1', protocol: 'udp', relayProtocol: 'tls', type: 'local-candidate' },
+            pair: { id: 'CP1', type: 'candidate-pair' }
+        };
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.GOOD);
+
+        rtc.eventEmitter.emit(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, { }, tcpRelay);
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.GOOD);
+
+        rtc.eventEmitter.emit(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, pc, tcpRelay);
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.DEGRADED);
+
+        session.close();
+        expect(rtc.eventEmitter.listenerCount(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS)).toBe(0);
+    });
 });
