@@ -241,161 +241,129 @@ describe('E2EE Context', () => {
         });
 
         describe('ratcheting in decodeFunction', () => {
-            it('receiver catches up when sender ratchets 1 time ahead', done => {
+            /**
+             * Ratchets the base key `times` times and returns the resulting raw key material.
+             * Context.setKey expects raw key bytes (ArrayBuffer or Uint8Array) and imports and derives from
+             * them itself, so the tests must pass it the ArrayBuffer produced by ratchet() rather than an
+             * imported CryptoKey.
+             * @param {number} times - the number of ratchet iterations to apply (>= 1).
+             * @returns {Promise<ArrayBuffer>} the raw key material after `times` ratchets.
+             */
+            async function ratchetKeyMaterial(times: number): Promise<ArrayBuffer> {
+                let material = await importKey(key.buffer);
+
+                for (let i = 0; i < times - 1; i++) {
+                    material = await importKey(await ratchet(material));
+                }
+
+                return await ratchet(material);
+            }
+
+            it('receiver catches up when sender ratchets 1 time ahead', async () => {
+                const received = [];
+
                 receiveController = {
-                    enqueue: encodedFrame => {
-                        const data = new Uint8Array(encodedFrame.data);
-
-                        expect(data.byteLength).toEqual(audioBytes.length);
-                        expect(Array.from(data)).toEqual(audioBytes);
-                        done();
-                    }
+                    enqueue: encodedFrame => received.push(encodedFrame)
                 };
 
-                const encodeFunction = async () => {
-                    let material = await importKey(key.buffer);
+                await sender.setKey(await ratchetKeyMaterial(1), 0);
+                await sender.encodeFunction(makeAudioFrame(), sendController);
 
-                    material = await ratchet(material);
-                    await sender.setKey(material, 0);
-
-                    sender.encodeFunction(makeAudioFrame(), sendController);
-                };
-
-                encodeFunction();
+                expect(received.length).toEqual(1);
+                expect(Array.from(new Uint8Array(received[0].data))).toEqual(audioBytes);
             });
 
-            it('receiver catches up when sender ratchets 3 times ahead', done => {
+            it('receiver catches up when sender ratchets 3 times ahead', async () => {
+                const received = [];
+
                 receiveController = {
-                    enqueue: encodedFrame => {
-                        const data = new Uint8Array(encodedFrame.data);
-
-                        expect(data.byteLength).toEqual(audioBytes.length);
-                        expect(Array.from(data)).toEqual(audioBytes);
-                        done();
-                    }
+                    enqueue: encodedFrame => received.push(encodedFrame)
                 };
 
-                const encodeFunction = async () => {
-                    let material = await importKey(key.buffer);
+                await sender.setKey(await ratchetKeyMaterial(3), 0);
+                await sender.encodeFunction(makeAudioFrame(), sendController);
 
-                    for (let i = 0; i < 3; i++) {
-                        material = await importKey(await ratchet(material));
-                    }
-
-                    await sender.setKey(material, 0);
-                    sender.encodeFunction(makeAudioFrame(), sendController);
-                };
-
-                encodeFunction();
+                expect(received.length).toEqual(1);
+                expect(Array.from(new Uint8Array(received[0].data))).toEqual(audioBytes);
             });
 
-            it('receiver catches up at window boundary (8 ratchets)', done => {
+            it('receiver catches up at window boundary (8 ratchets)', async () => {
+                const received = [];
+
                 receiveController = {
-                    enqueue: encodedFrame => {
-                        const data = new Uint8Array(encodedFrame.data);
-
-                        expect(data.byteLength).toEqual(audioBytes.length);
-                        expect(Array.from(data)).toEqual(audioBytes);
-                        done();
-                    }
+                    enqueue: encodedFrame => received.push(encodedFrame)
                 };
 
-                const encodeFunction = async () => {
-                    let material = await importKey(key.buffer);
+                await sender.setKey(await ratchetKeyMaterial(8), 0);
+                await sender.encodeFunction(makeAudioFrame(), sendController);
 
-                    for (let i = 0; i < 8; i++) {
-                        material = await importKey(await ratchet(material));
-                    }
-
-                    await sender.setKey(material, 0);
-                    sender.encodeFunction(makeAudioFrame(), sendController);
-                };
-
-                encodeFunction();
+                expect(received.length).toEqual(1);
+                expect(Array.from(new Uint8Array(received[0].data))).toEqual(audioBytes);
             });
 
-            it('fails gracefully when sender exceeds ratchet window', done => {
+            it('fails gracefully when sender exceeds ratchet window', async () => {
+                const received = [];
+                let sent = 0;
+
                 receiveController = {
-                    enqueue: encodedFrame => {
-                        done.fail('Should not decrypt when beyond ratchet window');
+                    enqueue: encodedFrame => received.push(encodedFrame)
+                };
+
+                sendController = {
+                    enqueue: async encodedFrame => {
+                        sent++;
+
+                        // The frame must actually be encrypted: 30 bytes of JFrame trailer overhead
+                        // (16-byte auth tag + 12-byte IV + 1-byte IV length + 1-byte key index).
+                        expect(encodedFrame.data.byteLength).toBe(audioBytes.length + 30);
+
+                        await receiver.decodeFunction(encodedFrame, receiveController);
                     }
                 };
 
-                const encodeFunction = async () => {
-                    let material = await importKey(key.buffer);
+                await sender.setKey(await ratchetKeyMaterial(9), 0);
+                await sender.encodeFunction(makeAudioFrame(), sendController);
 
-                    for (let i = 0; i < 9; i++) {
-                        material = await importKey(await ratchet(material));
-                    }
-
-                    await sender.setKey(material, 0);
-                    sender.encodeFunction(makeAudioFrame(), sendController);
-
-                    setTimeout(() => {
-                        done();
-                    }, 100);
-                };
-
-                encodeFunction();
+                expect(sent).toEqual(1);
+                expect(received.length).toEqual(0);
             });
 
-            it('handles multiple frames with progressive ratcheting', done => {
+            it('handles multiple frames with progressive ratcheting', async () => {
                 const totalFrames = 3;
-                let framesProcessed = 0;
+                const received = [];
 
                 receiveController = {
-                    enqueue: encodedFrame => {
-                        const data = new Uint8Array(encodedFrame.data);
-
-                        expect(data.byteLength).toEqual(audioBytes.length);
-                        expect(Array.from(data)).toEqual(audioBytes);
-
-                        framesProcessed++;
-
-                        if (framesProcessed === totalFrames) {
-                            done();
-                        }
-                    }
+                    enqueue: encodedFrame => received.push(encodedFrame)
                 };
 
-                const encodeFunction = async () => {
-                    let material = await importKey(key.buffer);
+                for (let frameIndex = 1; frameIndex <= totalFrames; frameIndex++) {
+                    await sender.setKey(await ratchetKeyMaterial(frameIndex), 0);
+                    await sender.encodeFunction(makeAudioFrame(), sendController);
+                }
 
-                    for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
-                        material = await importKey(await ratchet(material));
-                        await sender.setKey(material, 0);
-                        sender.encodeFunction(makeAudioFrame(), sendController);
-                    }
-                };
-
-                encodeFunction();
+                expect(received.length).toEqual(totalFrames);
+                received.forEach(encodedFrame => {
+                    expect(Array.from(new Uint8Array(encodedFrame.data))).toEqual(audioBytes);
+                });
             });
 
-            it('decrypts immediately when keys already match', done => {
+            it('decrypts immediately when keys already match', async () => {
+                const received = [];
+
                 receiveController = {
-                    enqueue: encodedFrame => {
-                        const data = new Uint8Array(encodedFrame.data);
-
-                        expect(data.byteLength).toEqual(audioBytes.length);
-                        expect(Array.from(data)).toEqual(audioBytes);
-                        done();
-                    }
+                    enqueue: encodedFrame => received.push(encodedFrame)
                 };
 
-                const encodeFunction = async () => {
-                    let material = await importKey(key.buffer);
+                const raw = await ratchetKeyMaterial(5);
 
-                    for (let i = 0; i < 5; i++) {
-                        material = await importKey(await ratchet(material));
-                    }
+                // Both peers start from the same key, so the receiver decrypts on the first attempt
+                // without ratcheting (a ratchet only happens after a failed decryption).
+                await sender.setKey(raw, 0);
+                await receiver.setKey(raw, 0);
+                await sender.encodeFunction(makeAudioFrame(), sendController);
 
-                    await sender.setKey(material, 0);
-                    await receiver.setKey(material, 0);
-
-                    sender.encodeFunction(makeAudioFrame(), sendController);
-                };
-
-                encodeFunction();
+                expect(received.length).toEqual(1);
+                expect(Array.from(new Uint8Array(received[0].data))).toEqual(audioBytes);
             });
         });
     });
