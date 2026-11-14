@@ -181,8 +181,10 @@ export default class JitsiMediaDevices extends Listenable {
         return new Promise(resolve => {
             // Shortcut: first check if we already know the permission was
             // granted.
-            if (type in this._permissions) {
-                resolve(this._permissions[type]);
+            const types = type ? [ type ] : [ MediaType.AUDIO, MediaType.VIDEO ];
+
+            if (types.every(t => t in this._permissions)) {
+                resolve(types.every(t => this._permissions[t]));
 
                 return;
             }

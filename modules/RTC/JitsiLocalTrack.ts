@@ -97,6 +97,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     private _originalStream?: MediaStream;
     private _stopStreamInProgress: boolean;
     private _effectEnabled?: boolean;
+    private _effectStoppedByStopStream?: boolean;
     public metadata: ITrackMetadata;
     public rtcId: number;
     public sourceId?: string;
@@ -271,7 +272,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
                 // Mark track as ended for those browsers that do not support
                 // "readyState" property. We do not touch tracks created with
                 // default device ID "".
-                (typeof this.getTrack().readyState === 'undefined'
+                (typeof this._getDeviceTrack().readyState === 'undefined'
                     && typeof this._realDeviceId !== 'undefined'
                     && !devices.find(d => d.deviceId === this._realDeviceId))
 
@@ -517,6 +518,11 @@ export default class JitsiLocalTrack extends JitsiTrack {
                     this._setStream(streamInfo.stream);
                     this.track = streamInfo.track;
 
+                    // Drop the effect state left by stopStream() if the effect was removed while muted.
+                    this._effectEnabled = false;
+                    this._originalStream = null;
+                    this._effectStoppedByStopStream = false;
+
                     // This is not good when video type changes after
                     // unmute, but let's not crash here
                     if (this.videoType !== streamInfo.videoType) {
@@ -563,7 +569,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {void}
      */
     private _setRealDeviceIdFromDeviceList(devices: MediaDeviceInfo[]): void {
-        const track = this.getTrack();
+        const track = this._getDeviceTrack();
         const kind = `${track.kind}input`;
 
         // We need to match by deviceId as well, in case of multiple devices with the same label.
@@ -586,6 +592,18 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
+     * Returns the MediaStreamTrack captured from the device. While a stream effect is active, {@link #getTrack} returns
+     * the effect's output track, which has its own label and readyState and doesn't match any device. Without an
+     * active effect this is {@link #getTrack}.
+     *
+     * @private
+     * @returns {MediaStreamTrack}
+     */
+    private _getDeviceTrack(): MediaStreamTrack {
+        return (this._effectEnabled && this._originalStream?.getTracks()[0]) || this.getTrack();
+    }
+
+    /**
      * Starts the effect process and returns the modified stream.
      *
      * @param {Object} effect - Represents effect instance
@@ -598,6 +616,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._setStream(this._streamEffect.startEffect(this._originalStream));
         this.track = this.stream.getTracks()[0];
         this._effectEnabled = true;
+        this._effectStoppedByStopStream = false;
     }
 
     /**
@@ -607,13 +626,16 @@ export default class JitsiLocalTrack extends JitsiTrack {
      * @returns {void}
      */
     private _stopStreamEffect(): void {
-        // Guard on _effectEnabled so a repeat call (e.g. dispose after stopStream) can't swap in a null stream.
+        // Guard on _effectEnabled so a repeat call can't swap in a null stream.
         if (this._effectEnabled && this._streamEffect) {
-            this._streamEffect.stopEffect();
+            if (!this._effectStoppedByStopStream) {
+                this._streamEffect.stopEffect();
+            }
             this._setStream(this._originalStream);
             this._originalStream = null;
             this.track = this.stream ? this.stream.getTracks()[0] : null;
             this._effectEnabled = false;
+            this._effectStoppedByStopStream = false;
         }
     }
 
@@ -800,7 +822,8 @@ export default class JitsiLocalTrack extends JitsiTrack {
     }
 
     /**
-     * Returns if associated MediaStreamTrack is in the 'ended' state
+     * Returns whether the MediaStreamTrack captured from the device is in the 'ended' state or its device was found
+     * to be removed. While a stream effect is active this checks the device track, not the effect's output.
      *
      * @returns {boolean}
      */
@@ -811,7 +834,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
             return this._trackEnded;
         }
 
-        return this.getTrack().readyState === 'ended' || this._trackEnded;
+        return this._getDeviceTrack().readyState === 'ended' || this._trackEnded;
     }
 
     /**
@@ -868,7 +891,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // muted that means that we aren't receiving any data from the source. We want to notify the users for error if
         // the stream is muted or ended on it's creation.
 
-        // For video blur enabled use the original video stream
+        // While a stream effect is active, check the stream captured from the device, not the effect's output.
         const stream = this._effectEnabled ? this._originalStream : this.stream;
 
         return stream.getTracks().some(track =>
@@ -1029,9 +1052,15 @@ export default class JitsiLocalTrack extends JitsiTrack {
         this._stopStreamInProgress = true;
 
         try {
-            // Stop the effect first so its pipeline isn't left running against a dead stream; this also
-            // releases the original device stream rather than only the effect's output stream.
-            this._stopStreamEffect();
+            // Keep the effect output as this.track: the senders hold it.
+            if (this._effectEnabled && this._streamEffect && !this._effectStoppedByStopStream) {
+                this._streamEffect.stopEffect();
+                this._effectStoppedByStopStream = true;
+                RTCUtils.stopMediaStream(this._originalStream);
+
+                // The device stream already reports LOCAL_TRACK_STOPPED.
+                this.stream.oninactive = undefined;
+            }
             RTCUtils.stopMediaStream(this.stream);
         } finally {
             this._stopStreamInProgress = false;

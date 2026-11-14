@@ -57,6 +57,16 @@ export enum JitsiConnectionEvents {
      * @param properties {object} - All available connection properties (e.g. shard, region).
      */
     PROPERTIES_UPDATED = 'connection.propertiesUpdated',
+
+    /**
+     * Indicates that features the server advertises have been received. Within a connection the list only grows, it
+     * is emitted empty when a new connection starts. Without jiconop the features arrive with the reply to a disco#info
+     * query sent after CONNECTION_ESTABLISHED, so a UI that checks a feature should listen for this event rather than
+     * read the features once on connect; JitsiConnection.getServerFeatures gives the list received so far.
+     * @param features {string[]} - All the features the server advertised so far, see
+     * JitsiConnection.isServerFeatureSupported.
+     */
+    SERVER_FEATURES_UPDATED = 'connection.serverFeaturesUpdated',
 }
 
 // exported for backward compatibility
@@ -67,3 +77,4 @@ export const CONNECTION_REDIRECTED = JitsiConnectionEvents.CONNECTION_REDIRECTED
 export const CONNECTION_TOKEN_EXPIRED = JitsiConnectionEvents.CONNECTION_TOKEN_EXPIRED;
 export const DISPLAY_NAME_REQUIRED = JitsiConnectionEvents.DISPLAY_NAME_REQUIRED;
 export const PROPERTIES_UPDATED = JitsiConnectionEvents.PROPERTIES_UPDATED;
+export const SERVER_FEATURES_UPDATED = JitsiConnectionEvents.SERVER_FEATURES_UPDATED;

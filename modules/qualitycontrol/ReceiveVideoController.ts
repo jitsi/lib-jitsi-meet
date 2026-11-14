@@ -1,5 +1,5 @@
 import { getLogger } from '@jitsi/logger';
-import { isEqual } from 'lodash-es';
+import { cloneDeep, isEqual } from 'lodash-es';
 
 import JitsiConference from '../../JitsiConference';
 import { MediaType } from '../../service/RTC/MediaType';
@@ -236,15 +236,23 @@ export default class ReceiveVideoController {
             return;
         }
 
-        const constraintsChanged = !isEqual(this._receiverVideoConstraints, constraints);
+        const lastN = typeof constraints.lastN !== 'undefined' && !this._lastNLimitedByCpu
+            ? constraints.lastN : this._lastN;
+
+        // Compare and keep a copy that carries the lastN in effect. The stored constraints always carry lastN, so
+        // without it constraints that leave lastN out (the app has not picked one yet) would never compare equal, and
+        // every call would send a 'content-modify' to the p2p peer.
+        const newConstraints: IReceiverVideoConstraints = {
+            ...cloneDeep(constraints),
+            lastN
+        };
+        const constraintsChanged = !isEqual(this._receiverVideoConstraints, newConstraints);
 
         if (constraintsChanged || this._lastNLimitedByCpu || this._receiveResolutionLimitedByCpu) {
-            this._receiverVideoConstraints = constraints;
+            this._receiverVideoConstraints = newConstraints;
 
             this._assumedBandwidthBps = constraints.assumedBandwidthBps ?? this._assumedBandwidthBps;
-            this._lastN = typeof constraints.lastN !== 'undefined' && !this._lastNLimitedByCpu
-                ? constraints.lastN : this._lastN;
-            this._receiverVideoConstraints.lastN = this._lastN;
+            this._lastN = lastN;
             this._receiveResolutionLimitedByCpu && this._updateIndividualConstraints();
 
             // Send the constraints on the bridge channel.

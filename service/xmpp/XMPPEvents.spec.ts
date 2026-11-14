@@ -43,6 +43,7 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.GRACEFUL_SHUTDOWN ).toBe( 'xmpp.graceful_shutdown' );
         expect( XMPPEvents.KICKED ).toBe( 'xmpp.kicked' );
         expect( XMPPEvents.LOCAL_ROLE_CHANGED ).toBe( 'xmpp.localrole_changed' );
+        expect( XMPPEvents.MEDIA_CONNECTIVITY_CHANGED ).toBe( 'xmpp.media_connectivity.changed' );
         expect( XMPPEvents.MEETING_ID_SET ).toBe( 'xmpp.meeting_id_set' );
         expect( XMPPEvents.MESSAGE_RECEIVED ).toBe( 'xmpp.message_received' );
         expect( XMPPEvents.INVITE_MESSAGE_RECEIVED ).toBe( 'xmpp.invite_message_received' );
@@ -68,6 +69,7 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.PARTICIPANT_FEATURES_CHANGED ).toBe( 'xmpp.participant_features_changed' );
         expect( XMPPEvents.PASSWORD_REQUIRED ).toBe( 'xmpp.password_required' );
         expect( XMPPEvents.PHONE_NUMBER_CHANGED ).toBe( 'conference.phoneNumberChanged' );
+        expect( XMPPEvents.POLLS_CLOSE_EVENT ).toBe( 'xmpp.polls.close.event' );
         expect( XMPPEvents.PRESENCE_RECEIVED ).toBe( 'xmpp.presence_received' );
         expect( XMPPEvents.PRESENCE_STATUS ).toBe( 'xmpp.presence_status' );
         expect( XMPPEvents.PROMPT_FOR_LOGIN ).toBe( 'xmpp.prompt_for_login' );

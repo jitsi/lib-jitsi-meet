@@ -2,6 +2,7 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq } from 'strophe.js';
 
+import { JitsiConferenceErrors } from '../../JitsiConferenceErrors';
 import { CONFERENCE_REQUEST_FAILED, NOT_LIVE_ERROR, TIME_LIMIT_ERROR } from '../../JitsiConnectionErrors';
 import { CONNECTION_FAILED, CONNECTION_REDIRECTED } from '../../JitsiConnectionEvents';
 import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
@@ -48,6 +49,28 @@ function createExpBackoffTimer(step) {
         count += 1;
 
         return Math.min(timeout * step, maxTimeout);
+    };
+}
+
+/**
+ * Extracts the reservation system error carried by a conference IQ error, if any.
+ *
+ * @param {Element|null} errorIq - The error IQ received in response to a conference request.
+ * @returns {{code: string|undefined, message: string|undefined}|undefined} The error code and message, or
+ * undefined when the IQ does not carry a reservation error.
+ */
+function parseReservationError(errorIq) {
+    const reservationErr = findFirst(errorIq, ':scope>error>reservation-error');
+
+    if (!reservationErr) {
+        return undefined;
+    }
+
+    const errorTextNode = findFirst(errorIq, ':scope>error>text');
+
+    return {
+        code: getAttribute(reservationErr, 'error-code') ?? undefined,
+        message: errorTextNode ? getText(errorTextNode) : undefined
     };
 }
 
@@ -549,23 +572,13 @@ export default class Moderator extends Listenable {
         });
 
         // The reservation system only works over XMPP. Handle the error separately.
-        // Check for error returned by the reservation system
-        // Convert Strophe object to DOM element for XMLUtils functions
-        const reservationErr = findFirst(error, ':scope>error>reservation-error');
+        const reservationError = parseReservationError(error);
 
-        if (reservationErr) {
-            // Trigger error event
-            const errorCode = getAttribute(reservationErr, 'error-code');
-            const errorTextNode = findFirst(error, ':scope>error>text');
-            let errorMsg;
-
-            if (errorTextNode) {
-                errorMsg = getText(errorTextNode);
-            }
+        if (reservationError) {
             this.eventEmitter.emit(
                 XMPPEvents.RESERVATION_ERROR,
-                errorCode,
-                errorMsg);
+                reservationError.code,
+                reservationError.message);
 
             errorCallback();
 
@@ -637,12 +650,24 @@ export default class Moderator extends Listenable {
                         userJid: this.connection.jid
                     });
 
-                    const errorEl = findFirst(errorIq, ':scope>iq>error');
+                    const reservationError = parseReservationError(errorIq);
+
+                    if (reservationError) {
+                        reject({
+                            error: JitsiConferenceErrors.RESERVATION_ERROR,
+                            message: reservationError.message,
+                            reservationErrorCode: reservationError.code
+                        });
+
+                        return;
+                    }
+
+                    const errorEl = findFirst(errorIq, ':scope>error');
                     const firstErrorChild = errorEl?.children?.length > 0 ? errorEl.children[0] : undefined;
 
                     reject({
                         error: firstErrorChild?.tagName,
-                        message: getText(findFirst(errorIq, ':scope>iq>error>text'))
+                        message: getText(findFirst(errorIq, ':scope>error>text'))
                     });
                 }
             );
