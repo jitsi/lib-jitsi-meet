@@ -216,6 +216,64 @@ describe('E2EE Context', () => {
 
             sender.encodeFunction(makeVideoFrame(), sendController);
         });
+        it('encrypts multiple sequential frames with unique IVs', done => {
+            const totalFrames = 5;
+            let framesProcessed = 0;
+            const decryptedFrames = [];
+
+            receiveController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    expect(data.byteLength).toEqual(audioBytes.length);
+                    expect(Array.from(data)).toEqual(audioBytes);
+
+                    decryptedFrames.push(encodedFrame);
+                    framesProcessed++;
+
+                    if (framesProcessed === totalFrames) {
+                        done();
+                    }
+                }
+            };
+
+            for (let i = 0; i < totalFrames; i++) {
+                sender.encodeFunction(makeAudioFrame(), sendController);
+            }
+        });
+
+        it('maintains separate sendCounts for different SSRCs', done => {
+            const totalFrames = 4;
+            let framesProcessed = 0;
+
+            receiveController = {
+                enqueue: encodedFrame => {
+                    const data = new Uint8Array(encodedFrame.data);
+
+                    const isAudio = data.byteLength === audioBytes.length;
+                    const isVideo = data.byteLength === videoBytes.length;
+
+                    expect(isAudio || isVideo).toBe(true);
+
+                    if (isAudio) {
+                        expect(Array.from(data)).toEqual(audioBytes);
+                    } else {
+                        expect(Array.from(data)).toEqual(videoBytes);
+                    }
+
+                    framesProcessed++;
+
+                    if (framesProcessed === totalFrames) {
+                        done();
+                    }
+                }
+            };
+
+            sender.encodeFunction(makeAudioFrame(), sendController);
+            sender.encodeFunction(makeVideoFrame(), sendController);
+            sender.encodeFunction(makeAudioFrame(), sendController);
+            sender.encodeFunction(makeVideoFrame(), sendController);
+        });
 
         it('the receiver ratchets forward', done => {
             receiveController = {
@@ -227,7 +285,6 @@ describe('E2EE Context', () => {
                     done();
                 }
             };
-
             const encodeFunction = async () => {
                 // Ratchet the key. We reimport from the raw bytes.
                 const material = await importKey(key.buffer);
