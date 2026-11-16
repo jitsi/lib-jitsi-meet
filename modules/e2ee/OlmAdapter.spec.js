@@ -477,5 +477,42 @@ describe('OlmAdapter key authentication', () => {
 
             await enabledAgain;
         });
+
+        it('keeps a pending session-init when an older session-init times out', async () => {
+            const ctx = connect('alice', 'bob');
+            const a = ctx.state.adapterA;
+            const b = ctx.state.adapterB;
+
+            await a._init;
+            await b._init;
+
+            jasmine.clock().install();
+
+            // The peer enables E2EE and we send a session-init, but its ack never arrives.
+            const lostAck = holdMessages(ctx.confB, 'session-ack');
+            const enabled = a._onParticipantPropertyChanged(ctx.participantBinA, 'e2ee.enabled', false, true);
+
+            await lostAck;
+
+            // The peer disables E2EE and enables it again before that session-init times out.
+            a.clearParticipantSession(ctx.participantBinA);
+            b.clearParticipantSession(ctx.participantAinB);
+            jasmine.clock().tick(REQ_TIMEOUT - 1000);
+
+            const heldAck = holdMessages(ctx.confB, 'session-ack');
+            const enabledAgain = a._onParticipantPropertyChanged(ctx.participantBinA, 'e2ee.enabled', false, true);
+            const ack = await heldAck;
+
+            // The first session-init times out while the new one still waits for its ack.
+            jasmine.clock().tick(1000);
+            await enabled;
+
+            await a._onEndpointMessageReceived(ctx.participantBinA, clone(ack));
+
+            expect(a._getParticipantOlmData(ctx.participantBinA).session).toBeTruthy();
+            expect(ctx.sentByA.some(m => m.olm.type === 'error')).toBe(false);
+
+            await enabledAgain;
+        });
     });
 });
