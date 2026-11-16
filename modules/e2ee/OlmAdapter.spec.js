@@ -292,6 +292,56 @@ describe('OlmAdapter key authentication', () => {
         });
     });
 
+    describe('Key distribution', () => {
+        const keyInfosSentBy = sent => sent.filter(m => m.olm?.type === 'key-info');
+
+        it('sends the key once to a peer that enables E2EE while the sessions are being set up', async () => {
+            const ctx = connect('alice', 'bob');
+            const a = ctx.state.adapterA;
+            const b = ctx.state.adapterB;
+            const key = new Uint8Array(32).fill(7);
+
+            await a._init;
+            await b._init;
+
+            // Same sequence as ManagedKeyHandler._setEnabled.
+            const enabled = a.initSessions().then(() => a.updateKey(key));
+
+            // The peer turns E2EE on as a reaction to our presence, before our sessions are ready.
+            ctx.confB.setLocalParticipantProperty('e2ee.enabled', true);
+
+            await enabled;
+
+            // Let the presence handler, which waits for the session setup, run to completion.
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            expect(keyInfosSentBy(ctx.sentByA).length).toBe(1);
+            expect(b._getParticipantOlmData(ctx.participantAinB).lastKey).toEqual(key);
+        });
+
+        it('sends the key to a peer that enables E2EE when there is no session with it yet', async () => {
+            const ctx = connect('alice', 'bob');
+            const a = ctx.state.adapterA;
+            const b = ctx.state.adapterB;
+            const key = new Uint8Array(32).fill(7);
+
+            await a._init;
+            await b._init;
+
+            // We already have a key, the peer was not part of its distribution.
+            a.updateCurrentMediaKey(key);
+
+            const keyReceived = new Promise(resolve => {
+                b.addListener(OlmAdapter.events.PARTICIPANT_KEY_UPDATED, (id, receivedKey) => resolve(receivedKey));
+            });
+
+            ctx.confB.setLocalParticipantProperty('e2ee.enabled', true);
+
+            expect(await keyReceived).toEqual(key);
+            expect(keyInfosSentBy(ctx.sentByA).length).toBe(1);
+        });
+    });
+
     describe('SAS verification', () => {
         it('completes on both sides and the SAS MAC covers the curve25519 key', async () => {
             const ctx = connect('alice', 'bob');

@@ -1065,7 +1065,7 @@ export class OlmAdapter extends Listenable {
                 const participantFeatures = await participant.getFeatures();
 
                 if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participantId) {
-                    let sessionEstablished = false;
+                    let sessionCreated = false;
 
                     try {
                         // eslint-disable-next-line max-depth
@@ -1073,19 +1073,20 @@ export class OlmAdapter extends Listenable {
                             await this._sessionInitialization;
                         }
                         await this._sendSessionInit(participant);
-                        sessionEstablished = true;
+                        sessionCreated = true;
                     } catch (error) {
-                        // Handle specific error cases
+                        // An existing or a pending session is expected here, anything else is a failure.
                         // eslint-disable-next-line max-depth
-                        if (error.message === E2EEErrors.E2EE_OLM_SESSION_ALREADY_EXISTS) {
-                            sessionEstablished = true;
-                        } else if (error.message !== E2EEErrors.E2EE_OLM_SESSION_INIT_PENDING) {
+                        if (error.message !== E2EEErrors.E2EE_OLM_SESSION_ALREADY_EXISTS
+                                && error.message !== E2EEErrors.E2EE_OLM_SESSION_INIT_PENDING) {
                             logger.error(`Failed to establish Olm session with ${participantId}:`, error);
                         }
                     }
 
-                    // Only proceed with KEY_INFO if session is ready
-                    if (!sessionEstablished) {
+                    // The session-init does not carry our key, so send it only for a session created here.
+                    // A session that already existed was set up by initSessions() and gets the key from
+                    // updateKey(), sending it again here would double the key-info traffic in the conference.
+                    if (!sessionCreated) {
                         return;
                     }
 
