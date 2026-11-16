@@ -8,6 +8,7 @@ const FEATURE_E2EE = 'https://jitsi.org/meet/e2ee';
 const JITSI_MEET_MUC_TYPE = 'type';
 const OLM_MESSAGE_TYPE = 'olm';
 const PARTICIPANT_PROPERTY_CHANGED = 'conference.participant_property_changed';
+const REQ_TIMEOUT = 5 * 1000;
 
 /**
  * Deep-clones a JSON-serializable value, emulating what a real transport does to a message.
@@ -230,6 +231,27 @@ async function runSasVerification(ctx) {
     };
 }
 
+/**
+ * Makes a fake conference keep the messages of the given type instead of delivering them.
+ *
+ * @param {object} conf - The fake conference whose outgoing messages are filtered.
+ * @param {string} type - The olm message type to keep.
+ * @returns {Promise<object>} - Resolved with the first message that was kept.
+ */
+function holdMessages(conf, type) {
+    const deliver = conf.sendMessage;
+
+    return new Promise(resolve => {
+        conf.sendMessage = data => {
+            if (data.olm.type === type) {
+                resolve(data);
+            } else {
+                deliver(data);
+            }
+        };
+    });
+}
+
 describe('OlmAdapter key authentication', () => {
     beforeAll(async () => {
         await olm.init();
@@ -333,6 +355,77 @@ describe('OlmAdapter key authentication', () => {
             const { bSuccess } = await runSasVerification(ctx);
 
             expect(bSuccess).toBe(false);
+        });
+    });
+
+    describe('Request timeouts', () => {
+        afterEach(() => {
+            jasmine.clock().uninstall();
+        });
+
+        it('handles a key-info-ack that arrives after the request timed out', async () => {
+            const ctx = connect('alice', 'bob');
+            const a = ctx.state.adapterA;
+            const b = ctx.state.adapterB;
+            const keyOfB = new Uint8Array(32).fill(9);
+
+            await establishSessions(ctx);
+            b.updateCurrentMediaKey(keyOfB);
+
+            const onKeyUpdated = jasmine.createSpy('onKeyUpdated');
+
+            a.addListener(OlmAdapter.events.PARTICIPANT_KEY_UPDATED, onKeyUpdated);
+
+            jasmine.clock().install();
+
+            const lateAck = holdMessages(ctx.confB, 'key-info-ack');
+            const updated = a.updateKey(new Uint8Array(32).fill(7));
+            const ack = await lateAck;
+
+            jasmine.clock().tick(REQ_TIMEOUT);
+            await updated;
+
+            await expectAsync(a._onEndpointMessageReceived(ctx.participantBinA, clone(ack))).toBeResolved();
+
+            // The key that came with the ack is still applied.
+            expect(onKeyUpdated).toHaveBeenCalledOnceWith('bob', keyOfB, jasmine.any(Number));
+        });
+
+        it('keeps a pending session-init when an older key-info times out', async () => {
+            const ctx = connect('alice', 'bob');
+            const a = ctx.state.adapterA;
+            const b = ctx.state.adapterB;
+
+            await a._init;
+            await b._init;
+            a.updateCurrentMediaKey(new Uint8Array(32).fill(7));
+
+            jasmine.clock().install();
+
+            // The peer enables E2EE: a session is created and our key is sent, but its ack never arrives.
+            holdMessages(ctx.confB, 'key-info-ack');
+            await a._onParticipantPropertyChanged(ctx.participantBinA, 'e2ee.enabled', false, true);
+
+            expect(a._reqs.size).toBe(1);
+
+            // The peer disables E2EE and enables it again before the key-info request times out.
+            a.clearParticipantSession(ctx.participantBinA);
+            b.clearParticipantSession(ctx.participantAinB);
+            jasmine.clock().tick(REQ_TIMEOUT - 1000);
+
+            const heldAck = holdMessages(ctx.confB, 'session-ack');
+            const enabledAgain = a._onParticipantPropertyChanged(ctx.participantBinA, 'e2ee.enabled', false, true);
+            const ack = await heldAck;
+
+            // The key-info request times out while the new session-init still waits for its ack.
+            jasmine.clock().tick(1000);
+
+            await a._onEndpointMessageReceived(ctx.participantBinA, clone(ack));
+
+            expect(a._getParticipantOlmData(ctx.participantBinA).session).toBeTruthy();
+            expect(ctx.sentByA.some(m => m.olm.type === 'error')).toBe(false);
+
+            await enabledAgain;
         });
     });
 });
