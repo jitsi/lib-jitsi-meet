@@ -1083,9 +1083,7 @@ export class OlmAdapter extends Listenable {
                         }
                     }
 
-                    // The session-init does not carry our key, so send it only for a session created here.
-                    // A session that already existed was set up by initSessions() and gets the key from
-                    // updateKey(), sending it again here would double the key-info traffic in the conference.
+                    // An existing session already got our key from updateKey(); session-init carries none.
                     if (!sessionCreated) {
                         return;
                     }
