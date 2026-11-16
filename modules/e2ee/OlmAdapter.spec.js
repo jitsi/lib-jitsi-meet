@@ -390,6 +390,7 @@ describe('OlmAdapter key authentication', () => {
 
     describe('Key distribution', () => {
         const keyInfosSentBy = sent => sent.filter(m => m.olm?.type === 'key-info');
+        const typesSentBy = sent => sent.map(m => m.olm?.type);
 
         it('sends the key once to a peer that enables E2EE while the sessions are being set up', async () => {
             const ctx = connect('alice', 'bob');
@@ -401,7 +402,9 @@ describe('OlmAdapter key authentication', () => {
             await b._init;
 
             // Same sequence as ManagedKeyHandler._setEnabled.
-            const enabled = a.initSessions().then(() => a.updateKey(key));
+            a.setKey(key);
+
+            const enabled = a.initSessions().then(() => a.sendKey());
 
             // The peer turns E2EE on as a reaction to our presence, before our sessions are ready.
             ctx.confB.setLocalParticipantProperty('e2ee.enabled', true);
@@ -435,6 +438,82 @@ describe('OlmAdapter key authentication', () => {
 
             expect(await keyReceived).toEqual(key);
             expect(keyInfosSentBy(ctx.sentByA).length).toBe(1);
+        });
+
+        it('delivers the keys of a pair that enables E2EE together during the session setup', async () => {
+            const ctx = connectKeyHandlers('alice', 'bob');
+            const { handlerA, handlerB } = ctx;
+
+            await Promise.all([ handlerA.setEnabled(true), handlerB.setEnabled(true) ]);
+
+            // The responder's key travels in the session-ack, so it sends no key-info.
+            expect(typesSentBy(ctx.sentByA)).toEqual([ 'session-init', 'key-info' ]);
+            expect(typesSentBy(ctx.sentByB)).toEqual([ 'session-ack', 'key-info-ack' ]);
+
+            // Each side has the key of the other, under the index its owner uses.
+            expect(lastKeySet(handlerB, 'alice')).toEqual(lastKeySet(handlerA, 'alice'));
+            expect(lastKeySet(handlerA, 'bob')).toEqual(lastKeySet(handlerB, 'bob'));
+            expect(lastKeySet(handlerA, 'alice').key).toEqual(handlerA._key);
+            expect(lastKeySet(handlerB, 'bob').key).toEqual(handlerB._key);
+        });
+
+        it('delivers the keys when the peer enables E2EE as a reaction to our presence', async () => {
+            const ctx = connectKeyHandlers('alice', 'bob');
+            const { handlerA, handlerB } = ctx;
+            let followed;
+
+            // The peer follows our state as soon as it sees it, like the application does.
+            ctx.confB.on(PARTICIPANT_PROPERTY_CHANGED, (participant, name, oldValue, newValue) => {
+                if (name === 'e2ee.enabled') {
+                    followed = handlerB.setEnabled(newValue);
+                }
+            });
+
+            await handlerA.setEnabled(true);
+            await followed;
+
+            expect(typesSentBy(ctx.sentByA)).toEqual([ 'session-init', 'key-info' ]);
+            expect(typesSentBy(ctx.sentByB)).toEqual([ 'session-ack', 'key-info-ack' ]);
+            expect(lastKeySet(handlerB, 'alice').key).toEqual(handlerA._key);
+            expect(lastKeySet(handlerA, 'bob').key).toEqual(handlerB._key);
+        });
+
+        it('does not send the key again to a peer that already has it', async () => {
+            const ctx = connect('alice', 'bob');
+            const a = ctx.state.adapterA;
+            const b = ctx.state.adapterB;
+            const keyA = new Uint8Array(32).fill(7);
+            const keyB = new Uint8Array(32).fill(8);
+
+            await a._init;
+            await b._init;
+
+            a.setKey(keyA);
+            b.setKey(keyB);
+
+            await a.initSessions();
+            await Promise.all([ a.sendKey(), b.sendKey() ]);
+
+            // The session-ack delivered the responder's key, a key-info the key of the initiator.
+            expect(keyInfosSentBy(ctx.sentByA).length).toBe(1);
+            expect(keyInfosSentBy(ctx.sentByB).length).toBe(0);
+            expect(a._getParticipantOlmData(ctx.participantBinA).lastKey).toEqual(keyB);
+            expect(b._getParticipantOlmData(ctx.participantAinB).lastKey).toEqual(keyA);
+
+            // Neither a second distribution nor the presence of the peer sends it again.
+            await a.sendKey();
+            ctx.confB.setLocalParticipantProperty('e2ee.enabled', true);
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            expect(keyInfosSentBy(ctx.sentByA).length).toBe(1);
+
+            // A new key is sent.
+            const newKeyA = new Uint8Array(32).fill(9);
+
+            await a.updateKey(newKeyA);
+
+            expect(keyInfosSentBy(ctx.sentByA).length).toBe(2);
+            expect(b._getParticipantOlmData(ctx.participantAinB).lastKey).toEqual(newKeyA);
         });
 
         it('sends nothing when E2EE is turned off and a peer that keeps it on drops the key', async () => {

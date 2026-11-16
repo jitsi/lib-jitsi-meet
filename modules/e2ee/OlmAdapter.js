@@ -61,6 +61,8 @@ const OlmAdapterEvents = {
  *                 the sender's key information, if available.
  * - error: Indicates a request processing error has occurred.
  *
+ * A key is sent to a participant once, in the first of these messages that goes to it.
+ *
  * These requessts and responses are transport independent. Currently they are sent using XMPP
  * MUC private messages.
  */
@@ -176,13 +178,22 @@ export class OlmAdapter extends Listenable {
      * by sending a key-info message.
      *
      * @param {Uint8Array|boolean} key - The new key.
-     * @retrns {Promise<Number>}
+     * @returns {Promise<Number>}
      */
-    async updateKey(key) {
+    updateKey(key) {
         // Store it locally for new sessions.
         this.setKey(key);
 
-        // Broadcast it.
+        return this.sendKey();
+    }
+
+    /**
+     * Sends the current key, in a key-info message, to every participant that has a session and has not
+     * received this key yet, and waits for them to acknowledge it.
+     *
+     * @returns {Promise<Number>} - The index of the current key.
+     */
+    async sendKey() {
         const promises = [];
 
         for (const participant of this._conf.getParticipants()) {
@@ -197,27 +208,9 @@ export class OlmAdapter extends Listenable {
                 continue;
             }
 
-            const uuid = uuidv4();
-            const data = {
-                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
-                olm: {
-                    data: {
-                        ciphertext: this._encryptKeyInfo(olmData.session),
-                        uuid
-                    },
-                    type: OLM_MESSAGE_TYPES.KEY_INFO
-                }
-            };
-            const d = new Deferred();
-
-            d.setRejectTimeout(REQ_TIMEOUT);
-            d.catch(() => {
-                this._reqs.delete(uuid);
-            });
-            this._reqs.set(uuid, d);
-            promises.push(d);
-
-            this._sendMessage(data, pId);
+            if (this._needsKey(olmData)) {
+                promises.push(this._sendKeyInfo(participant));
+            }
         }
 
         await Promise.allSettled(promises);
@@ -267,6 +260,7 @@ export class OlmAdapter extends Listenable {
         olmData.pendingSessionUuid = undefined;
         olmData.lastKey = undefined;
         olmData.lastKeyIndex = undefined;
+        olmData.sentKeyIndex = undefined;
 
         // Clean up SAS verification if active
         if (olmData.sasVerification?.sas) {
@@ -460,21 +454,35 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
-     * Internal helper for encrypting the current key information for a given participant.
+     * Internal helper for encrypting the current key information for a given participant. The key is
+     * included only when the participant has not received it yet, in any of the messages that carry it.
      *
-     * @param {Olm.Session} session - Participant's session.
+     * @param {Object} olmData - The olm data of the participant, with its session.
      * @returns {string} - The encrypted text with the key information.
      * @private
      */
-    _encryptKeyInfo(session) {
+    _encryptKeyInfo(olmData) {
         const keyInfo = {};
 
-        if (this._mediaKey !== undefined) {
+        if (this._needsKey(olmData)) {
             keyInfo.key = this._mediaKey ? base64js.fromByteArray(this._mediaKey) : false;
             keyInfo.keyIndex = this._mediaKeyIndex;
+            olmData.sentKeyIndex = this._mediaKeyIndex;
         }
 
-        return session.encrypt(JSON.stringify(keyInfo));
+        return olmData.session.encrypt(JSON.stringify(keyInfo));
+    }
+
+    /**
+     * Checks if there is a current key that has not been sent to the given participant. A key keeps its
+     * index when it is ratcheted, the participants ratchet the key they have on their own.
+     *
+     * @param {Object} olmData - The olm data of the participant.
+     * @returns {boolean}
+     * @private
+     */
+    _needsKey(olmData) {
+        return this._mediaKey !== undefined && olmData.sentKeyIndex !== this._mediaKeyIndex;
     }
 
     /**
@@ -588,7 +596,7 @@ export class OlmAdapter extends Listenable {
                     [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                     olm: {
                         data: {
-                            ciphertext: this._encryptKeyInfo(session),
+                            ciphertext: this._encryptKeyInfo(olmData),
                             idKey: this._idKeys.curve25519,
                             signature,
                             uuid: msg.data.uuid
@@ -707,7 +715,7 @@ export class OlmAdapter extends Listenable {
                         [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
                         olm: {
                             data: {
-                                ciphertext: this._encryptKeyInfo(olmData.session),
+                                ciphertext: this._encryptKeyInfo(olmData),
                                 uuid: msg.data.uuid
                             },
                             type: OLM_MESSAGE_TYPES.KEY_INFO_ACK
@@ -1082,15 +1090,12 @@ export class OlmAdapter extends Listenable {
                 const participantFeatures = await participant.getFeatures();
 
                 if (participantFeatures.has(FEATURE_E2EE) && localParticipantId < participantId) {
-                    let sessionCreated = false;
-
                     try {
                         // eslint-disable-next-line max-depth
                         if (this._sessionInitialization) {
                             await this._sessionInitialization;
                         }
                         await this._sendSessionInit(participant);
-                        sessionCreated = true;
                     } catch (error) {
                         // An existing or a pending session is expected here, anything else is a failure.
                         // eslint-disable-next-line max-depth
@@ -1100,33 +1105,10 @@ export class OlmAdapter extends Listenable {
                         }
                     }
 
-                    // An existing session already got our key from updateKey(); session-init carries none.
-                    if (!sessionCreated) {
-                        return;
+                    // The session-init carries no key. A session that existed before got it from sendKey().
+                    if (olmData.session && this._needsKey(olmData)) {
+                        this._sendKeyInfo(participant);
                     }
-
-                    const uuid = uuidv4();
-
-                    const d = new Deferred();
-
-                    d.setRejectTimeout(REQ_TIMEOUT);
-                    d.catch(() => {
-                        this._reqs.delete(uuid);
-                    });
-                    this._reqs.set(uuid, d);
-
-                    const data = {
-                        [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
-                        olm: {
-                            data: {
-                                ciphertext: this._encryptKeyInfo(olmData.session),
-                                uuid
-                            },
-                            type: OLM_MESSAGE_TYPES.KEY_INFO
-                        }
-                    };
-
-                    this._sendMessage(data, participantId);
                 }
             } else if (!newValue) {
                 // A participant that turns E2EE off sends no key-info for it, this presence is the signal.
@@ -1182,6 +1164,39 @@ export class OlmAdapter extends Listenable {
      */
     _sendMessage(data, participantId) {
         this._conf.sendMessage(data, participantId);
+    }
+
+    /**
+     * Builds and sends a key-info request with the current key to the target participant.
+     *
+     * @param {JitsiParticipant} participant - Participant to whom we'll send the request.
+     * @returns {Promise} - The promise will be resolved when the key-info-ack is received.
+     * @private
+     */
+    _sendKeyInfo(participant) {
+        const olmData = this._getParticipantOlmData(participant);
+        const uuid = uuidv4();
+        const data = {
+            [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+            olm: {
+                data: {
+                    ciphertext: this._encryptKeyInfo(olmData),
+                    uuid
+                },
+                type: OLM_MESSAGE_TYPES.KEY_INFO
+            }
+        };
+        const d = new Deferred();
+
+        d.setRejectTimeout(REQ_TIMEOUT);
+        d.catch(() => {
+            this._reqs.delete(uuid);
+        });
+        this._reqs.set(uuid, d);
+
+        this._sendMessage(data, participant.getId());
+
+        return d;
     }
 
     /**

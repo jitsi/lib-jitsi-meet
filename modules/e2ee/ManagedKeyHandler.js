@@ -92,12 +92,16 @@ export class ManagedKeyHandler extends KeyHandler {
             return;
         }
 
+        // The key exists before the sessions are set up, so a session-ack that is sent meanwhile delivers it.
+        this._key = this._generateKey();
+        this._olmAdapter.setKey(this._key);
+
         // Initialize Olm sessions with all participants.
         await this._olmAdapter.initSessions();
         logger.debug('All Olm sessions established, proceeding with key distribution');
 
-        this._key = this._generateKey();
-        const index = await this._olmAdapter.updateKey(this._key);
+        // Only the participants that did not get the key in a session-ack are sent a key-info.
+        const index = await this._olmAdapter.sendKey();
 
         this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
     }
