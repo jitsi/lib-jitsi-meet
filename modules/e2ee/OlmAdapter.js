@@ -649,7 +649,7 @@ export class OlmAdapter extends Listenable {
                 this._onParticipantE2EEChannelReady(pId);
 
                 this._reqs.delete(msg.data.uuid);
-                d.resolve();
+                d?.resolve();
 
                 const json = safeJsonParse(data);
 
@@ -724,10 +724,11 @@ export class OlmAdapter extends Listenable {
                     }
                 }
 
+                // The request is gone when the ack arrives after its timeout.
                 const d = this._reqs.get(msg.data.uuid);
 
                 this._reqs.delete(msg.data.uuid);
-                d.resolve();
+                d?.resolve();
             } else {
                 logger.debug(`Received key info ack message from ${pId} but we have no session for them!`);
 
@@ -1095,7 +1096,6 @@ export class OlmAdapter extends Listenable {
                     d.setRejectTimeout(REQ_TIMEOUT);
                     d.catch(() => {
                         this._reqs.delete(uuid);
-                        olmData.pendingSessionUuid = undefined;
                     });
                     this._reqs.set(uuid, d);
 
