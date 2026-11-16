@@ -147,7 +147,7 @@ export class ManagedKeyHandler extends KeyHandler {
 
     /**
      * Rotates the local key. Rotating the key implies creating a new one, then distributing it
-     * to all participants and once they all received it, start using it.
+     * to all participants and once they had the time to receive it, start using it.
      *
      * @private
      */

@@ -11,6 +11,10 @@ const OLM_MESSAGE_TYPE = 'olm';
 const PARTICIPANT_PROPERTY_CHANGED = 'conference.participant_property_changed';
 const REQ_TIMEOUT = 5 * 1000;
 
+// The timer functions of the browser, for the tests that mock the clock.
+const realClearInterval = window.clearInterval.bind(window);
+const realSetInterval = window.setInterval.bind(window);
+
 /**
  * Deep-clones a JSON-serializable value, emulating what a real transport does to a message.
  *
@@ -391,6 +395,18 @@ describe('OlmAdapter key authentication', () => {
     describe('Key distribution', () => {
         const keyInfosSentBy = sent => sent.filter(m => m.olm?.type === 'key-info');
         const typesSentBy = sent => sent.map(m => m.olm?.type);
+        let ticker;
+
+        // A new key is used after a wait. The clock is mocked and runs fast, so the tests do not wait for it.
+        beforeEach(() => {
+            jasmine.clock().install();
+            ticker = realSetInterval(() => jasmine.clock().tick(100), 0);
+        });
+
+        afterEach(() => {
+            realClearInterval(ticker);
+            jasmine.clock().uninstall();
+        });
 
         it('sends the key once to a peer that enables E2EE while the sessions are being set up', async () => {
             const ctx = connect('alice', 'bob');
@@ -446,9 +462,10 @@ describe('OlmAdapter key authentication', () => {
 
             await Promise.all([ handlerA.setEnabled(true), handlerB.setEnabled(true) ]);
 
-            // The responder's key travels in the session-ack, so it sends no key-info.
+            // The responder's key travels in the session-ack, so it sends no key-info. It does not acknowledge
+            // the key-info of the initiator either.
             expect(typesSentBy(ctx.sentByA)).toEqual([ 'session-init', 'key-info' ]);
-            expect(typesSentBy(ctx.sentByB)).toEqual([ 'session-ack', 'key-info-ack' ]);
+            expect(typesSentBy(ctx.sentByB)).toEqual([ 'session-ack' ]);
 
             // Each side has the key of the other, under the index its owner uses.
             expect(lastKeySet(handlerB, 'alice')).toEqual(lastKeySet(handlerA, 'alice'));
@@ -473,7 +490,7 @@ describe('OlmAdapter key authentication', () => {
             await followed;
 
             expect(typesSentBy(ctx.sentByA)).toEqual([ 'session-init', 'key-info' ]);
-            expect(typesSentBy(ctx.sentByB)).toEqual([ 'session-ack', 'key-info-ack' ]);
+            expect(typesSentBy(ctx.sentByB)).toEqual([ 'session-ack' ]);
             expect(lastKeySet(handlerB, 'alice').key).toEqual(handlerA._key);
             expect(lastKeySet(handlerA, 'bob').key).toEqual(handlerB._key);
         });
@@ -514,6 +531,65 @@ describe('OlmAdapter key authentication', () => {
 
             expect(keyInfosSentBy(ctx.sentByA).length).toBe(2);
             expect(b._getParticipantOlmData(ctx.participantAinB).lastKey).toEqual(newKeyA);
+        });
+
+        it('sends a new key in one key-info that is not acknowledged, and uses the key after a wait', async () => {
+            const ctx = connectKeyHandlers('alice', 'bob');
+            const { handlerA, handlerB } = ctx;
+
+            await Promise.all([ handlerA.setEnabled(true), handlerB.setEnabled(true) ]);
+
+            const firstKey = handlerA._key;
+
+            ctx.sentByA.length = 0;
+            ctx.sentByB.length = 0;
+
+            const rotated = handlerA._rotateKeyImpl();
+
+            // The key is on its way, we still encrypt with the previous one.
+            expect(typesSentBy(ctx.sentByA)).toEqual([ 'key-info' ]);
+            expect(ctx.sentByA[0].olm.data.uuid).toBeUndefined();
+            expect(handlerA._key).not.toEqual(firstKey);
+            expect(lastKeySet(handlerA, 'alice').key).toEqual(firstKey);
+
+            await rotated;
+
+            expect(typesSentBy(ctx.sentByA)).toEqual([ 'key-info' ]);
+            expect(ctx.sentByB).toEqual([]);
+            expect(lastKeySet(handlerA, 'alice').key).toEqual(handlerA._key);
+            expect(lastKeySet(handlerB, 'alice')).toEqual(lastKeySet(handlerA, 'alice'));
+        });
+
+        it('acknowledges a key-info that has a uuid', async () => {
+            const ctx = connect('alice', 'bob');
+            const a = ctx.state.adapterA;
+            const b = ctx.state.adapterB;
+            const key = new Uint8Array(32).fill(7);
+            const keyOfB = new Uint8Array(32).fill(8);
+
+            await establishSessions(ctx);
+            a.setKey(key);
+            b.setKey(keyOfB);
+
+            // What a client that waits for the ack sends.
+            ctx.confA.sendMessage({
+                [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                olm: {
+                    data: {
+                        ciphertext: a._encryptKeyInfo(a._getParticipantOlmData(ctx.participantBinA)),
+                        uuid: 'key-info-request'
+                    },
+                    type: 'key-info'
+                }
+            });
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            expect(typesSentBy(ctx.sentByB)).toEqual([ 'session-ack', 'key-info-ack' ]);
+            expect(ctx.sentByB[1].olm.data.uuid).toBe('key-info-request');
+            expect(b._getParticipantOlmData(ctx.participantAinB).lastKey).toEqual(key);
+
+            // The ack carries the key of its sender, which is applied although we did not ask for the ack.
+            expect(a._getParticipantOlmData(ctx.participantBinA).lastKey).toEqual(keyOfB);
         });
 
         it('sends nothing when E2EE is turned off and a peer that keeps it on drops the key', async () => {
@@ -618,7 +694,7 @@ describe('OlmAdapter key authentication', () => {
             jasmine.clock().uninstall();
         });
 
-        it('handles a key-info-ack that arrives after the request timed out', async () => {
+        it('applies the key of a key-info-ack that has no request', async () => {
             const ctx = connect('alice', 'bob');
             const a = ctx.state.adapterA;
             const b = ctx.state.adapterB;
@@ -631,22 +707,28 @@ describe('OlmAdapter key authentication', () => {
 
             a.addListener(OlmAdapter.events.PARTICIPANT_KEY_UPDATED, onKeyUpdated);
 
-            jasmine.clock().install();
+            // We wait for no ack. A client that acknowledges every key-info still sends one, without a uuid for a
+            // key-info that had none, or with the uuid of a request that timed out long ago.
+            for (const uuid of [ undefined, 'timed-out-request' ]) {
+                const ack = {
+                    [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                    olm: {
+                        data: {
+                            ciphertext: b._encryptKeyInfo(b._getParticipantOlmData(ctx.participantAinB)),
+                            uuid
+                        },
+                        type: 'key-info-ack'
+                    }
+                };
 
-            const lateAck = holdMessages(ctx.confB, 'key-info-ack');
-            const updated = a.updateKey(new Uint8Array(32).fill(7));
-            const ack = await lateAck;
+                await expectAsync(a._onEndpointMessageReceived(ctx.participantBinA, clone(ack))).toBeResolved();
+            }
 
-            jasmine.clock().tick(REQ_TIMEOUT);
-            await updated;
-
-            await expectAsync(a._onEndpointMessageReceived(ctx.participantBinA, clone(ack))).toBeResolved();
-
-            // The key that came with the ack is still applied.
+            // The key that came with the ack is applied.
             expect(onKeyUpdated).toHaveBeenCalledOnceWith('bob', keyOfB, jasmine.any(Number));
         });
 
-        it('keeps a pending session-init when an older key-info times out', async () => {
+        it('keeps a pending session-init when a key-info was sent before it', async () => {
             const ctx = connect('alice', 'bob');
             const a = ctx.state.adapterA;
             const b = ctx.state.adapterB;
@@ -657,13 +739,13 @@ describe('OlmAdapter key authentication', () => {
 
             jasmine.clock().install();
 
-            // The peer enables E2EE: a session is created and our key is sent, but its ack never arrives.
-            holdMessages(ctx.confB, 'key-info-ack');
+            // The peer enables E2EE: a session is created and our key is sent. No request waits for an ack.
             await a._onParticipantPropertyChanged(ctx.participantBinA, 'e2ee.enabled', false, true);
 
-            expect(a._reqs.size).toBe(1);
+            expect(ctx.sentByA.map(m => m.olm.type)).toEqual([ 'session-init', 'key-info' ]);
+            expect(a._reqs.size).toBe(0);
 
-            // The peer disables E2EE and enables it again before the key-info request times out.
+            // The peer disables E2EE and enables it again shortly after.
             a.clearParticipantSession(ctx.participantBinA);
             b.clearParticipantSession(ctx.participantAinB);
             jasmine.clock().tick(REQ_TIMEOUT - 1000);
@@ -672,7 +754,7 @@ describe('OlmAdapter key authentication', () => {
             const enabledAgain = a._onParticipantPropertyChanged(ctx.participantBinA, 'e2ee.enabled', false, true);
             const ack = await heldAck;
 
-            // The key-info request times out while the new session-init still waits for its ack.
+            // Nothing that the key-info left behind ends while the new session-init still waits for its ack.
             jasmine.clock().tick(1000);
 
             await a._onEndpointMessageReceived(ctx.participantBinA, clone(ack));

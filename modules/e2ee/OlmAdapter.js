@@ -17,6 +17,10 @@ import { generateSas } from './SAS';
 const logger = getLogger('e2ee:OlmAdapter');
 
 const REQ_TIMEOUT = 5 * 1000;
+
+// Period we wait after we sent a new key and before we use it. The key-info that carries the key is not
+// acknowledged, so this is what lets the participants have the key when the first frame encrypted with it arrives.
+const KEY_USE_DELAY = 1000;
 const OLM_MESSAGE_TYPE = 'olm';
 const OLM_MESSAGE_TYPES = {
     ERROR: 'error',
@@ -56,9 +60,11 @@ const OlmAdapterEvents = {
  *                 by the participant who just joined, to everyone else.
  * - session-ack: Completes the olm session etablishment. This messsage may contain ancilliary
  *                encrypted data, more specifically the sender's current key.
- * - key-info: Includes the sender's most up to date key information.
- * - key-info-ack: Acknowledges the reception of a key-info request. In addition, it may contain
- *                 the sender's key information, if available.
+ * - key-info: Includes the sender's most up to date key information. It is sent without a uuid and is
+ *             then not acknowledged.
+ * - key-info-ack: Acknowledges the reception of a key-info request that has a uuid, which is what a client
+ *                 that waits for the ack sends. In addition, it may contain the sender's key information,
+ *                 if available.
  * - error: Indicates a request processing error has occurred.
  *
  * A key is sent to a participant once, in the first of these messages that goes to it.
@@ -189,12 +195,13 @@ export class OlmAdapter extends Listenable {
 
     /**
      * Sends the current key, in a key-info message, to every participant that has a session and has not
-     * received this key yet, and waits for them to acknowledge it.
+     * received this key yet. The participants do not acknowledge it, the returned promise resolves when the
+     * key can be used.
      *
      * @returns {Promise<Number>} - The index of the current key.
      */
     async sendKey() {
-        const promises = [];
+        let delivered = false;
 
         for (const participant of this._conf.getParticipants()) {
             const pId = participant.getId();
@@ -209,13 +216,15 @@ export class OlmAdapter extends Listenable {
             }
 
             if (this._needsKey(olmData)) {
-                promises.push(this._sendKeyInfo(participant));
+                this._sendKeyInfo(participant);
             }
+            delivered = true;
         }
 
-        await Promise.allSettled(promises);
-
-        // TODO: retry failed ones?
+        // The key may be on its way to a participant, in the key-info above or in a session-ack sent earlier.
+        if (delivered) {
+            await new Promise(resolve => setTimeout(resolve, KEY_USE_DELAY));
+        }
 
         return this._mediaKeyIndex;
     }
@@ -710,19 +719,21 @@ export class OlmAdapter extends Listenable {
                         this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
 
-                    // Send ACK.
-                    const ack = {
-                        [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
-                        olm: {
-                            data: {
-                                ciphertext: this._encryptKeyInfo(olmData),
-                                uuid: msg.data.uuid
-                            },
-                            type: OLM_MESSAGE_TYPES.KEY_INFO_ACK
-                        }
-                    };
+                    // Send ACK, only a request that has a uuid waits for it.
+                    if (msg.data.uuid !== undefined) {
+                        const ack = {
+                            [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
+                            olm: {
+                                data: {
+                                    ciphertext: this._encryptKeyInfo(olmData),
+                                    uuid: msg.data.uuid
+                                },
+                                type: OLM_MESSAGE_TYPES.KEY_INFO_ACK
+                            }
+                        };
 
-                    this._sendMessage(ack, pId);
+                        this._sendMessage(ack, pId);
+                    }
                 }
             } else {
                 logger.debug(`Received key info message from ${pId} but we have no session for them!`);
@@ -748,11 +759,8 @@ export class OlmAdapter extends Listenable {
                     }
                 }
 
-                // The request is gone when the ack arrives after its timeout.
-                const d = this._reqs.get(msg.data.uuid);
-
-                this._reqs.delete(msg.data.uuid);
-                d?.resolve();
+                // We do not ask for this ack. It comes from a client that acknowledges every key-info, and there is
+                // no request to complete.
             } else {
                 logger.debug(`Received key info ack message from ${pId} but we have no session for them!`);
 
@@ -1167,36 +1175,26 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
-     * Builds and sends a key-info request with the current key to the target participant.
+     * Builds and sends a key-info message with the current key to the target participant. It has no uuid,
+     * which tells the participant that no key-info-ack is expected.
      *
-     * @param {JitsiParticipant} participant - Participant to whom we'll send the request.
-     * @returns {Promise} - The promise will be resolved when the key-info-ack is received.
+     * @param {JitsiParticipant} participant - Participant to whom we'll send the message.
+     * @returns {void}
      * @private
      */
     _sendKeyInfo(participant) {
         const olmData = this._getParticipantOlmData(participant);
-        const uuid = uuidv4();
         const data = {
             [JITSI_MEET_MUC_TYPE]: OLM_MESSAGE_TYPE,
             olm: {
                 data: {
-                    ciphertext: this._encryptKeyInfo(olmData),
-                    uuid
+                    ciphertext: this._encryptKeyInfo(olmData)
                 },
                 type: OLM_MESSAGE_TYPES.KEY_INFO
             }
         };
-        const d = new Deferred();
-
-        d.setRejectTimeout(REQ_TIMEOUT);
-        d.catch(() => {
-            this._reqs.delete(uuid);
-        });
-        this._reqs.set(uuid, d);
 
         this._sendMessage(data, participant.getId());
-
-        return d;
     }
 
     /**
