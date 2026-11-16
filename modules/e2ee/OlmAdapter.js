@@ -1220,7 +1220,11 @@ export class OlmAdapter extends Listenable {
         d.setRejectTimeout(REQ_TIMEOUT);
         d.catch(() => {
             this._reqs.delete(uuid);
-            olmData.pendingSessionUuid = undefined;
+
+            // A newer session-init can be pending by now, when the session was cleared in the meantime.
+            if (olmData.pendingSessionUuid === uuid) {
+                olmData.pendingSessionUuid = undefined;
+            }
         });
         this._reqs.set(uuid, d);
 
