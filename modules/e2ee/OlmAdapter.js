@@ -180,8 +180,7 @@ export class OlmAdapter extends Listenable {
      */
     async updateKey(key) {
         // Store it locally for new sessions.
-        this._mediaKey = key;
-        this._mediaKeyIndex++;
+        this.setKey(key);
 
         // Broadcast it.
         const promises = [];
@@ -229,6 +228,19 @@ export class OlmAdapter extends Listenable {
     }
 
     /**
+     * Sets a new key for the current participant under the next key index, without sending it to anyone.
+     *
+     * @param {Uint8Array|boolean} key - The new key, false when the participant stops using a key.
+     * @returns {number} - The index of the new key.
+     */
+    setKey(key) {
+        this._mediaKey = key;
+        this._mediaKeyIndex++;
+
+        return this._mediaKeyIndex;
+    }
+
+    /**
      * Updates the current participant key.
      * @param {Uint8Array|boolean} key - The new key.
      * @returns {number}
@@ -254,6 +266,7 @@ export class OlmAdapter extends Listenable {
         // Clear all session-related state to allow clean re-initialization
         olmData.pendingSessionUuid = undefined;
         olmData.lastKey = undefined;
+        olmData.lastKeyIndex = undefined;
 
         // Clean up SAS verification if active
         if (olmData.sasVerification?.sas) {
@@ -658,6 +671,7 @@ export class OlmAdapter extends Listenable {
                     const keyIndex = json.keyIndex;
 
                     olmData.lastKey = key;
+                    olmData.lastKeyIndex = keyIndex;
                     this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                 }
             } else {
@@ -684,6 +698,7 @@ export class OlmAdapter extends Listenable {
 
                     if (!isEqual(olmData.lastKey, key)) {
                         olmData.lastKey = key;
+                        olmData.lastKeyIndex = keyIndex;
                         this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
 
@@ -720,6 +735,7 @@ export class OlmAdapter extends Listenable {
 
                     if (!isEqual(olmData.lastKey, key)) {
                         olmData.lastKey = key;
+                        olmData.lastKeyIndex = keyIndex;
                         this.eventEmitter.emit(OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, pId, key, keyIndex);
                     }
                 }
@@ -1111,6 +1127,19 @@ export class OlmAdapter extends Listenable {
                     };
 
                     this._sendMessage(data, participantId);
+                }
+            } else if (!newValue) {
+                // A participant that turns E2EE off sends no key-info for it, this presence is the signal.
+                if (olmData.lastKey) {
+                    olmData.lastKey = undefined;
+                    this.eventEmitter.emit(
+                        OlmAdapterEvents.PARTICIPANT_KEY_UPDATED, participantId, false, olmData.lastKeyIndex);
+                }
+
+                // A client that still sends a key-info when it turns E2EE off expects an ack for it. We answer it
+                // while E2EE is off here, as before. While it is on, the session ends with this presence.
+                if (this._conf.isE2EEEnabled()) {
+                    this.clearParticipantSession(participant);
                 }
             }
             break;

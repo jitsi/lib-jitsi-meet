@@ -1,5 +1,6 @@
 import olm from '@matrix-org/olm/olm_legacy.js';
 
+import { ManagedKeyHandler } from './ManagedKeyHandler';
 import { OlmAdapter } from './OlmAdapter';
 
 // Constants mirrored from the modules under test so this spec does not need to pull in the
@@ -49,9 +50,13 @@ function makeConference(id) {
 
     return {
         _listeners: listeners,
+        _restartMediaSessions: () => { /* not needed */ },
         emit(event, ...args) {
             (listeners.get(event) || []).forEach(cb => cb(...args));
         },
+        eventEmitter: { emit: () => { /* not needed */ } },
+        getLocalTracks: () => [],
+        getMediaSessions: () => [],
         getParticipants: () => [],
         isE2EEEnabled: () => true,
         myUserId: () => id,
@@ -61,6 +66,7 @@ function makeConference(id) {
             }
             listeners.get(event).push(cb);
         },
+        rtc: { on: () => { /* not needed */ } },
         sendMessage: () => { /* wired in connect() */ },
         setLocalParticipantProperty: () => { /* wired in connect() */ }
     };
@@ -73,9 +79,10 @@ function makeConference(id) {
  *
  * @param {string} idA - Id of the first (initiating) participant. Must sort before idB.
  * @param {string} idB - Id of the second participant.
+ * @param {Function} [createAdapter] - Creates the adapter of a conference.
  * @returns {object}
  */
-function connect(idA, idB) {
+function connect(idA, idB, createAdapter = conference => new OlmAdapter(conference)) {
     const confA = makeConference(idA);
     const confB = makeConference(idB);
     const participantBinA = makeParticipant(idB); // How A sees B.
@@ -132,10 +139,70 @@ function connect(idA, idB) {
             ctx.state.transformBtoA ? ctx.state.transformBtoA(payload) : payload);
     };
 
-    ctx.state.adapterA = new OlmAdapter(confA);
-    ctx.state.adapterB = new OlmAdapter(confB);
+    ctx.state.adapterA = createAdapter(confA);
+    ctx.state.adapterB = createAdapter(confB);
 
     return ctx;
+}
+
+/**
+ * Stands in for the E2EE worker and records the messages that E2EEContext posts to it.
+ */
+class FakeWorker {
+    /**
+     * Creates a worker that has received no messages.
+     */
+    constructor() {
+        this.messages = [];
+    }
+
+    /**
+     * Records a message.
+     *
+     * @param {object} message - The message for the worker.
+     * @returns {void}
+     */
+    postMessage(message) {
+        this.messages.push(message);
+    }
+}
+
+/**
+ * Wires two ManagedKeyHandlers together the same way connect() wires two adapters, so a test can turn
+ * E2EE on and off as the application does. The adapters in the context are the ones of the handlers.
+ *
+ * @param {string} idA - Id of the first participant. Must sort before idB.
+ * @param {string} idB - Id of the second participant.
+ * @returns {object}
+ */
+function connectKeyHandlers(idA, idB) {
+    const handlers = new Map();
+    const ctx = connect(idA, idB, conference => {
+        const handler = new ManagedKeyHandler(conference);
+
+        conference.isE2EEEnabled = () => handler.isEnabled();
+        handlers.set(conference.myUserId(), handler);
+
+        return handler._olmAdapter;
+    });
+
+    ctx.handlerA = handlers.get(idA);
+    ctx.handlerB = handlers.get(idB);
+
+    return ctx;
+}
+
+/**
+ * Returns what the given key handler last passed to its E2EE context as the key of a participant.
+ *
+ * @param {ManagedKeyHandler} handler - The key handler.
+ * @param {string} participantId - The participant that owns the key.
+ * @returns {object|undefined} - The setKey message for the worker.
+ */
+function lastKeySet(handler, participantId) {
+    return handler.e2eeCtx._worker.messages
+        .filter(message => message.operation === 'setKey' && message.participantId === participantId)
+        .pop();
 }
 
 /**
@@ -253,9 +320,16 @@ function holdMessages(conf, type) {
 }
 
 describe('OlmAdapter key authentication', () => {
+    const RealWorker = window.Worker;
+
     beforeAll(async () => {
         await olm.init();
         window.Olm = olm;
+        window.Worker = FakeWorker;
+    });
+
+    afterAll(() => {
+        window.Worker = RealWorker;
     });
 
     describe('Olm session establishment', () => {
@@ -361,6 +435,58 @@ describe('OlmAdapter key authentication', () => {
 
             expect(await keyReceived).toEqual(key);
             expect(keyInfosSentBy(ctx.sentByA).length).toBe(1);
+        });
+
+        it('sends nothing when E2EE is turned off and a peer that keeps it on drops the key', async () => {
+            const ctx = connectKeyHandlers('alice', 'bob');
+            const { handlerA, handlerB } = ctx;
+
+            await Promise.all([ handlerA.setEnabled(true), handlerB.setEnabled(true) ]);
+
+            const aliceKey = lastKeySet(handlerB, 'alice');
+            const bobKey = lastKeySet(handlerB, 'bob');
+
+            expect(aliceKey.key).toEqual(handlerA._key);
+
+            ctx.sentByA.length = 0;
+            ctx.sentByB.length = 0;
+
+            await handlerA.setEnabled(false);
+
+            expect(ctx.sentByA).toEqual([]);
+            expect(ctx.sentByB).toEqual([]);
+
+            // The peer no longer has the key, nor the session that delivered it.
+            expect(lastKeySet(handlerB, 'alice')).toEqual({ ...aliceKey,
+                key: false });
+            expect(ctx.state.adapterB._getParticipantOlmData(ctx.participantAinB).session).toBeUndefined();
+
+            // Its own key is not affected.
+            expect(handlerB.isEnabled()).toBe(true);
+            expect(lastKeySet(handlerB, 'bob')).toEqual(bobKey);
+            expect(lastKeySet(handlerA, 'alice').key).toBe(false);
+        });
+
+        it('exchanges the keys again with a peer that turns E2EE off and on', async () => {
+            const ctx = connectKeyHandlers('alice', 'bob');
+            const { handlerA, handlerB } = ctx;
+
+            await Promise.all([ handlerA.setEnabled(true), handlerB.setEnabled(true) ]);
+            await handlerA.setEnabled(false);
+            await handlerA.setEnabled(true);
+
+            expect(lastKeySet(handlerB, 'alice').key).toEqual(handlerA._key);
+            expect(lastKeySet(handlerA, 'bob').key).toEqual(handlerB._key);
+
+            // The other endpoint id order, where the peer that toggles does not start the session.
+            await handlerB.setEnabled(false);
+
+            expect(lastKeySet(handlerA, 'bob').key).toBe(false);
+
+            await handlerB.setEnabled(true);
+
+            expect(lastKeySet(handlerA, 'bob').key).toEqual(handlerB._key);
+            expect(lastKeySet(handlerB, 'alice').key).toEqual(handlerA._key);
         });
     });
 
