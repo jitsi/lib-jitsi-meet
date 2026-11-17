@@ -16,6 +16,7 @@ import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
 import { isValidNumber } from '../util/MathUtil';
 
+import audioOutputManager, { isAudioOutputManagerEnabled } from './AudioOutputManager';
 import screenObtainer from './ScreenObtainer';
 
 const logger = getLogger('rtc:RTCUtils');
@@ -322,6 +323,15 @@ class RTCUtils extends Listenable {
 
         screenObtainer.init(options);
 
+        logger.info(`Audio output manager: ${Boolean(options.audioOutput?.manager)}`);
+        if (options.audioOutput?.manager) {
+            const onDeviceListChanged = devices => this._onDeviceListChangedForAudioOutput(devices);
+
+            audioOutputManager.enable(options.audioOutput);
+            this.addListener(RTCEvents.DEVICE_LIST_AVAILABLE, onDeviceListChanged);
+            this.addListener(RTCEvents.DEVICE_LIST_CHANGED, onDeviceListChanged);
+        }
+
         this.enumerateDevices(ds => {
             availableDevices = ds.slice(0);
 
@@ -351,11 +361,16 @@ class RTCUtils extends Listenable {
      *
      * @param {*} element DOM element.
      * @param {*} stream MediaStream.
+     * @param {JitsiTrack} [track] - The track the stream belongs to.
      * @returns Promise<void> - rejected with the setSinkId error if the audio output device could not be applied.
      */
-    attachMediaStream(element, stream) {
+    attachMediaStream(element, stream, track) {
         if (element) {
             element.srcObject = stream;
+        }
+
+        if (element && isAudioOutputManagerEnabled() && this.isDeviceChangeAvailable('output')) {
+            return audioOutputManager.attach(element, stream, track);
         }
 
         // A new element already plays out of the default output, switching it to 'default' is a needless device switch.
@@ -560,6 +575,17 @@ class RTCUtils extends Listenable {
         }
 
         return missingDevices;
+    }
+
+    /**
+     * Passes a new device list to the audio output manager while the audio output device can be changed, so that it
+     * doesn't call setSinkId after the probe has turned the change off.
+     *
+     * @param {MediaDeviceInfo[]} devices - The available devices.
+     * @returns {void}
+     */
+    _onDeviceListChangedForAudioOutput(devices) {
+        this.isDeviceChangeAvailable('output') && audioOutputManager.onDeviceListChanged(devices);
     }
 
     /**
@@ -901,12 +927,16 @@ class RTCUtils extends Listenable {
      *      navigator.mediaDevices.enumerateDevices(), 'default' for default
      *      device
      * @returns {Promise} - resolves when audio output is changed, is rejected
-     *      otherwise
+     *      otherwise. With the audio output manager, see {@link AudioOutputManager.setDevice}.
      */
     setAudioOutputDevice(deviceId) {
         if (!this.isDeviceChangeAvailable('output')) {
             return Promise.reject(
                 new Error('Audio output device change is not supported'));
+        }
+
+        if (isAudioOutputManagerEnabled()) {
+            return audioOutputManager.setDevice(deviceId);
         }
 
         return featureDetectionAudioEl.setSinkId(this.toSinkId(deviceId))
@@ -947,7 +977,7 @@ class RTCUtils extends Listenable {
      * @returns {string}
      */
     getAudioOutputDevice() {
-        return audioOutputDeviceId;
+        return isAudioOutputManagerEnabled() ? audioOutputManager.getDevice() : audioOutputDeviceId;
     }
 
     /**

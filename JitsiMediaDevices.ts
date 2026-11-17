@@ -1,4 +1,6 @@
 import { JitsiMediaDevicesEvents } from './JitsiMediaDevicesEvents';
+import { isAudioOutputManagerEnabled as isManagerEnabled } from './modules/RTC/AudioOutputManager';
+import type JitsiTrack from './modules/RTC/JitsiTrack';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import Listenable from './modules/util/Listenable';
@@ -160,6 +162,16 @@ export default class JitsiMediaDevices extends Listenable {
     }
 
     /**
+     * Returns whether the audio output device is switched by the audio output manager (config audioOutput.manager),
+     * which determines what {@link setAudioOutputDevice} resolves with.
+     *
+     * @returns {boolean}
+     */
+    isAudioOutputManagerEnabled(): boolean {
+        return isManagerEnabled();
+    }
+
+    /**
      * Returns true if changing the input (camera / microphone) or output
      * (audio) device is supported and false if not.
      * @param {string} [deviceType] - type of device to change. Default is
@@ -264,9 +276,12 @@ export default class JitsiMediaDevices extends Listenable {
      *      navigator.mediaDevices.enumerateDevices(), 'default' is for
      *      default device
      * @returns {Promise} - resolves when audio output is changed, is rejected
-     *      otherwise
+     *      otherwise. With the audio output manager (config audioOutput.manager), resolves once every audio element
+     *      has switched, with the tracks that still play out of the previous device ([] when all switched), and is
+     *      rejected, with nothing changed, when the device cannot be used or no element could be switched to it.
+     *      A newer change then ends the running one, which rejects with an error named SupersededError.
      */
-    setAudioOutputDevice(deviceId: string): Promise<void> {
+    setAudioOutputDevice(deviceId: string): Promise<JitsiTrack[] | void> {
         return RTC.setAudioOutputDevice(deviceId);
     }
 }
