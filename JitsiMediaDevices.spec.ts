@@ -1,7 +1,17 @@
 import JitsiMediaDevices from './JitsiMediaDevices';
+import audioOutputManager from './modules/RTC/AudioOutputManager';
 import { MediaType } from './service/RTC/MediaType';
 
 describe('JitsiMediaDevices', () => {
+    it('reports whether the audio output manager is enabled', () => {
+        const mediaDevices = new JitsiMediaDevices();
+        const enabled = spyOnProperty(audioOutputManager, 'enabled').and.returnValue(false);
+
+        expect(mediaDevices.isAudioOutputManagerEnabled()).toBe(false);
+        enabled.and.returnValue(true);
+        expect(mediaDevices.isAudioOutputManagerEnabled()).toBe(true);
+    });
+
     describe('isDevicePermissionGranted', () => {
         let mediaDevices: JitsiMediaDevices;
 

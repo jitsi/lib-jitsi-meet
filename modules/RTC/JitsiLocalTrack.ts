@@ -23,6 +23,7 @@ import VADAudioAnalyser from '../detection/VADAudioAnalyser';
 import Statistics from '../statistics/statistics';
 import { isValidNumber } from '../util/MathUtil';
 
+import { isAudioOutputManagerEnabled } from './AudioOutputManager';
 import JitsiTrack from './JitsiTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
@@ -290,8 +291,9 @@ export default class JitsiLocalTrack extends JitsiTrack {
         // Subscribe each created local audio track to
         // RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED event. This is different from
         // handling this event for remote tracks (which are handled in RTC.js),
-        // because there might be local tracks not attached to a conference.
-        if (this.isAudioTrack() && RTCUtils.isDeviceChangeAvailable('output')) {
+        // because there might be local tracks not attached to a conference. The audio output manager switches the
+        // elements of every track otherwise.
+        if (this.isAudioTrack() && RTCUtils.isDeviceChangeAvailable('output') && !isAudioOutputManagerEnabled()) {
             this._onAudioOutputDeviceChanged = this.setAudioOutput.bind(this);
             RTCUtils.addListener(
                 RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,

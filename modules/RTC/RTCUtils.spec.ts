@@ -2,6 +2,7 @@ import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 
+import audioOutputManager from './AudioOutputManager';
 import RTCUtils from './RTCUtils';
 
 describe('RTCUtils', () => {
@@ -126,6 +127,43 @@ describe('RTCUtils', () => {
             expect(RTCUtils.toSinkId('default')).toBe('');
             expect(RTCUtils.toSinkId('')).toBe('');
             expect(RTCUtils.toSinkId('speaker-2')).toBe('speaker-2');
+        });
+    });
+
+    describe('with the audio output manager', () => {
+        beforeEach(() => {
+            spyOnProperty(audioOutputManager, 'enabled').and.returnValue(true);
+            spyOn(RTCUtils, 'isDeviceChangeAvailable').and.returnValue(true);
+        });
+
+        it('leaves the audio output to the manager', async () => {
+            const el = {} as HTMLMediaElement;
+            const stream = {} as MediaStream;
+            const track = {};
+            const attach = spyOn(audioOutputManager, 'attach').and.returnValue(Promise.resolve());
+            const setDevice = spyOn(audioOutputManager, 'setDevice').and.returnValue(Promise.resolve([]));
+
+            spyOn(audioOutputManager, 'getDevice').and.returnValue('speaker-2');
+
+            await RTCUtils.attachMediaStream(el, stream, track);
+            expect(el.srcObject).toBe(stream);
+            expect(attach).toHaveBeenCalledOnceWith(el, stream, track);
+
+            expect(await RTCUtils.setAudioOutputDevice('speaker-2')).toEqual([]);
+            expect(setDevice).toHaveBeenCalledOnceWith('speaker-2');
+            expect(RTCUtils.getAudioOutputDevice()).toBe('speaker-2');
+        });
+
+        it('passes device list changes to the manager only while the audio output can be changed', () => {
+            const onDeviceListChanged = spyOn(audioOutputManager, 'onDeviceListChanged');
+            const devices = [ { deviceId: 'speaker-2', kind: 'audiooutput' } ] as MediaDeviceInfo[];
+
+            (RTCUtils as any)._onDeviceListChangedForAudioOutput(devices);
+            expect(onDeviceListChanged).toHaveBeenCalledOnceWith(devices);
+
+            (RTCUtils.isDeviceChangeAvailable as jasmine.Spy).and.returnValue(false);
+            (RTCUtils as any)._onDeviceListChangedForAudioOutput(devices);
+            expect(onDeviceListChanged).toHaveBeenCalledTimes(1);
         });
     });
 

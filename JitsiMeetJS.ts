@@ -95,6 +95,10 @@ interface IJitsiMeetJSOptions {
         rtcstatsStoreLogs?: boolean;
     };
     audioLevelsInterval?: number;
+    audioOutput?: {
+        manager?: boolean;
+        switchTimeout?: number;
+    };
     desktopSharingSources?: Array<desktopSharingSourceType>;
     disableAudioLevels?: boolean;
     disableThirdPartyRequests?: boolean;
