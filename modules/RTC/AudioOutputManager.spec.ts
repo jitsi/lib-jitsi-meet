@@ -156,9 +156,11 @@ describe('AudioOutputManager', () => {
         expect(el.sinkId).toBe('');
     });
 
-    it('runs overlapping changes one after the other', async () => {
+    it('ends a running change when a newer one starts, without waiting for its switches', async () => {
         const el = element('a', sinkId => sinkId === 'speaker-2' ? new Promise(() => undefined) : Promise.resolve());
 
+        // Long enough that waiting for the first change would time the spec out.
+        manager.enable({ switchTimeout: 60000 });
         await attach(el, audio);
 
         const first = manager.setDevice('speaker-2');
@@ -166,11 +168,11 @@ describe('AudioOutputManager', () => {
         await tick();
         expect(await manager.setDevice('speaker-3')).toEqual([]);
 
-        await expectAsync(first).toBeRejected();
+        await expectAsync(first).toBeRejectedWith(jasmine.objectContaining({ name: 'SupersededError' }));
         expect(manager.getDevice()).toBe('speaker-3');
     });
 
-    it('does not leave the elements on the device of a change that a newer one followed', async () => {
+    it('does not leave the elements on the device of a change that a newer one ended', async () => {
         const slow = deferred();
         const el = element('a', sinkId => sinkId === 'speaker-2' ? slow.promise : Promise.resolve());
 
@@ -179,14 +181,80 @@ describe('AudioOutputManager', () => {
         const first = manager.setDevice('speaker-2');
 
         await tick();
-
-        const second = manager.setDevice('default');
+        expect(await manager.setDevice('default')).toEqual([]);
+        await expectAsync(first).toBeRejectedWith(jasmine.objectContaining({ name: 'SupersededError' }));
 
         slow.resolve();
-        expect(await first).toEqual([]);
-        expect(await second).toEqual([]);
+        await tick();
 
         expect(manager.getDevice()).toBe('default');
+        expect(el.sinkId).toBe('');
+    });
+
+    it('does not report the tracks of a change that a newer one ended', async () => {
+        const slow = deferred();
+        const t = track();
+
+        await attach(element('a', sinkId => sinkId === 'speaker-2' ? slow.promise : Promise.resolve()), audio, t);
+
+        const first = manager.setDevice('speaker-2');
+
+        await tick();
+        expect(await manager.setDevice('default')).toEqual([]);
+        await expectAsync(first).toBeRejected();
+
+        slow.resolve();
+        await tick();
+
+        expect(t.emit).not.toHaveBeenCalledWith(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED, 'speaker-2');
+    });
+
+    it('moves an element whose attach lands after a change to the selected device', async () => {
+        const slow = deferred();
+        const el = element('a', sinkId => sinkId === 'speaker-2' ? slow.promise : Promise.resolve());
+
+        await manager.setDevice('speaker-2');
+
+        const attaching = attach(el, audio, track());
+
+        expect(await manager.setDevice('default')).toEqual([]);
+        slow.resolve();
+        await attaching;
+        await tick();
+
+        expect(manager.getDevice()).toBe('default');
+        expect(el.sinkId).toBe('');
+    });
+
+    it('moves an element whose retry lands after a change back to the selected device', async () => {
+        const slow = deferred();
+        const failing = track();
+        let attempts = 0;
+        const el = element('a', sinkId => {
+            if (sinkId !== 'speaker-2') {
+                return Promise.resolve();
+            }
+
+            return ++attempts === 1 ? Promise.reject(aborted()) : slow.promise;
+        });
+        const speaker = {
+            deviceId: 'speaker-2',
+            groupId: 'g2',
+            kind: 'audiooutput',
+            label: 'Speaker'
+        } as MediaDeviceInfo;
+
+        await attach(element('b'), audio, track());
+        await attach(el, audio, failing);
+        expect(await manager.setDevice('speaker-2')).toEqual([ failing ]);
+
+        manager.onDeviceListChanged([ speaker ]);
+        expect(await manager.setDevice('default')).toEqual([]);
+
+        slow.resolve();
+        await tick();
+
+        expect(attempts).toBe(2);
         expect(el.sinkId).toBe('');
     });
 
@@ -207,7 +275,7 @@ describe('AudioOutputManager', () => {
 
         await expectAsync(manager.setDevice('speaker-3'))
             .toBeRejectedWith(jasmine.objectContaining({ name: 'AbortError' }));
-        await expectAsync(first).toBeRejectedWith(jasmine.objectContaining({ name: 'TimeoutError' }));
+        await expectAsync(first).toBeRejectedWith(jasmine.objectContaining({ name: 'SupersededError' }));
         expect(manager.getDevice()).toBe('default');
     });
 
@@ -314,7 +382,7 @@ describe('AudioOutputManager', () => {
         expect(failing.sinkId).toBe('speaker-2');
     });
 
-    it('rejects a change that a newer one replaced before it started with SupersededError', async () => {
+    it('rejects the changes that newer ones ended or replaced with SupersededError', async () => {
         const gate = deferred();
 
         probe.and.callFake((sinkId: string) => sinkId === 'speaker-2' ? gate.promise : Promise.resolve());
@@ -328,7 +396,7 @@ describe('AudioOutputManager', () => {
 
         gate.resolve();
 
-        expect(await first).toEqual([]);
+        await expectAsync(first).toBeRejectedWith(jasmine.objectContaining({ name: 'SupersededError' }));
         await expectAsync(second).toBeRejectedWith(jasmine.objectContaining({ name: 'SupersededError' }));
         expect(await third).toEqual([]);
         expect(manager.getDevice()).toBe('speaker-4');

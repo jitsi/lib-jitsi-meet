@@ -32,8 +32,12 @@ const getAudioOutputsKey = (devices: MediaDeviceInfo[]) => devices
 // The application selects the default output as 'default'; the Audio Output Devices API uses '' for it.
 const isDefault = (deviceId?: string) => !deviceId || deviceId === 'default';
 
-const isSinkApplied = (element: HTMLMediaElement, deviceId: string) =>
-    element.sinkId === deviceId || (isDefault(element.sinkId) && isDefault(deviceId));
+const isSameDevice = (a: string, b: string) => a === b || (isDefault(a) && isDefault(b));
+
+const isSinkApplied = (element: HTMLMediaElement, deviceId: string) => isSameDevice(element.sinkId, deviceId);
+
+const supersededError = (deviceId: string) =>
+    new DOMException(`The audio output change to ${deviceId} was superseded`, 'SupersededError');
 
 /**
  * Keeps every element that plays audio on the selected audio output device, and reports the ones that could not be
@@ -42,12 +46,14 @@ const isSinkApplied = (element: HTMLMediaElement, deviceId: string) =>
 export class AudioOutputManager {
     private _audioOutputsKey?: string;
     private _changing = false;
+    private _confirmedDeviceId = 'default';
     private _deviceId = 'default';
     private _elements = new Map<HTMLMediaElement, JitsiTrack | undefined>();
     private _enabled = false;
     private _pendingDevices?: MediaDeviceInfo[];
     private _queue: Promise<unknown> = Promise.resolve();
     private _selection = 0;
+    private _supersede?: () => void;
     private _switchTimeout = DEFAULT_SWITCH_TIMEOUT;
 
     /**
@@ -60,8 +66,8 @@ export class AudioOutputManager {
     }
 
     /**
-     * Runs a change of the audio output device once the changes before it have finished. A change that a newer one
-     * replaced while it waited rejects without changing anything.
+     * Runs a change of the audio output device once the change before it has finished. A newer change ends it: it
+     * rejects without waiting for its switches, which are moved to the newer device as they land.
      *
      * @param {string} deviceId - The device id.
      * @param {number} selection - The number of the change.
@@ -69,29 +75,41 @@ export class AudioOutputManager {
      */
     private async _changeDevice(deviceId: string, selection: number): Promise<JitsiTrack[]> {
         if (selection !== this._selection) {
-            throw new DOMException(`The audio output change to ${deviceId} was superseded`, 'SupersededError');
+            throw supersededError(deviceId);
         }
 
-        const previous = this._deviceId;
+        const superseded = new Promise<never>((_, reject) => {
+            this._supersede = () => reject(supersededError(deviceId));
+        });
 
         this._changing = true;
         try {
             // A new element, so that the device is checked even if it was the last one checked.
-            await this._switchElement(document.createElement('audio'), deviceId);
+            await Promise.race([ this._switchElement(document.createElement('audio'), deviceId), superseded ]);
             this._deviceId = deviceId;
 
-            const { errors, failed, switched } = await this._switchAll(deviceId);
+            const { errors, failed, switched }
+                = await Promise.race([ this._switchAll(deviceId, selection), superseded ]);
 
             if (errors.length && !switched) {
-                this._deviceId = previous;
-                this._reconcile();
                 throw errors[0];
             }
+            this._confirmedDeviceId = deviceId;
             logger.info(`Audio output set to ${deviceId}, ${failed.length} track(s) did not switch`);
 
             return failed;
+        } catch (error) {
+            // A failed change goes back to the last device a change succeeded on; an ended one leaves that to the
+            // newer change.
+            if (selection === this._selection) {
+                this._deviceId = this._confirmedDeviceId;
+                this._reconcile();
+            }
+
+            throw error;
         } finally {
             this._changing = false;
+            this._supersede = undefined;
 
             // A device list that changed during this change is handled now, or by a newer change that is waiting.
             const devices = this._pendingDevices;
@@ -100,6 +118,22 @@ export class AudioOutputManager {
                 this._pendingDevices = undefined;
                 this.onDeviceListChanged(devices);
             }
+        }
+    }
+
+    /**
+     * Moves an element to the selected device when a switch to another device settled after the selection changed,
+     * e.g. an attach or an ended change that was still in flight. A switch that failed on the selected device isn't
+     * repeated, it would only fail again.
+     *
+     * @param {HTMLMediaElement} element - The element.
+     * @param {string} deviceId - The device the switch was for.
+     * @returns {void}
+     */
+    private _followSelection(element: HTMLMediaElement, deviceId: string): void {
+        if (!isSameDevice(deviceId, this._deviceId) && this._elements.has(element)
+                && !isSinkApplied(element, this._deviceId)) {
+            this._switchElement(element, this._deviceId).catch(() => undefined);
         }
     }
 
@@ -162,12 +196,14 @@ export class AudioOutputManager {
 
     /**
      * Switches every element to a device and reports each track's outcome with
-     * {@link JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED} and {@link JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED}.
+     * {@link JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED} and {@link JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED},
+     * unless a newer change has ended the one it was for.
      *
      * @param {string} deviceId - The device id.
+     * @param {number} selection - The number of the change it is for.
      * @returns {Promise<ISwitchResult>}
      */
-    private async _switchAll(deviceId: string): Promise<ISwitchResult> {
+    private async _switchAll(deviceId: string, selection: number): Promise<ISwitchResult> {
         const entries = [ ...this._elements ];
         const results = await Promise.allSettled(entries.map(([ element ]) => this._switchElement(element, deviceId)));
         const errors: Error[] = [];
@@ -184,8 +220,10 @@ export class AudioOutputManager {
                 track && !failures.has(track) && failures.set(track, result.reason);
             }
         });
-        switched.forEach(track => track.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED, deviceId));
-        failures.forEach((error, track) => track.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED, error));
+        if (selection === this._selection) {
+            switched.forEach(track => track.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED, deviceId));
+            failures.forEach((error, track) => track.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED, error));
+        }
 
         return {
             errors,
@@ -228,7 +266,8 @@ export class AudioOutputManager {
                 this._reload(element, stream, error);
 
                 throw error;
-            });
+            })
+            .finally(() => this._followSelection(element, deviceId));
     }
 
     /**
@@ -300,22 +339,24 @@ export class AudioOutputManager {
                 && !devices.some(device => device.kind === 'audiooutput' && device.deviceId === this._deviceId)) {
             return;
         }
-        this._switchAll(this._deviceId)
+        this._switchAll(this._deviceId, this._selection)
             .catch(error => logger.warn('Failed to switch the audio output after the devices changed', error));
     }
 
     /**
-     * Selects an audio output device and switches every element to it. Changes run one after the other.
+     * Selects an audio output device and switches every element to it. A newer change ends this one, which then
+     * rejects with an error named SupersededError; its switches still in flight are moved to the newer device.
      *
      * @param {string} deviceId - The device id, 'default' for the default device.
      * @returns {Promise<JitsiTrack[]>} - Resolves with the tracks that still play out of the previous device, [] when
-     * every element switched. Rejected, with nothing changed, when the device cannot be used or no element could be
-     * switched to it, and with an error named SupersededError when a newer change replaced it before it started.
+     * every element switched. Rejected, with the last device a change succeeded on kept, when the device cannot be
+     * used or no element could be switched to it.
      */
     public setDevice(deviceId: string): Promise<JitsiTrack[]> {
         const selection = ++this._selection;
         const change = this._queue.then(() => this._changeDevice(deviceId, selection));
 
+        this._supersede?.();
         this._queue = change.catch(() => undefined);
 
         return change;

@@ -278,9 +278,8 @@ export default class JitsiMediaDevices extends Listenable {
      * @returns {Promise} - resolves when audio output is changed, is rejected
      *      otherwise. With the audio output manager (config audioOutput.manager), resolves once every audio element
      *      has switched, with the tracks that still play out of the previous device ([] when all switched), and is
-     *      rejected, with nothing changed, when the device cannot be used or no element could be switched to it. Changes
-     *      then run one after the other, and one that a newer change replaced before it started rejects with an error
-     *      named SupersededError.
+     *      rejected, with nothing changed, when the device cannot be used or no element could be switched to it.
+     *      A newer change then ends the running one, which rejects with an error named SupersededError.
      */
     setAudioOutputDevice(deviceId: string): Promise<JitsiTrack[] | void> {
         return RTC.setAudioOutputDevice(deviceId);
