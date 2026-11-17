@@ -3,6 +3,15 @@ import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { AudioOutputManager } from './AudioOutputManager';
 import JitsiTrack from './JitsiTrack';
 
+interface IFakeElement {
+    id: string;
+    paused: boolean;
+    play: jasmine.Spy;
+    setSinkId: jasmine.Spy;
+    sinkId: string;
+    srcObject: MediaStream | null;
+}
+
 describe('AudioOutputManager', () => {
     const audio = { getAudioTracks: () => [ {} ] } as unknown as MediaStream;
     const video = { getAudioTracks: () => [] } as unknown as MediaStream;
@@ -11,21 +20,25 @@ describe('AudioOutputManager', () => {
     let manager: AudioOutputManager;
     let probe: jasmine.Spy;
 
-    function element(id: string, setSinkId?: (sinkId: string) => Promise<void>): any {
-        const el: any = {
+    function element(id: string, setSinkId?: (sinkId: string) => Promise<void>): IFakeElement {
+        const el: IFakeElement = {
             id,
             paused: true,
             play: jasmine.createSpy('play').and.returnValue(Promise.resolve()),
+            setSinkId: jasmine.createSpy('setSinkId'),
             sinkId: '',
             srcObject: null
         };
 
-        el.setSinkId = jasmine.createSpy('setSinkId').and.callFake((sinkId: string) =>
-            (setSinkId?.(sinkId) ?? Promise.resolve()).then(() => {
-                el.sinkId = sinkId;
-            }));
+        el.setSinkId.and.callFake((sinkId: string) => (setSinkId?.(sinkId) ?? Promise.resolve()).then(() => {
+            el.sinkId = sinkId;
+        }));
 
         return el;
+    }
+
+    function attach(el: IFakeElement, stream: MediaStream | null, t?: JitsiTrack) {
+        return manager.attach(el as unknown as HTMLMediaElement, stream, t);
     }
 
     function track(): JitsiTrack {
@@ -51,15 +64,15 @@ describe('AudioOutputManager', () => {
         const el = element('a');
         const videoEl = element('v');
 
-        await manager.attach(el, audio, track());
-        await manager.attach(videoEl, video);
+        await attach(el, audio, track());
+        await attach(videoEl, video);
         expect(el.setSinkId).not.toHaveBeenCalled();
 
         expect(await manager.setDevice('speaker-2')).toEqual([]);
         expect(el.setSinkId).toHaveBeenCalledOnceWith('speaker-2');
         expect(videoEl.setSinkId).not.toHaveBeenCalled();
 
-        await manager.attach(el, null);
+        await attach(el, null);
         await manager.setDevice('speaker-3');
         expect(el.setSinkId).toHaveBeenCalledTimes(1);
     });
@@ -67,7 +80,7 @@ describe('AudioOutputManager', () => {
     it('moves a reused element that is on another output back to the default', async () => {
         const el = Object.assign(element('a'), { sinkId: 'speaker-2' });
 
-        await manager.attach(el, audio);
+        await attach(el, audio);
 
         expect(el.setSinkId).toHaveBeenCalledOnceWith('');
     });
@@ -76,7 +89,7 @@ describe('AudioOutputManager', () => {
         const el = element('a');
 
         await manager.setDevice('speaker-2');
-        await manager.attach(el, audio);
+        await attach(el, audio);
 
         expect(el.setSinkId).toHaveBeenCalledOnceWith('speaker-2');
         expect(manager.getDevice()).toBe('speaker-2');
@@ -87,8 +100,8 @@ describe('AudioOutputManager', () => {
         const switched = track();
         const failing = track();
 
-        await manager.attach(element('a'), audio, switched);
-        await manager.attach(element('b', () => Promise.reject(error)), audio, failing);
+        await attach(element('a'), audio, switched);
+        await attach(element('b', () => Promise.reject(error)), audio, failing);
 
         expect(await manager.setDevice('speaker-2')).toEqual([ failing ]);
         expect(manager.getDevice()).toBe('speaker-2');
@@ -99,7 +112,7 @@ describe('AudioOutputManager', () => {
     it('rejects and keeps the previous device when no element could switch', async () => {
         const error = aborted();
 
-        await manager.attach(element('a', () => Promise.reject(error)), audio, track());
+        await attach(element('a', () => Promise.reject(error)), audio, track());
 
         await expectAsync(manager.setDevice('speaker-2')).toBeRejectedWith(error);
         expect(manager.getDevice()).toBe('default');
@@ -110,7 +123,7 @@ describe('AudioOutputManager', () => {
         const el = element('a');
 
         probe.and.returnValue(Promise.reject(error));
-        await manager.attach(el, audio);
+        await attach(el, audio);
 
         await expectAsync(manager.setDevice('speaker-2')).toBeRejectedWith(error);
         expect(el.setSinkId).not.toHaveBeenCalled();
@@ -120,8 +133,8 @@ describe('AudioOutputManager', () => {
     it('counts a switch that does not settle within the switch timeout as failed', async () => {
         const hanging = track();
 
-        await manager.attach(element('a'), audio, track());
-        await manager.attach(element('b', () => new Promise(() => undefined)), audio, hanging);
+        await attach(element('a'), audio, track());
+        await attach(element('b', () => new Promise(() => undefined)), audio, hanging);
 
         expect(await manager.setDevice('speaker-2')).toEqual([ hanging ]);
         expect(hanging.emit).toHaveBeenCalledWith(
@@ -132,7 +145,7 @@ describe('AudioOutputManager', () => {
         const late = deferred();
         const el = element('a', sinkId => sinkId === 'speaker-2' ? late.promise : Promise.resolve());
 
-        await manager.attach(el, audio);
+        await attach(el, audio);
         await expectAsync(manager.setDevice('speaker-2'))
             .toBeRejectedWith(jasmine.objectContaining({ name: 'TimeoutError' }));
 
@@ -143,10 +156,10 @@ describe('AudioOutputManager', () => {
         expect(el.sinkId).toBe('');
     });
 
-    it('does not revert a newer selection', async () => {
+    it('runs overlapping changes one after the other', async () => {
         const el = element('a', sinkId => sinkId === 'speaker-2' ? new Promise(() => undefined) : Promise.resolve());
 
-        await manager.attach(el, audio);
+        await attach(el, audio);
 
         const first = manager.setDevice('speaker-2');
 
@@ -157,14 +170,166 @@ describe('AudioOutputManager', () => {
         expect(manager.getDevice()).toBe('speaker-3');
     });
 
-    it('switches the elements again only when the audio outputs change', async () => {
-        const mic = { deviceId: 'mic', groupId: 'g1', kind: 'audioinput', label: 'Mic' } as MediaDeviceInfo;
-        const speaker = { deviceId: 'speaker-2', groupId: 'g2', kind: 'audiooutput', label: 'Speaker' } as MediaDeviceInfo;
-        const headset = { deviceId: 'headset', groupId: 'g3', kind: 'audiooutput', label: 'Headset' } as MediaDeviceInfo;
+    it('does not leave the elements on the device of a change that a newer one followed', async () => {
+        const slow = deferred();
+        const el = element('a', sinkId => sinkId === 'speaker-2' ? slow.promise : Promise.resolve());
+
+        await attach(el, audio);
+
+        const first = manager.setDevice('speaker-2');
+
+        await tick();
+
+        const second = manager.setDevice('default');
+
+        slow.resolve();
+        expect(await first).toEqual([]);
+        expect(await second).toEqual([]);
+
+        expect(manager.getDevice()).toBe('default');
+        expect(el.sinkId).toBe('');
+    });
+
+    it('keeps the device selected before two overlapping changes that both fail', async () => {
+        const el = element('a', sinkId => {
+            if (sinkId === 'speaker-2') {
+                return new Promise(() => undefined);
+            }
+
+            return sinkId === 'speaker-3' ? Promise.reject(aborted()) : Promise.resolve();
+        });
+
+        await attach(el, audio);
+
+        const first = manager.setDevice('speaker-2');
+
+        await tick();
+
+        await expectAsync(manager.setDevice('speaker-3'))
+            .toBeRejectedWith(jasmine.objectContaining({ name: 'AbortError' }));
+        await expectAsync(first).toBeRejectedWith(jasmine.objectContaining({ name: 'TimeoutError' }));
+        expect(manager.getDevice()).toBe('default');
+    });
+
+    it('keeps the device selected before a change that hangs and a newer one that cannot be used', async () => {
+        const el = element('a', sinkId => sinkId === 'speaker-2' ? new Promise(() => undefined) : Promise.resolve());
+
+        probe.and.callFake((sinkId: string) => sinkId === 'speaker-3'
+            ? Promise.reject(new DOMException('not found', 'NotFoundError')) : Promise.resolve());
+        await attach(el, audio);
+
+        const first = manager.setDevice('speaker-2');
+
+        await tick();
+
+        await expectAsync(manager.setDevice('speaker-3'))
+            .toBeRejectedWith(jasmine.objectContaining({ name: 'NotFoundError' }));
+        await expectAsync(first).toBeRejected();
+        expect(manager.getDevice()).toBe('default');
+    });
+
+    it('checks a device again after a change to it was reverted', async () => {
         const el = element('a', () => Promise.reject(aborted()));
 
-        await manager.attach(element('b'), audio);
-        await manager.attach(el, audio);
+        // Like a real element, the check element keeps the device it switched to.
+        probe.and.callFake(function(this: HTMLMediaElement, sinkId: string) {
+            Object.defineProperty(this, 'sinkId', { configurable: true, value: sinkId });
+
+            return Promise.resolve();
+        });
+        await attach(el, audio);
+        await expectAsync(manager.setDevice('speaker-2')).toBeRejected();
+        await attach(el, null);
+
+        probe.and.returnValue(Promise.reject(new DOMException('not found', 'NotFoundError')));
+
+        await expectAsync(manager.setDevice('speaker-2'))
+            .toBeRejectedWith(jasmine.objectContaining({ name: 'NotFoundError' }));
+    });
+
+    it('reports a switch that lands on the selected device after the time limit', async () => {
+        const late = deferred();
+        const lateTrack = track();
+
+        await attach(element('a'), audio, track());
+        await attach(element('b', () => late.promise), audio, lateTrack);
+
+        expect(await manager.setDevice('speaker-2')).toEqual([ lateTrack ]);
+        late.resolve();
+        await tick();
+
+        expect(lateTrack.emit).toHaveBeenCalledWith(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_CHANGED, 'speaker-2');
+    });
+
+    it('does not switch the elements again when the devices change during a change', async () => {
+        const slow = deferred();
+        const el = element('a', () => slow.promise);
+        const speaker = {
+            deviceId: 'speaker-2',
+            groupId: 'g2',
+            kind: 'audiooutput',
+            label: 'Speaker'
+        } as MediaDeviceInfo;
+
+        await attach(el, audio, track());
+
+        const change = manager.setDevice('speaker-2');
+
+        await tick();
+        manager.onDeviceListChanged([ speaker ]);
+        slow.resolve();
+        await change;
+
+        expect(el.setSinkId).toHaveBeenCalledOnceWith('speaker-2');
+    });
+
+    it('rejects a change that a newer one replaced before it started with SupersededError', async () => {
+        const gate = deferred();
+
+        probe.and.callFake((sinkId: string) => sinkId === 'speaker-2' ? gate.promise : Promise.resolve());
+
+        const first = manager.setDevice('speaker-2');
+
+        await tick();
+
+        const second = manager.setDevice('speaker-3');
+        const third = manager.setDevice('speaker-4');
+
+        gate.resolve();
+
+        expect(await first).toEqual([]);
+        await expectAsync(second).toBeRejectedWith(jasmine.objectContaining({ name: 'SupersededError' }));
+        expect(await third).toEqual([]);
+        expect(manager.getDevice()).toBe('speaker-4');
+    });
+
+    it('applies only the last of the changes requested at once', async () => {
+        const first = manager.setDevice('speaker-2');
+        const second = manager.setDevice('speaker-3');
+
+        await expectAsync(first).toBeRejectedWith(jasmine.objectContaining({ name: 'SupersededError' }));
+        expect(await second).toEqual([]);
+        expect(manager.getDevice()).toBe('speaker-3');
+    });
+
+    it('switches the elements again only when the audio outputs change', async () => {
+        const mic = { deviceId: 'mic', groupId: 'g1', kind: 'audioinput', label: 'Mic' } as MediaDeviceInfo;
+        const speaker = {
+            deviceId: 'speaker-2',
+            groupId: 'g2',
+            kind: 'audiooutput',
+            label: 'Speaker'
+        } as MediaDeviceInfo;
+        const headset = {
+            deviceId: 'headset',
+            groupId: 'g3',
+            kind: 'audiooutput',
+            label: 'Headset'
+        } as MediaDeviceInfo;
+        const el = element('a', () => Promise.reject(aborted()));
+
+        await attach(element('b'), audio);
+        await attach(el, audio);
         await manager.setDevice('speaker-2');
 
         // The selected output is not in the list, the application picks another one.
@@ -186,8 +351,8 @@ describe('AudioOutputManager', () => {
         const el = element('a', () => Promise.reject(aborted()));
         const assigned: Array<MediaStream | null> = [];
 
-        await manager.attach(element('b'), audio);
-        await manager.attach(el, audio);
+        await attach(element('b'), audio);
+        await attach(el, audio);
         el.paused = false;
         Object.defineProperty(el, 'srcObject', {
             get: () => assigned.length ? assigned[assigned.length - 1] : audio,
@@ -204,8 +369,8 @@ describe('AudioOutputManager', () => {
         const el = element('a', () => Promise.reject(new DOMException('not found', 'NotFoundError')));
         const assigned: Array<MediaStream | null> = [];
 
-        await manager.attach(element('b'), audio);
-        await manager.attach(el, audio);
+        await attach(element('b'), audio);
+        await attach(el, audio);
         el.paused = false;
         Object.defineProperty(el, 'srcObject', {
             get: () => audio,
@@ -228,8 +393,8 @@ describe('AudioOutputManager', () => {
         });
         const assigned: Array<MediaStream | null> = [];
 
-        await manager.attach(element('b'), audio);
-        await manager.attach(el, audio);
+        await attach(element('b'), audio);
+        await attach(el, audio);
         el.paused = false;
         Object.defineProperty(el, 'srcObject', {
             get: () => current,
