@@ -283,6 +283,37 @@ describe('AudioOutputManager', () => {
         expect(el.setSinkId).toHaveBeenCalledOnceWith('speaker-2');
     });
 
+    it('switches the elements again after a change when the devices changed during it', async () => {
+        const slow = deferred();
+        let ready = false;
+        const failing = element('a', () => ready ? Promise.resolve() : Promise.reject(aborted()));
+        const speaker = {
+            deviceId: 'speaker-2',
+            groupId: 'g2',
+            kind: 'audiooutput',
+            label: 'Speaker'
+        } as MediaDeviceInfo;
+
+        await attach(failing, audio, track());
+        await attach(element('b', () => slow.promise), audio, track());
+
+        const change = manager.setDevice('speaker-2');
+
+        await tick();
+
+        // Like a Bluetooth headset that becomes ready while the switch is still running.
+        ready = true;
+        manager.onDeviceListChanged([ speaker ]);
+        expect(failing.setSinkId).toHaveBeenCalledTimes(1);
+
+        slow.resolve();
+        await change;
+        await tick();
+
+        expect(failing.setSinkId).toHaveBeenCalledTimes(2);
+        expect(failing.sinkId).toBe('speaker-2');
+    });
+
     it('rejects a change that a newer one replaced before it started with SupersededError', async () => {
         const gate = deferred();
 

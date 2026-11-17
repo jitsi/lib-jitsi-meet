@@ -45,6 +45,7 @@ export class AudioOutputManager {
     private _deviceId = 'default';
     private _elements = new Map<HTMLMediaElement, JitsiTrack | undefined>();
     private _enabled = false;
+    private _pendingDevices?: MediaDeviceInfo[];
     private _queue: Promise<unknown> = Promise.resolve();
     private _selection = 0;
     private _switchTimeout = DEFAULT_SWITCH_TIMEOUT;
@@ -91,6 +92,14 @@ export class AudioOutputManager {
             return failed;
         } finally {
             this._changing = false;
+
+            // A device list that changed during this change is handled now, or by a newer change that is waiting.
+            const devices = this._pendingDevices;
+
+            if (devices && selection === this._selection) {
+                this._pendingDevices = undefined;
+                this.onDeviceListChanged(devices);
+            }
         }
     }
 
@@ -272,6 +281,13 @@ export class AudioOutputManager {
      * @returns {void}
      */
     public onDeviceListChanged(devices: MediaDeviceInfo[] = []): void {
+        // Handled once the running change has finished, so that the elements aren't switched twice meanwhile.
+        if (this._changing) {
+            this._pendingDevices = devices;
+
+            return;
+        }
+
         const audioOutputsKey = getAudioOutputsKey(devices);
 
         if (audioOutputsKey === this._audioOutputsKey) {
@@ -279,11 +295,9 @@ export class AudioOutputManager {
         }
         this._audioOutputsKey = audioOutputsKey;
 
-        // A running change switches every element itself. The selected output was unplugged; the application picks
-        // another one.
-        if (this._changing
-                || (!isDefault(this._deviceId)
-                    && !devices.some(device => device.kind === 'audiooutput' && device.deviceId === this._deviceId))) {
+        // The selected output was unplugged; the application picks another one.
+        if (!isDefault(this._deviceId)
+                && !devices.some(device => device.kind === 'audiooutput' && device.deviceId === this._deviceId)) {
             return;
         }
         this._switchAll(this._deviceId)
