@@ -7,7 +7,7 @@ import RandomUtil from '../util/RandomUtil';
 import { findAll, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
 import ConnectionPlugin from './ConnectionPlugin';
-import { expandSourcesFromJson } from './JingleHelperFunctions';
+import { JINGLE_SELECTOR, expandSourcesFromJson } from './JingleHelperFunctions';
 import JingleSessionPC from './JingleSessionPC';
 import { handleStropheError } from './StropheErrorHandler';
 
@@ -127,7 +127,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * @param iq
      */
     onJingle(iq) {
-        const jingleElement = findFirst(iq, ':scope>jingle');
+        const jingleElement = findFirst(iq, JINGLE_SELECTOR);
         const sid = getAttribute(jingleElement, 'sid');
         const action = getAttribute(jingleElement, 'action');
         const fromJid = getAttribute(iq, 'from');
@@ -198,7 +198,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
 
-        const jsonMessages = findAll(iq, ':scope>jingle>json-message');
+        const jsonMessages = findAll(iq, `${JINGLE_SELECTOR}>json-message`);
 
         if (jsonMessages?.length) {
             let audioVideoSsrcs;
@@ -251,7 +251,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             const ssrcs = [];
 
             // Extract the SSRCs from the session-accept received from a p2p peer.
-            findAll(iq, ':scope>jingle>content').forEach(content => {
+            findAll(iq, `${JINGLE_SELECTOR}>content`).forEach(content => {
                 const ssrc = getAttribute(findFirst(content, ':scope>description'), 'ssrc');
 
                 ssrc && ssrcs.push(ssrc);
@@ -267,7 +267,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         }
         case 'transport-info': {
-            const transportElement = findFirst(iq, ':scope>jingle>content>transport');
+            const transportElement = findFirst(iq, `${JINGLE_SELECTOR}>content>transport`);
             const candidates = _parseIceCandidates(transportElement);
 
             logger.debug(`Received ${action} from ${fromJid} for candidates=${candidates.join(', ')}`);
@@ -289,13 +289,13 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             let reasonCondition = null;
             let reasonText = null;
 
-            const reasonElement = findFirst(iq, ':scope>jingle>reason');
+            const reasonElement = findFirst(iq, `${JINGLE_SELECTOR}>reason`);
 
             if (reasonElement) {
                 const firstReasonChild = reasonElement.children?.length > 0 ? reasonElement.children[0] : undefined;
 
                 reasonCondition = firstReasonChild ? firstReasonChild.tagName : null;
-                reasonText = getText(findFirst(iq, ':scope>jingle>reason>text'));
+                reasonText = getText(findFirst(iq, `${JINGLE_SELECTOR}>reason>text`));
             }
 
             logger.debug(`Received ${action} from ${fromJid} disconnect reason=${reasonText}`);
@@ -307,10 +307,10 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             logger.error(`Ignoring ${action} from ${fromJid} as it is not supported by the client.`);
             break;
         case 'source-add':
-            sess.addRemoteStream(findAll(iq, ':scope>jingle>content'));
+            sess.addRemoteStream(findAll(iq, `${JINGLE_SELECTOR}>content`));
             break;
         case 'source-remove':
-            sess.removeRemoteStream(findAll(iq, ':scope>jingle>content'));
+            sess.removeRemoteStream(findAll(iq, `${JINGLE_SELECTOR}>content`));
             break;
         default:
             logger.warn('jingle action not implemented', action);

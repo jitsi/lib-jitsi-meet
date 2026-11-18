@@ -823,7 +823,7 @@ export default class ChatRoom extends Listenable {
     onPresence(pres: Element): void {
         const from = pres.getAttribute('from');
         const member: IRoomMember = {};
-        const statusEl = pres.getElementsByTagName('status')[0];
+        const statusEl = findFirst(pres, ':scope>status');
 
         if (statusEl) {
             member.status = statusEl.textContent || '';
@@ -1177,6 +1177,7 @@ export default class ChatRoom extends Listenable {
                 break;
             }
             case 'etherpad':
+            case 'jibri-sip-call-state':
                 if (member.isFocus) {
                     this._processNode(node, from);
                 }
@@ -2576,7 +2577,7 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = findFirst(iq, 'mute');
+        const mute = findFirst(iq, ':scope>mute[*|xmlns="http://jitsi.org/jitmeet/audio"]');
 
         if (getText(mute) === 'true') {
             this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));
@@ -2675,7 +2676,7 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = findFirst(iq, 'mute');
+        const mute = findFirst(iq, ':scope>mute[*|xmlns="http://jitsi.org/jitmeet/video"]');
 
         if (getText(mute) === 'true') {
             this.eventEmitter.emit(XMPPEvents.VIDEO_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));
@@ -2702,7 +2703,7 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = findFirst(iq, 'mute');
+        const mute = findFirst(iq, ':scope>mute[*|xmlns="http://jitsi.org/jitmeet/desktop"]');
 
         if (getText(mute) === 'true') {
             this.eventEmitter.emit(XMPPEvents.DESKTOP_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));

@@ -57,19 +57,11 @@ export default class VideoSIPGW {
      *
      * @param {Object} node the presence node Object to handle.
      * Object representing part of the presence received over xmpp.
-     * @param {string} _resource - The resource of the sender.
-     * @param {string} from - The full MUC JID of the sender. Only the focus publishes the state of a SIP call.
      */
-    handleJibriSIPState(node: { attributes?: INodeAttributes; }, _resource?: string, from?: string): void {
+    handleJibriSIPState(node: { attributes?: INodeAttributes; }): void {
         const attributes = node.attributes;
 
         if (!attributes) {
-            return;
-        }
-
-        if (!this.chatRoom.isFocus(from)) {
-            logger.warn(`Ignoring the Video SIP GW state from a participant that is not the focus: ${from}`);
-
             return;
         }
 

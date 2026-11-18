@@ -162,4 +162,143 @@ describe('ChatRoom - elements that are read as direct children', () => {
             expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.MESSAGE_MODERATED, 'msg-1', 'direct');
         });
     });
+
+    describe('onPresence', () => {
+        beforeEach(() => createRoom());
+
+        it('takes the status from a direct child of the presence', () => {
+            const pres = parse('' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension"><status>nested</status></extension>' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="member" role="participant"/>' +
+                        '<status code="100"/>' +
+                    '</x>' +
+                '</presence>');
+
+            room.onPresence(pres);
+
+            const joined = emitterSpy.calls.allArgs().find(args => args[0] === XMPPEvents.MUC_MEMBER_JOINED);
+
+            expect(joined[6]).toBeUndefined();
+        });
+
+        it('takes the status from the direct status child when there are several', () => {
+            const pres = parse('' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension"><status>nested</status></extension>' +
+                    '<status>direct</status>' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="member" role="participant"/>' +
+                    '</x>' +
+                '</presence>');
+
+            room.onPresence(pres);
+
+            const joined = emitterSpy.calls.allArgs().find(args => args[0] === XMPPEvents.MUC_MEMBER_JOINED);
+
+            expect(joined[6]).toBe('direct');
+        });
+
+        it('reads the permission entries as direct children of the permissions element', () => {
+            const pres = parse('' +
+                `<presence to="tojid" from="${room.myroomjid}">` +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="me@example.org/res" affiliation="owner" role="moderator"/>' +
+                        '<status code="110"/>' +
+                    '</x>' +
+                    '<permissions xmlns="http://jitsi.org/jitmeet">' +
+                        '<p name="direct" val="1"/>' +
+                        '<wrapper><p name="nested" val="2"/></wrapper>' +
+                    '</permissions>' +
+                '</presence>');
+
+            (room as any).options.disableDiscoInfo = true;
+            room.onPresence(pres);
+
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.PERMISSIONS_RECEIVED, { direct: '1' });
+        });
+    });
+
+    describe('onPresence with a configured focus jid', () => {
+        let handler: jasmine.Spy;
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({ options: { focusUserJid: 'focus@auth.example.org' } } as any),
+                options: {},
+                addListener: () => {} // eslint-disable-line no-empty-function
+            };
+
+            room = new ChatRoom({} as XmppConnection, 'jid', 'password', xmpp as any, {});
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+            handler = jasmine.createSpy('handler');
+            room.addPresenceListener('jibri-sip-call-state', handler);
+        });
+
+        /**
+         * Builds the presence of a member that has a jibri-sip-call-state node.
+         *
+         * @param {string} jid - The real JID of the member.
+         * @returns {Element}
+         */
+        function sipStatePresence(jid: string): Element {
+            return parse('' +
+                '<presence to="tojid" from="room@conference.example.org/member">' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        `<item jid="${jid}" affiliation="member" role="participant"/>` +
+                    '</x>' +
+                    '<jibri-sip-call-state state="on" sipaddress="sip@example.org"/>' +
+                '</presence>');
+        }
+
+        it('passes the SIP call state of the focus to the listeners', () => {
+            room.onPresence(sipStatePresence('focus@auth.example.org/focus'));
+
+            expect(handler).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not pass the SIP call state of another participant to the listeners', () => {
+            room.onPresence(sipStatePresence('user@example.org/res'));
+
+            expect(handler).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('mute requests from the focus', () => {
+        beforeEach(() => {
+            createRoom();
+            (room as any).focusMucJid = 'room@conference.example.org/focus';
+        });
+
+        for (const [ handlerName, kind, event ] of [
+            [ 'onMute', 'audio', XMPPEvents.AUDIO_MUTED_BY_FOCUS ],
+            [ 'onMuteVideo', 'video', XMPPEvents.VIDEO_MUTED_BY_FOCUS ],
+            [ 'onMuteDesktop', 'desktop', XMPPEvents.DESKTOP_MUTED_BY_FOCUS ]
+        ]) {
+            it(`reads the ${kind} mute element that is a direct child of the iq`, () => {
+                const iq = parse('' +
+                    '<iq type="set" from="room@conference.example.org/focus" xmlns="jabber:client">' +
+                        `<wrapper xmlns="http://jitsi.org/jitmeet/${kind}"><mute actor="nested">false</mute></wrapper>` +
+                        `<mute xmlns="http://jitsi.org/jitmeet/${kind}" actor="direct">true</mute>` +
+                    '</iq>');
+
+                (room as any)[handlerName](iq);
+
+                expect(emitterSpy).toHaveBeenCalledWith(event, 'direct');
+            });
+
+            it(`ignores a mute element of another namespace in the ${kind} request`, () => {
+                const iq = parse('' +
+                    '<iq type="set" from="room@conference.example.org/focus" xmlns="jabber:client">' +
+                        '<mute xmlns="urn:example:other" actor="other">true</mute>' +
+                        `<mute xmlns="http://jitsi.org/jitmeet/${kind}" actor="direct">true</mute>` +
+                    '</iq>');
+
+                (room as any)[handlerName](iq);
+
+                expect(emitterSpy).toHaveBeenCalledWith(event, 'direct');
+            });
+        }
+    });
 });

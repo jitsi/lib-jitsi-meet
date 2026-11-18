@@ -205,7 +205,7 @@ Strophe.addConnectionPlugin('disco',
      */
     _onDiscoInfo: function(stanza)
     {
-        var query = findFirst(stanza, ':scope>query');
+        var query = findFirst(stanza, ':scope>query[*|xmlns="' + Strophe.NS.DISCO_INFO + '"]');
         if (!query)
         {
             return this._replyBadRequest(stanza);
@@ -241,7 +241,7 @@ Strophe.addConnectionPlugin('disco',
     _onDiscoItems: function(stanza)
     {
         var query_attrs = {xmlns: Strophe.NS.DISCO_ITEMS};
-        var query = findFirst(stanza, ':scope>query');
+        var query = findFirst(stanza, ':scope>query[*|xmlns="' + Strophe.NS.DISCO_ITEMS + '"]');
         if (!query)
         {
             return this._replyBadRequest(stanza);

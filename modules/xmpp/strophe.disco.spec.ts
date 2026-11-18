@@ -57,6 +57,18 @@ describe('strophe.disco', () => {
                 expect(sendSpy.calls.mostRecent().args[0].getAttribute('type')).toBe('error');
             });
 
+            it('does not use a query of another namespace', () => {
+                const iq = parse('' +
+                    '<iq type="get" id="4" from="peer" xmlns="jabber:client">' +
+                        '<query xmlns="urn:example:other" node="other"/>' +
+                        `<other xmlns="${ns}"/>` +
+                    '</iq>');
+
+                disco[method](iq);
+
+                expect(sendSpy.calls.mostRecent().args[0].getAttribute('type')).toBe('error');
+            });
+
             it('does not use a query that is nested in another element', () => {
                 const iq = parse('' +
                     '<iq type="get" id="3" from="peer" xmlns="jabber:client">' +

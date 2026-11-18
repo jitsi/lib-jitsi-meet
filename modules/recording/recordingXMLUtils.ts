@@ -68,5 +68,5 @@ export function getHiddenDomainUpdate(presence: Element): IHiddenDomainUpdate {
  * @returns {string} The session ID of the recording session.
  */
 export function getSessionIdFromIq(response: Element): Nullable<string> {
-    return response?.getElementsByTagName('jibri')[0]?.getAttribute('session_id') ?? null;
+    return findFirst(response, ':scope>jibri')?.getAttribute('session_id') ?? null;
 }

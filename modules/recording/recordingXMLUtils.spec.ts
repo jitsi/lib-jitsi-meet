@@ -1,4 +1,4 @@
-import { getFocusRecordingUpdate, getHiddenDomainUpdate } from './recordingXMLUtils';
+import { getFocusRecordingUpdate, getHiddenDomainUpdate, getSessionIdFromIq } from './recordingXMLUtils';
 
 /**
  * Parses an XML string into the root element.
@@ -86,6 +86,23 @@ describe('recordingXMLUtils', () => {
                 mode: 'file',
                 sessionID: 'direct'
             });
+        });
+    });
+
+    describe('getSessionIdFromIq', () => {
+        it('reads the session id from a direct child of the iq', () => {
+            expect(getSessionIdFromIq(parse('' +
+                '<iq type="result">' +
+                    '<extension xmlns="urn:example:extension"><jibri session_id="nested"/></extension>' +
+                    '<jibri xmlns="http://jitsi.org/protocol/jibri" session_id="direct"/>' +
+                '</iq>'))).toBe('direct');
+        });
+
+        it('returns null when the jibri element is not a direct child of the iq', () => {
+            expect(getSessionIdFromIq(parse('' +
+                '<iq type="result">' +
+                    '<extension xmlns="urn:example:extension"><jibri session_id="nested"/></extension>' +
+                '</iq>'))).toBeNull();
         });
     });
 });
