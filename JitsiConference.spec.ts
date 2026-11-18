@@ -511,8 +511,17 @@ describe('JitsiConference', () => {
             '<jingle xmlns="urn:xmpp:jingle:1" action="session-initiate" sid="abc"><content name="0"/></jingle>',
             'text/xml').documentElement;
 
+        const NOT_A_PARTICIPANT = {
+            reason: 'security-error',
+            reasonDescription: 'Rejecting session-initiate from non-participant.'
+        };
+        const REQUIREMENTS_NOT_MET = {
+            reason: 'decline',
+            reasonDescription: 'P2P requirements not met'
+        };
+
         // The real prototype methods with only the members that _onIncomingCallP2P and _shouldBeInP2PMode use.
-        const makeConference = (participantJids: string[]) => ({
+        const makeConference = (participantJids: string[], p2pJingleSession: unknown = null) => ({
             _acceptP2PIncomingCall: jasmine.createSpy('_acceptP2PIncomingCall'),
             _buildDesiredTranslations: () => new Map(),
             _firefoxP2pEnabled: true,
@@ -528,7 +537,7 @@ describe('JitsiConference', () => {
             })),
             isP2PEnabled: () => true,
             isP2PTestModeEnabled: () => false,
-            p2pJingleSession: null,
+            p2pJingleSession,
             qualityController: {
                 audioController: {
                     getServiceIncludes: () => []
@@ -558,7 +567,7 @@ describe('JitsiConference', () => {
 
             expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
             expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
-                session, jasmine.objectContaining({ reason: 'decline' }));
+                session, jasmine.objectContaining(NOT_A_PARTICIPANT));
         });
 
         it('declines an offer from a participant that left the conference', () => {
@@ -569,7 +578,20 @@ describe('JitsiConference', () => {
 
             expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
             expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
-                session, jasmine.objectContaining({ reason: 'decline' }));
+                session, jasmine.objectContaining(NOT_A_PARTICIPANT));
+        });
+
+        it('declines an offer from a sender that is not a participant and keeps the session in progress', () => {
+            const current = { remoteJid: `${ROOM}/aaaaaaaa` };
+            const conference = makeConference([ `${ROOM}/aaaaaaaa` ], current);
+            const session = { remoteJid: 'cccccccc@example.com/resource' };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
+            expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
+                session, jasmine.objectContaining(NOT_A_PARTICIPANT));
+            expect(conference.p2pJingleSession).toBe(current);
         });
 
         it('declines an offer from a participant when there is more than one', () => {
@@ -580,7 +602,7 @@ describe('JitsiConference', () => {
 
             expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
             expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
-                session, jasmine.objectContaining({ reason: 'decline' }));
+                session, jasmine.objectContaining(REQUIREMENTS_NOT_MET));
         });
     });
 

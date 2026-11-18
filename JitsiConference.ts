@@ -1843,12 +1843,12 @@ export default class JitsiConference extends Listenable {
         if (!isFromParticipant) {
             rejectReason = {
                 errorMsg: `Received P2P "session-initiate" from ${jingleSession.remoteJid} which is not a participant`,
-                reason: 'decline',
-                reasonDescription: 'P2P requirements not met'
+                reason: 'security-error',
+                reasonDescription: 'Rejecting session-initiate from non-participant.'
             };
-
-        // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified plan).
         } else if (!peerUsesUnifiedPlan) {
+            // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified
+            // plan).
             rejectReason = {
                 errorMsg: 'P2P across two endpoints in different SDP modes is disabled',
                 reason: 'decline',
