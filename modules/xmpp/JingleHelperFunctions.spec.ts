@@ -29,7 +29,7 @@ describe('JingleHelperFunctions expandSourcesFromJson', () => {
 
         expect(ssrcs?.get('ep1')).toEqual([ '1234' ]);
         expect(iq.querySelectorAll(':scope>jingle>content[name="audio"]>description>source').length).toBe(1);
-        expect(iq.querySelectorAll(':scope>wrapper content').length).toBe(0);
+        expect(iq.getElementsByTagName('wrapper')[0].getElementsByTagName('content').length).toBe(0);
     });
 
     it('adds the sources to the description that is a direct child of the content', () => {
@@ -45,6 +45,6 @@ describe('JingleHelperFunctions expandSourcesFromJson', () => {
         expandSourcesFromJson(iq, jsonMessage);
 
         expect(iq.querySelectorAll(':scope>jingle>content[name="audio"]>description>source').length).toBe(1);
-        expect(iq.querySelectorAll('wrapper>description>source').length).toBe(0);
+        expect(iq.getElementsByTagName('wrapper')[0].getElementsByTagName('source').length).toBe(0);
     });
 });
