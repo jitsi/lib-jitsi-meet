@@ -159,11 +159,17 @@ export default class JitsiMediaDevices extends Listenable {
 
         for (const [ type, status ] of Object.entries(statuses)) {
             const current = this._permissionStatus[type];
+            const answeredAtPrompt = current?.reason === PermissionDenialReason.USER
+                && (current.state === MediaPermissionState.DENIED
+                    || Date.now() - this._userDenialTimes[type] < PROMPT_ANSWER_CHANGE_TIME);
 
             // The site is blocked once the user blocked it at the prompt, so a request that follows, e.g. a retry of
-            // each device, fails at once.
-            if (status.reason === PermissionDenialReason.BROWSER
-                    && current?.state === MediaPermissionState.DENIED && current.reason === PermissionDenialReason.USER) {
+            // each device, fails at once, possibly before the Permissions API reports the block.
+            if (status.reason === PermissionDenialReason.BROWSER && answeredAtPrompt) {
+                adjusted[type] = {
+                    reason: PermissionDenialReason.USER,
+                    state: MediaPermissionState.DENIED
+                };
                 continue;
             }
             if (status.reason === PermissionDenialReason.USER) {

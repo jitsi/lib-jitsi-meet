@@ -25,9 +25,9 @@ const logger = getLogger('rtc:RTCUtils');
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
 
 /**
- * How long to wait for the device list (in ms) when it decides why getUserMedia failed.
+ * How long to wait (in ms) for the Permissions API or the device list when deciding why getUserMedia failed.
  */
-const DEVICE_LIST_TIMEOUT = 1000;
+const DENIAL_CHECK_TIMEOUT = 1000;
 
 /**
  * The names of the devices in the Permissions API and in the permissions policy.
@@ -679,8 +679,11 @@ class RTCUtils extends Listenable {
                 return Promise.resolve(PermissionDenialReason.BROWSER);
             }
 
-            // Allowed for the site and by the policy, so only the system is left to block it.
-            if (known.length === umDevices.length && known.every(state => state === MediaPermissionState.GRANTED)) {
+            // Allowed for the site and by the policy, so only the system is left to block it. Where the page doesn't
+            // report its policy (Firefox, Safari) the policy could be the cause too.
+            if (typeof document !== 'undefined' && document.featurePolicy
+                    && known.length === umDevices.length
+                    && known.every(state => state === MediaPermissionState.GRANTED)) {
                 return Promise.resolve(PermissionDenialReason.OS);
             }
 
@@ -691,7 +694,7 @@ class RTCUtils extends Listenable {
         // Firefox on macOS reports a device blocked by the OS as not found, tell it apart from a missing device. The
         // error is also thrown while another Firefox tab captures the device.
         if (name === 'NotFoundError' && browser.isFirefox() && browser.isMacOS() && !/concurrent/i.test(message)) {
-            const timeout = new Promise(resolve => setTimeout(resolve, DEVICE_LIST_TIMEOUT));
+            const timeout = new Promise(resolve => setTimeout(resolve, DENIAL_CHECK_TIMEOUT));
 
             return Promise.race([ navigator.mediaDevices.enumerateDevices(), timeout ])
                 .then(devices => {
@@ -721,8 +724,11 @@ class RTCUtils extends Listenable {
             }
         };
 
-        return Promise.all(umDevices.map(type => query(type).then(state => [ type, state ], () => [ type ])))
+        const states = Promise.all(umDevices.map(type => query(type).then(state => [ type, state ], () => [ type ])))
             .then(entries => Object.fromEntries(entries));
+        const timeout = new Promise(resolve => setTimeout(() => resolve({}), DENIAL_CHECK_TIMEOUT));
+
+        return Promise.race([ states, timeout ]);
     }
 
     /**
@@ -761,6 +767,9 @@ class RTCUtils extends Listenable {
                     : states[type] !== MediaPermissionState.GRANTED;
             case PermissionDenialReason.POLICY:
                 return this._isBlockedByPolicy(type);
+            case PermissionDenialReason.USER:
+                // The prompt asks only for the devices that weren't granted.
+                return states[type] !== MediaPermissionState.GRANTED;
             default:
                 return true;
             }

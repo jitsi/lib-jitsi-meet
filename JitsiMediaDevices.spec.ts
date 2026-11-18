@@ -124,6 +124,28 @@ describe('JitsiMediaDevices permission status', () => {
         });
     });
 
+    it('keeps the user as the reason when a retry fails before the Permissions API reports the block', async () => {
+        apiState(MediaType.AUDIO, 'prompt', false);
+        mediaDevices._onGumPermissionStatus({
+            audio: { reason: PermissionDenialReason.USER, state: MediaPermissionState.DENIED }
+        });
+        mediaDevices._onGumPermissionStatus({
+            audio: { reason: PermissionDenialReason.BROWSER, state: MediaPermissionState.DENIED }
+        });
+
+        expect(await mediaDevices.getPermissionStatus(MediaType.AUDIO)).toEqual({
+            reason: PermissionDenialReason.USER,
+            state: MediaPermissionState.DENIED
+        });
+
+        apiState(MediaType.AUDIO, 'denied', true);
+
+        expect(await mediaDevices.getPermissionStatus(MediaType.AUDIO)).toEqual({
+            reason: PermissionDenialReason.USER,
+            state: MediaPermissionState.DENIED
+        });
+    });
+
     it('reports a later block in the site settings as a block in the browser', async () => {
         mediaDevices._onGumPermissionStatus({
             video: { reason: PermissionDenialReason.OS, state: MediaPermissionState.DENIED }

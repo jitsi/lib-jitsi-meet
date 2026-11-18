@@ -48,7 +48,9 @@ export default class JitsiTrackError extends Error {
     public gum?: IGum;
 
     /**
-     * Why access was denied, set for {@link JitsiTrackErrors.PERMISSION_DENIED} errors of getUserMedia.
+     * Why access was denied, set for {@link JitsiTrackErrors.PERMISSION_DENIED} errors of getUserMedia. To guide the
+     * user, use the status from {@code JitsiMediaDevices.getPermissionStatus()}: after a block at the prompt it stays
+     * {@code user}, while the requests that follow fail with {@code browser}.
      */
     public reason?: PermissionDenialReason;
 

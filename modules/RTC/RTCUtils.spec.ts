@@ -325,6 +325,13 @@ describe('RTCUtils', () => {
             let permissionStates: { [key: string]: string; };
 
             const denial = (message: string, name = 'NotAllowedError') => Object.assign(new Error(message), { name });
+
+            // The Permissions API answers before the mock clock moves on.
+            const settle = async () => {
+                for (let i = 0; i < 10; i++) {
+                    await Promise.resolve();
+                }
+            };
             const statuses = () => emitSpy.calls.all().find(call => call.args[0] === RTCEvents.PERMISSIONS_CHANGED)
                 ?.args[2];
 
@@ -401,6 +408,8 @@ describe('RTCUtils', () => {
 
                 const gumPromise = (RTCUtils as any)._getUserMedia([ 'video' ], {}).catch(e => e);
 
+                await settle();
+
                 // E.g. a long task during the startup delays the rejection.
                 jasmine.clock().tick(1000);
                 rejectGum?.(denial('Permission denied'));
@@ -415,6 +424,49 @@ describe('RTCUtils', () => {
                 const error = await (RTCUtils as any)._getUserMedia([ 'video' ], {}).catch(e => e);
 
                 expect(error.reason).toBe(PermissionDenialReason.OS);
+            });
+
+            it('leaves a device that was granted out of a denial at the prompt', async () => {
+                jasmine.clock().install();
+                jasmine.clock().mockDate(new Date(0));
+                permissionStates.microphone = 'granted';
+
+                let rejectGum: ((reason: unknown) => void) | undefined;
+
+                getUserMediaSpy.and.returnValue(new Promise((_resolve, reject) => {
+                    rejectGum = reject;
+                }));
+
+                const gumPromise = (RTCUtils as any)._getUserMedia([ 'audio', 'video' ], {}).catch(e => e);
+
+                await settle();
+                jasmine.clock().tick(2000);
+                rejectGum?.(denial('Permission dismissed'));
+
+                expect((await gumPromise).reason).toBe(PermissionDenialReason.USER);
+                expect(statuses()).toEqual({
+                    video: { reason: PermissionDenialReason.USER, state: MediaPermissionState.DENIED }
+                });
+            });
+
+            it('falls back to the timing for a granted device where the page doesn\'t report its policy', async () => {
+                spyOnProperty(document, 'featurePolicy', 'get').and.returnValue(undefined);
+                permissionStates.camera = 'granted';
+                getUserMediaSpy.and.returnValue(Promise.reject(denial('Permission denied')));
+
+                const error = await (RTCUtils as any)._getUserMedia([ 'video' ], {}).catch(e => e);
+
+                expect(error.reason).toBe(PermissionDenialReason.BROWSER);
+            });
+
+            it('rejects when the Permissions API doesn\'t answer', async () => {
+                (navigator.permissions.query as jasmine.Spy).and.returnValue(new Promise(() => undefined));
+                getUserMediaSpy.and.returnValue(Promise.reject(denial('Permission denied')));
+
+                const error = await (RTCUtils as any)._getUserMedia([ 'video' ], {}).catch(e => e);
+
+                expect(error.name).toBe(JitsiTrackErrors.PERMISSION_DENIED);
+                expect(error.reason).toBe(PermissionDenialReason.BROWSER);
             });
 
             it('reports a device that the permissions policy blocks', async () => {
