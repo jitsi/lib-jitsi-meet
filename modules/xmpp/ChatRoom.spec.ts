@@ -259,6 +259,88 @@ describe('ChatRoom', () => {
                 undefined); // isSilent
         });
 
+        it('reads the muc user item from the direct child of the presence', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension">' +
+                        '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                            '<item jid="nested-jid" affiliation="nested-affiliation" role="nested-role"/>' +
+                        '</x>' +
+                    '</extension>' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="affiliation-attr" role="role-attr"/>' +
+                    '</x>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                'role-attr', // role
+                jasmine.any(Boolean), // isHiddenDomain
+                undefined, // statsID
+                undefined,
+                undefined,
+                undefined,
+                'jid=attr',
+                undefined, // features
+                0, // isReplaceParticipant
+                undefined); // isSilent
+            expect((room as any).members.fromjid.affiliation).toBe('affiliation-attr');
+        });
+
+        it('reads the muc user item when an extension holds a muc user element without an item', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension">' +
+                        '<x xmlns="http://jabber.org/protocol/muc#user"/>' +
+                    '</extension>' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="affiliation-attr" role="role-attr"/>' +
+                    '</x>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                'role-attr', // role
+                jasmine.any(Boolean), // isHiddenDomain
+                undefined, // statsID
+                undefined,
+                undefined,
+                undefined,
+                'jid=attr',
+                undefined, // features
+                0, // isReplaceParticipant
+                undefined); // isSilent
+        });
+
+        it('does not add a member when the muc user element is not a direct child of the presence', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension">' +
+                        '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                            '<item jid="nested-jid" affiliation="nested-affiliation" role="nested-role"/>' +
+                        '</x>' +
+                    '</extension>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+
+            const emittedEvents = emitterSpy.calls.allArgs().map((args: any[]) => args[0]);
+
+            expect(emittedEvents).not.toContain(XMPPEvents.MUC_MEMBER_JOINED);
+            expect((room as any).members.fromjid).toBeUndefined();
+        });
+
         it('parses muc user replacing other user correctly', () => {
             const presStr = '' +
               '<presence to="tojid" from="fromjid">' +
