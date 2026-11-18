@@ -4,10 +4,16 @@ import type JitsiTrack from './modules/RTC/JitsiTrack';
 import RTC from './modules/RTC/RTC';
 import browser from './modules/browser';
 import Listenable from './modules/util/Listenable';
+import { IPermissionStatus, MediaPermissionState, PermissionDenialReason } from './service/RTC/MediaPermission';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 
 const AUDIO_PERMISSION_NAME = 'microphone' as PermissionName;
+
+/**
+ * How long (in ms) after the user's answer at the prompt a change of the Permissions API to denied is that answer.
+ */
+const PROMPT_ANSWER_CHANGE_TIME = 2000;
 const PERMISSION_GRANTED_STATUS = 'granted';
 const VIDEO_PERMISSION_NAME = 'camera' as PermissionName;
 
@@ -18,7 +24,10 @@ const VIDEO_PERMISSION_NAME = 'camera' as PermissionName;
 export default class JitsiMediaDevices extends Listenable {
     private _initialized: boolean;
     private _permissions: { [key: string]: boolean; };
+    private _permissionsApiStates: { [key: string]: PermissionState; };
     private _permissionsApiSupported: Promise<boolean>;
+    private _permissionStatus: { [key: string]: IPermissionStatus; };
+    private _userDenialTimes: { [key: string]: number; };
 
     /**
      * Initializes a `JitsiMediaDevices` object. There will be a single
@@ -28,7 +37,10 @@ export default class JitsiMediaDevices extends Listenable {
         super();
         this._initialized = false;
         this._permissions = {};
+        this._permissionsApiStates = {};
         this._permissionsApiSupported = Promise.resolve(false);
+        this._permissionStatus = {};
+        this._userDenialTimes = {};
     }
 
     /**
@@ -78,6 +90,101 @@ export default class JitsiMediaDevices extends Listenable {
     }
 
     /**
+     * Updates the permission statuses and emits {@link JitsiMediaDevicesEvents.PERMISSION_STATUS_CHANGED} when one
+     * of them changed.
+     *
+     * @param {Object} statuses - The new statuses, by media type.
+     * @returns {void}
+     */
+    private _handlePermissionStatusChange(statuses: { [key: string]: IPermissionStatus; }): void {
+        const changed = [ MediaType.AUDIO, MediaType.VIDEO ].filter(type => statuses[type]
+            && (statuses[type].state !== this._permissionStatus[type]?.state
+                || statuses[type].reason !== this._permissionStatus[type]?.reason));
+
+        if (!changed.length) {
+            return;
+        }
+
+        for (const type of changed) {
+            this._permissionStatus[type] = statuses[type];
+        }
+        this.eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSION_STATUS_CHANGED, Object.fromEntries(
+            Object.entries(this._permissionStatus).map(([ type, status ]) => [ type, { ...status } ])));
+    }
+
+    /**
+     * Updates the permission status from the state reported by the Permissions API.
+     *
+     * @param {MediaType} type - The media type.
+     * @param {PermissionStatus} status - The status from the Permissions API.
+     * @param {boolean} isChange - Whether the state changed, as opposed to being read for the first time.
+     * @returns {void}
+     */
+    private _onPermissionsApiState(type: MediaType, status: PermissionStatus, isChange: boolean): void {
+        const { state } = status;
+        const current = this._permissionStatus[type];
+
+        this._permissionsApiStates[type] = state;
+
+        // A getUserMedia result from before the first read is more accurate, e.g. the Permissions API says granted
+        // while the OS blocks the device.
+        if (!isChange && current) {
+            return;
+        }
+
+        // The change that follows a block at the prompt keeps the user as the reason, any later one is a block in the
+        // site settings.
+        const blockedAtPrompt = current?.reason === PermissionDenialReason.USER
+            && Date.now() - this._userDenialTimes[type] < PROMPT_ANSWER_CHANGE_TIME;
+
+        this._handlePermissionStatusChange({
+            [type]: state === MediaPermissionState.DENIED
+                ? {
+                    reason: blockedAtPrompt ? PermissionDenialReason.USER : PermissionDenialReason.BROWSER,
+                    state: MediaPermissionState.DENIED
+                }
+                : { state: state as MediaPermissionState }
+        });
+    }
+
+    /**
+     * Updates the permission statuses from a getUserMedia result. A user who closed the prompt without answering
+     * will see it again, so the state follows the Permissions API when it still says prompt.
+     *
+     * @param {Object} statuses - The statuses derived from the getUserMedia result, by media type.
+     * @returns {void}
+     */
+    private _onGumPermissionStatus(statuses: { [key: string]: IPermissionStatus; }): void {
+        const adjusted: { [key: string]: IPermissionStatus; } = {};
+
+        for (const [ type, status ] of Object.entries(statuses)) {
+            const current = this._permissionStatus[type];
+            const answeredAtPrompt = current?.reason === PermissionDenialReason.USER
+                && (current.state === MediaPermissionState.DENIED
+                    || Date.now() - this._userDenialTimes[type] < PROMPT_ANSWER_CHANGE_TIME);
+
+            // The site is blocked once the user blocked it at the prompt, so a request that follows, e.g. a retry of
+            // each device, fails at once, possibly before the Permissions API reports the block.
+            if (status.reason === PermissionDenialReason.BROWSER && answeredAtPrompt) {
+                adjusted[type] = {
+                    reason: PermissionDenialReason.USER,
+                    state: MediaPermissionState.DENIED
+                };
+                continue;
+            }
+            if (status.reason === PermissionDenialReason.USER) {
+                this._userDenialTimes[type] = Date.now();
+            }
+            adjusted[type] = status.reason === PermissionDenialReason.USER
+                    && this._permissionsApiStates[type] === MediaPermissionState.PROMPT
+                ? { reason: status.reason, state: MediaPermissionState.PROMPT }
+                : status;
+        }
+
+        this._handlePermissionStatusChange(adjusted);
+    }
+
+    /**
      * Initialize. Start listening for device changes and initialize permissions checks.
      * @internal
      */
@@ -97,7 +204,10 @@ export default class JitsiMediaDevices extends Listenable {
         // We would still want to update the permissions cache in case the permissions API is not supported.
         RTC.addListener(
             RTCEvents.PERMISSIONS_CHANGED,
-            permissions => this._handlePermissionsChange(permissions));
+            (permissions, statuses) => {
+                this._handlePermissionsChange(permissions);
+                statuses && this._onGumPermissionStatus(statuses);
+            });
 
         // Test if the W3C Permissions API is implemented and the 'camera' and 'microphone' permissions are
         // implemented. If supported add onchange listeners.
@@ -115,11 +225,13 @@ export default class JitsiMediaDevices extends Listenable {
                     this._handlePermissionsChange({
                         [MediaType.VIDEO]: this._parsePermissionState(status)
                     });
+                    this._onPermissionsApiState(MediaType.VIDEO, status, false);
                     status.onchange = () => {
                         try {
                             this._handlePermissionsChange({
                                 [MediaType.VIDEO]: this._parsePermissionState(status)
                             });
+                            this._onPermissionsApiState(MediaType.VIDEO, status, true);
                         } catch (error) {
                             // Nothing to do.
                         }
@@ -134,11 +246,13 @@ export default class JitsiMediaDevices extends Listenable {
                     this._handlePermissionsChange({
                         [MediaType.AUDIO]: this._parsePermissionState(status)
                     });
+                    this._onPermissionsApiState(MediaType.AUDIO, status, false);
                     status.onchange = () => {
                         try {
                             this._handlePermissionsChange({
                                 [MediaType.AUDIO]: this._parsePermissionState(status)
                             });
+                            this._onPermissionsApiState(MediaType.AUDIO, status, true);
                         } catch (error) {
                             // Nothing to do.
                         }
@@ -247,6 +361,21 @@ export default class JitsiMediaDevices extends Listenable {
                 );
             });
         });
+    }
+
+    /**
+     * Gets the permission status of a capture device, combining the Permissions API with the getUserMedia results.
+     *
+     * @param {MediaType} type - The media type, audio or video.
+     * @returns {Promise<IPermissionStatus|undefined>} - Undefined while nothing is known yet, e.g. when the
+     * Permissions API isn't supported and getUserMedia wasn't called.
+     */
+    async getPermissionStatus(type: MediaType): Promise<IPermissionStatus | undefined> {
+        await this._permissionsApiSupported;
+
+        const status = this._permissionStatus[type];
+
+        return status && { ...status };
     }
 
     /**
