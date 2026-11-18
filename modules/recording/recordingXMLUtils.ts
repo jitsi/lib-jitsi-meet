@@ -3,6 +3,8 @@
  * certain values.
  */
 
+import { findFirst } from '../util/XMLUtils';
+
 export interface IFocusRecordingUpdate {
     error?: string;
     initiator?: string;
@@ -25,7 +27,7 @@ export interface IHiddenDomainUpdate {
  * @returns {Optional<Object>} The current presence values related to recording.
  */
 export function getFocusRecordingUpdate(presence: Element): Optional<IFocusRecordingUpdate> {
-    const jibriStatus = presence?.getElementsByTagName('jibri-recording-status')[0];
+    const jibriStatus = findFirst(presence, ':scope>jibri-recording-status');
 
     if (!jibriStatus) {
         return;
@@ -48,9 +50,9 @@ export function getFocusRecordingUpdate(presence: Element): Optional<IFocusRecor
  * @returns {Object} The current presence values related to recording.
  */
 export function getHiddenDomainUpdate(presence: Element): IHiddenDomainUpdate {
-    const liveStreamViewURL = presence.getElementsByTagName('live-stream-view-url')[0]?.textContent;
-    const mode = presence.getElementsByTagName('mode')[0]?.textContent?.toLowerCase();
-    const sessionID = presence.getElementsByTagName('session_id')[0]?.textContent;
+    const liveStreamViewURL = findFirst(presence, ':scope>live-stream-view-url')?.textContent;
+    const mode = findFirst(presence, ':scope>mode')?.textContent?.toLowerCase();
+    const sessionID = findFirst(presence, ':scope>session_id')?.textContent;
 
     return {
         liveStreamViewURL,

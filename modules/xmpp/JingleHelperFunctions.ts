@@ -91,7 +91,7 @@ function _createSsrcGroupExtension(ssrcGroupCompactJson: ICompactSsrcGroup): Nod
  * @returns the RTP description element with the given media type.
  */
 function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
-    const jingle = findFirst(iq, 'jingle');
+    const jingle = findFirst(iq, ':scope>jingle');
     let content = findFirst(jingle, `:scope>content[name="${mediaType}"]`);
 
     if (!content) {
@@ -102,7 +102,7 @@ function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
         jingle?.appendChild(content);
     }
 
-    let description = findFirst(content, 'description');
+    let description = findFirst(content, ':scope>description');
 
     if (!description) {
         description = $build('description', {

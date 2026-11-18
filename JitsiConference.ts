@@ -2511,7 +2511,7 @@ export default class JitsiConference extends Listenable {
             this._pendingTranslationRequests.delete(id);
         }
 
-        const condition = getFirstChildElement(findFirst(stanza, 'error'))?.localName;
+        const condition = getFirstChildElement(findFirst(stanza, ':scope>error'))?.localName;
         const error = (Object.values(JitsiAudioTranslationErrors) as string[]).includes(condition ?? '')
             ? condition as JitsiAudioTranslationErrors
             : JitsiAudioTranslationErrors.UNKNOWN;
@@ -2553,7 +2553,7 @@ export default class JitsiConference extends Listenable {
      * @returns {boolean}
      */
     private _onTranslationListenersChanged(stanza: Element): boolean {
-        const child = findFirst(stanza, 'translation-listeners');
+        const child = findFirst(stanza, ':scope>translation-listeners');
 
         if (!child) {
             return true; // Another message from the component (e.g. an error reply handled elsewhere).

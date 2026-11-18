@@ -984,7 +984,7 @@ export default class ChatRoom extends Listenable {
                 if (permissionEl) {
                     const permissionsMap = {};
 
-                    findAll(permissionEl, 'p').forEach(p => {
+                    findAll(permissionEl, ':scope>p').forEach(p => {
                         permissionsMap[getAttribute(p, 'name')] = getAttribute(p, 'val');
                     });
 
@@ -1154,7 +1154,7 @@ export default class ChatRoom extends Listenable {
                 const { status } = attributes;
 
                 if (status && status !== this.transcriptionStatus
-                    && member.isHiddenDomain && member.features.has(FEATURE_TRANSCRIBER)) {
+                    && member.isHiddenDomain && member.features?.has(FEATURE_TRANSCRIBER)) {
                     this.transcriptionStatus = status;
                     this.eventEmitter.emit(
                         XMPPEvents.TRANSCRIPTION_STATUS_CHANGED,
@@ -1526,7 +1526,7 @@ export default class ChatRoom extends Listenable {
         const isSelfPresence = exists(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]');
         const isKick = exists(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]');
         const membersKeys = Object.keys(this.members);
-        const isReplaceParticipant = exists(pres, 'flip_device');
+        const isReplaceParticipant = exists(pres, ':scope>flip_device');
 
         if (isKick) {
             const actorSelect = findFirst(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
@@ -1592,7 +1592,7 @@ export default class ChatRoom extends Listenable {
             // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
             this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
 
-            if (member && member.isHiddenDomain && member.features.has(FEATURE_TRANSCRIBER)
+            if (member && member.isHiddenDomain && member.features?.has(FEATURE_TRANSCRIBER)
                 && this.transcriptionStatus !== JitsiTranscriptionStatus.OFF) {
                 this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
                 this.eventEmitter.emit(
@@ -1749,7 +1749,7 @@ export default class ChatRoom extends Listenable {
                     }
 
                     const messageId = getAttribute(applyToEl, 'id');
-                    const reason = getText(findFirst(moderatedEl, 'reason'));
+                    const reason = getText(findFirst(moderatedEl, ':scope>reason'));
 
                     this.eventEmitter.emit(XMPPEvents.MESSAGE_MODERATED, messageId, reason);
 
@@ -1813,11 +1813,16 @@ export default class ChatRoom extends Listenable {
                 if (isVisitorMessage) {
                     displayName = getText(displayNameEl);
 
-                    // Check for original visitor JID in addresses element (XEP-0033)
-                    const addressesEl = findFirst(msg, ':scope>addresses[*|xmlns="http://jabber.org/protocol/address"]');
+                    // Check for original visitor JID in addresses element (XEP-0033). The visitor relay appends its
+                    // own addresses element after the content that the visitor sent, so the last direct child
+                    // is the one that the relay added. An address that is deeper in the stanza does not count.
+                    const addressesEls
+                        = findAll(msg, ':scope>addresses[*|xmlns="http://jabber.org/protocol/address"]');
+                    const addressesEl = addressesEls[addressesEls.length - 1];
 
                     if (addressesEl) {
-                        const ofromEl = findFirst(addressesEl, 'address[type="ofrom"]');
+                        const ofromEls = findAll(addressesEl, ':scope>address[type="ofrom"]');
+                        const ofromEl = ofromEls[ofromEls.length - 1];
 
                         if (ofromEl) {
                             originalFrom = getAttribute(ofromEl, 'jid');

@@ -127,7 +127,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
      * @param iq
      */
     onJingle(iq) {
-        const jingleElement = findFirst(iq, 'jingle');
+        const jingleElement = findFirst(iq, ':scope>jingle');
         const sid = getAttribute(jingleElement, 'sid');
         const action = getAttribute(jingleElement, 'action');
         const fromJid = getAttribute(iq, 'from');
@@ -198,7 +198,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
 
         // see http://xmpp.org/extensions/xep-0166.html#concepts-session
 
-        const jsonMessages = findAll(iq, 'jingle>json-message');
+        const jsonMessages = findAll(iq, ':scope>jingle>json-message');
 
         if (jsonMessages?.length) {
             let audioVideoSsrcs;
@@ -251,8 +251,8 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             const ssrcs = [];
 
             // Extract the SSRCs from the session-accept received from a p2p peer.
-            findAll(iq, 'jingle>content').forEach(content => {
-                const ssrc = getAttribute(findFirst(content, 'description'), 'ssrc');
+            findAll(iq, ':scope>jingle>content').forEach(content => {
+                const ssrc = getAttribute(findFirst(content, ':scope>description'), 'ssrc');
 
                 ssrc && ssrcs.push(ssrc);
             });
@@ -267,7 +267,7 @@ export default class JingleConnectionPlugin extends ConnectionPlugin {
             break;
         }
         case 'transport-info': {
-            const transportElement = findFirst(iq, 'jingle>content>transport');
+            const transportElement = findFirst(iq, ':scope>jingle>content>transport');
             const candidates = _parseIceCandidates(transportElement);
 
             logger.debug(`Received ${action} from ${fromJid} for candidates=${candidates.join(', ')}`);
