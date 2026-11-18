@@ -831,13 +831,15 @@ export default class ChatRoom extends Listenable {
         let hasStatusUpdate = false;
         let hasVersionUpdate = false;
 
-        // The room adds the muc#user element as a direct child of the presence. An element with the same name that
-        // is deeper in the stanza belongs to another extension and does not describe the occupant.
-        const xElement = findFirst(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]');
+        // The room adds the muc#user element as a direct child of the presence, after the content that the client
+        // sent, so the last one is the element of the room. An element with the same name that is deeper in the
+        // stanza belongs to another extension and does not describe the occupant.
+        const xElements = findAll(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]');
+        const xElement = xElements[xElements.length - 1] ?? null;
         const mucUserItem = findFirst(xElement, ':scope>item');
 
-        member.isReplaceParticipant
-            = pres.getElementsByTagName('flip_device').length;
+        // The server reads and removes flip_device only as a direct child of the presence.
+        member.isReplaceParticipant = findAll(pres, ':scope>flip_device').length;
 
         member.affiliation
             = mucUserItem?.getAttribute('affiliation');
@@ -860,7 +862,7 @@ export default class ChatRoom extends Listenable {
         });
 
         // The muc#user element is already read above, so it is not one of the nodes that are processed below.
-        xElement?.remove();
+        xElements.forEach(element => element.remove());
 
         const nodes: IPresenceNode[] = [];
 
