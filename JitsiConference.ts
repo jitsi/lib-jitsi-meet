@@ -1837,9 +1837,18 @@ export default class JitsiConference extends Listenable {
         let rejectReason;
         const contentName = getAttribute(findFirst(jingleOffer, ':scope>content'), 'name');
         const peerUsesUnifiedPlan = contentName === '0' || contentName === '1';
+        const isFromParticipant = this.getParticipants().some(p => p.getJid() === jingleSession.remoteJid);
+
+        // A P2P session runs between two participants of the conference, so the offer has to come from one of them.
+        if (!isFromParticipant) {
+            rejectReason = {
+                errorMsg: `Received P2P "session-initiate" from ${jingleSession.remoteJid} which is not a participant`,
+                reason: 'decline',
+                reasonDescription: 'P2P requirements not met'
+            };
 
         // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified plan).
-        if (!peerUsesUnifiedPlan) {
+        } else if (!peerUsesUnifiedPlan) {
             rejectReason = {
                 errorMsg: 'P2P across two endpoints in different SDP modes is disabled',
                 reason: 'decline',

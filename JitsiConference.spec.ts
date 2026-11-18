@@ -7,6 +7,7 @@ import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { P2PFallbackReason } from './modules/qualitycontrol/QualityController';
 import { ReceiverAudioController } from './modules/qualitycontrol/ReceiveAudioController';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
+import Statistics from './modules/statistics/statistics';
 import EventEmitter, { EventListener } from './modules/util/EventEmitter';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import { MediaType } from './service/RTC/MediaType';
@@ -500,6 +501,86 @@ describe('JitsiConference', () => {
             proto._maybeEmitMediaConnectivity.call(conference);
 
             expect(conference.eventEmitter.emit.calls.allArgs().map(([ , e ]) => e.selectedPair.rtt)).toEqual([ 20, 5 ]);
+        });
+    });
+
+    describe('incoming P2P offer', () => {
+        const proto = JitsiConference.prototype as any;
+        const ROOM = 'room@conference.example.com';
+        const offer = new DOMParser().parseFromString(
+            '<jingle xmlns="urn:xmpp:jingle:1" action="session-initiate" sid="abc"><content name="0"/></jingle>',
+            'text/xml').documentElement;
+
+        // The real prototype methods with only the members that _onIncomingCallP2P and _shouldBeInP2PMode use.
+        const makeConference = (participantJids: string[]) => ({
+            _acceptP2PIncomingCall: jasmine.createSpy('_acceptP2PIncomingCall'),
+            _buildDesiredTranslations: () => new Map(),
+            _firefoxP2pEnabled: true,
+            _hasVisitors: false,
+            _p2pFallbackLatched: false,
+            _rejectIncomingCall: jasmine.createSpy('_rejectIncomingCall'),
+            _shouldBeInP2PMode: proto._shouldBeInP2PMode,
+            _transcribingEnabled: false,
+            getParticipants: () => participantJids.map(jid => ({
+                getBotType: () => undefined,
+                getJid: () => jid,
+                hasFeature: () => false
+            })),
+            isP2PEnabled: () => true,
+            isP2PTestModeEnabled: () => false,
+            p2pJingleSession: null,
+            qualityController: {
+                audioController: {
+                    getServiceIncludes: () => []
+                }
+            }
+        });
+
+        beforeEach(() => {
+            spyOn(Statistics, 'sendAnalytics');
+        });
+
+        it('accepts an offer from the only other participant', () => {
+            const conference = makeConference([ `${ROOM}/aaaaaaaa` ]);
+            const session = { remoteJid: `${ROOM}/aaaaaaaa` };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).toHaveBeenCalledOnceWith(session, offer);
+            expect(conference._rejectIncomingCall).not.toHaveBeenCalled();
+        });
+
+        it('declines an offer from a sender that is not a participant', () => {
+            const conference = makeConference([ `${ROOM}/aaaaaaaa` ]);
+            const session = { remoteJid: 'cccccccc@example.com/resource' };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
+            expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
+                session, jasmine.objectContaining({ reason: 'decline' }));
+        });
+
+        it('declines an offer from a participant that left the conference', () => {
+            const conference = makeConference([ `${ROOM}/aaaaaaaa` ]);
+            const session = { remoteJid: `${ROOM}/bbbbbbbb` };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
+            expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
+                session, jasmine.objectContaining({ reason: 'decline' }));
+        });
+
+        it('declines an offer from a participant when there is more than one', () => {
+            const conference = makeConference([ `${ROOM}/aaaaaaaa`, `${ROOM}/bbbbbbbb` ]);
+            const session = { remoteJid: `${ROOM}/aaaaaaaa` };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
+            expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
+                session, jasmine.objectContaining({ reason: 'decline' }));
         });
     });
 
