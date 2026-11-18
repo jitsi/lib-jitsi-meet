@@ -2078,31 +2078,30 @@ export default class JingleSessionPC extends JingleSession {
             Promise.reject(new Error('No tracks passed'));
         }
 
-        const replaceTracks = [];
         const workFunction = finishedCallback => {
             const remoteSdp = new SDP(this.peerconnection.remoteDescription.sdp, this.isP2P);
-            const recvOnlyTransceiver = this.peerconnection.peerconnection.getTransceivers()
-                    .find(t => t.receiver.track.kind === MediaType.VIDEO
+            let recvOnlyTransceivers = this.peerconnection.peerconnection.getTransceivers()
+                    .filter(t => t.receiver.track.kind === MediaType.VIDEO
                         && t.direction === MediaDirection.RECVONLY
-                        && t.currentDirection === MediaDirection.RECVONLY);
+                        && t.currentDirection === MediaDirection.RECVONLY).length;
 
             // Add transceivers by adding a new mline in the remote description for each track. Do not create a new
-            // m-line if a recv-only transceiver exists in the p2p case. The new track will be attached to the
-            // existing one in that case.
+            // m-line for a video track if a recv-only transceiver is available in the p2p case. Each existing
+            // transceiver can serve only one of the new video tracks.
             for (const track of localTracks) {
-                if (!this.isP2P || !recvOnlyTransceiver) {
+                if (!this.isP2P || track.getType() !== MediaType.VIDEO || recvOnlyTransceivers === 0) {
                     remoteSdp.addMlineForNewSource(track.getType());
+                } else {
+                    recvOnlyTransceivers--;
                 }
             }
 
             this._renegotiate(remoteSdp.raw)
-                .then(() => {
-                    // Replace the tracks on the newly generated transceivers.
+                .then(async () => {
+                    // Finish updating the direction and track mappings before selecting the next transceiver.
                     for (const track of localTracks) {
-                        replaceTracks.push(this.peerconnection.replaceTrack(null, track));
+                        await this.peerconnection.replaceTrack(null, track);
                     }
-
-                    return Promise.all(replaceTracks);
                 })
 
                 // Trigger a renegotiation here since renegotiations are suppressed at TPC.replaceTrack for screenshare
