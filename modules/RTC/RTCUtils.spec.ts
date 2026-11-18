@@ -320,15 +320,30 @@ describe('RTCUtils', () => {
         });
 
         describe('permission denial reason', () => {
+            let addedEnumerateDevices: boolean;
             let emitSpy: jasmine.Spy;
+            let permissionStates: { [key: string]: string; };
 
             const denial = (message: string, name = 'NotAllowedError') => Object.assign(new Error(message), { name });
+            const statuses = () => emitSpy.calls.all().find(call => call.args[0] === RTCEvents.PERMISSIONS_CHANGED)
+                ?.args[2];
 
             beforeEach(() => {
                 emitSpy = spyOn((RTCUtils as any).eventEmitter, 'emit').and.callThrough();
-                if (!navigator.mediaDevices.enumerateDevices) {
+                addedEnumerateDevices = !navigator.mediaDevices.enumerateDevices;
+                if (addedEnumerateDevices) {
                     (navigator.mediaDevices as any).enumerateDevices = () => Promise.resolve([]);
                 }
+                permissionStates = {
+                    camera: 'prompt',
+                    microphone: 'prompt'
+                };
+                spyOn(navigator.permissions, 'query')
+                    .and.callFake(({ name }) => Promise.resolve({ state: permissionStates[name] } as PermissionStatus));
+            });
+
+            afterEach(() => {
+                addedEnumerateDevices && delete (navigator.mediaDevices as any).enumerateDevices;
             });
 
             it('reports an OS block', async () => {
@@ -370,16 +385,81 @@ describe('RTCUtils', () => {
                 jasmine.clock().tick(2000);
                 rejectGum?.(denial('Permission dismissed'));
 
-                const error = await gumPromise;
+                expect((await gumPromise).reason).toBe(PermissionDenialReason.USER);
+            });
 
-                jasmine.clock().uninstall();
+            it('reports a block in the site settings however late the denial comes', async () => {
+                jasmine.clock().install();
+                jasmine.clock().mockDate(new Date(0));
+                permissionStates.camera = 'denied';
 
-                expect(error.reason).toBe(PermissionDenialReason.USER);
+                let rejectGum: ((reason: unknown) => void) | undefined;
+
+                getUserMediaSpy.and.returnValue(new Promise((_resolve, reject) => {
+                    rejectGum = reject;
+                }));
+
+                const gumPromise = (RTCUtils as any)._getUserMedia([ 'video' ], {}).catch(e => e);
+
+                // E.g. a long task during the startup delays the rejection.
+                jasmine.clock().tick(1000);
+                rejectGum?.(denial('Permission denied'));
+
+                expect((await gumPromise).reason).toBe(PermissionDenialReason.BROWSER);
+            });
+
+            it('reports a denial of a device the site allows as an OS block', async () => {
+                permissionStates.camera = 'granted';
+                getUserMediaSpy.and.returnValue(Promise.reject(denial('Permission denied')));
+
+                const error = await (RTCUtils as any)._getUserMedia([ 'video' ], {}).catch(e => e);
+
+                expect(error.reason).toBe(PermissionDenialReason.OS);
+            });
+
+            it('reports a device that the permissions policy blocks', async () => {
+                permissionStates.camera = 'granted';
+                permissionStates.microphone = 'granted';
+                spyOn(document.featurePolicy, 'allowsFeature').and.callFake(feature => feature !== 'camera');
+                getUserMediaSpy.and.returnValue(Promise.reject(denial('Permission denied')));
+
+                const error = await (RTCUtils as any)._getUserMedia([ 'audio', 'video' ], {}).catch(e => e);
+
+                expect(error.reason).toBe(PermissionDenialReason.POLICY);
+                expect(statuses()).toEqual({
+                    video: { reason: PermissionDenialReason.POLICY, state: MediaPermissionState.DENIED }
+                });
+            });
+
+            it('leaves a device that the site allows out of a block in the site settings', async () => {
+                permissionStates.camera = 'denied';
+                permissionStates.microphone = 'granted';
+                getUserMediaSpy.and.returnValue(Promise.reject(denial('Permission denied')));
+
+                const error = await (RTCUtils as any)._getUserMedia([ 'audio', 'video' ], {}).catch(e => e);
+
+                expect(error.reason).toBe(PermissionDenialReason.BROWSER);
+                expect(statuses()).toEqual({
+                    video: { reason: PermissionDenialReason.BROWSER, state: MediaPermissionState.DENIED }
+                });
+            });
+
+            it('falls back to the timing without the Permissions API', async () => {
+                (navigator.permissions.query as jasmine.Spy).and.returnValue(Promise.reject(new TypeError()));
+                getUserMediaSpy.and.returnValue(Promise.reject(denial('Permission denied')));
+
+                const error = await (RTCUtils as any)._getUserMedia([ 'audio', 'video' ], {}).catch(e => e);
+
+                expect(error.reason).toBe(PermissionDenialReason.BROWSER);
+                expect(statuses()).toEqual({
+                    audio: { reason: PermissionDenialReason.BROWSER, state: MediaPermissionState.DENIED },
+                    video: { reason: PermissionDenialReason.BROWSER, state: MediaPermissionState.DENIED }
+                });
             });
 
             it('reports a device that Firefox on macOS can\'t open as blocked by the OS', async () => {
                 spyOn(browser, 'isFirefox').and.returnValue(true);
-                spyOn(browser, 'getOS').and.returnValue('Mac OS');
+                spyOn(browser, 'isMacOS').and.returnValue(true);
                 spyOn(navigator.mediaDevices, 'enumerateDevices')
                     .and.resolveTo([ { kind: 'videoinput' } as MediaDeviceInfo ]);
                 getUserMediaSpy.and.returnValue(Promise.reject(denial('The object can not be found here.', 'NotFoundError')));
@@ -392,7 +472,7 @@ describe('RTCUtils', () => {
 
             it('keeps a missing device as not found on Firefox', async () => {
                 spyOn(browser, 'isFirefox').and.returnValue(true);
-                spyOn(browser, 'getOS').and.returnValue('Mac OS');
+                spyOn(browser, 'isMacOS').and.returnValue(true);
                 spyOn(navigator.mediaDevices, 'enumerateDevices')
                     .and.resolveTo([ { kind: 'audioinput' } as MediaDeviceInfo ]);
                 getUserMediaSpy.and.returnValue(Promise.reject(denial('The object can not be found here.', 'NotFoundError')));
@@ -401,6 +481,17 @@ describe('RTCUtils', () => {
 
                 expect(error.name).toBe(JitsiTrackErrors.NOT_FOUND);
                 expect(error.reason).toBeUndefined();
+            });
+
+            it('keeps the device as not found on Firefox when the device list doesn\'t come', async () => {
+                spyOn(browser, 'isFirefox').and.returnValue(true);
+                spyOn(browser, 'isMacOS').and.returnValue(true);
+                spyOn(navigator.mediaDevices, 'enumerateDevices').and.returnValue(new Promise(() => undefined));
+                getUserMediaSpy.and.returnValue(Promise.reject(denial('The object can not be found here.', 'NotFoundError')));
+
+                const error = await (RTCUtils as any)._getUserMedia([ 'video' ], {}).catch(e => e);
+
+                expect(error.name).toBe(JitsiTrackErrors.NOT_FOUND);
             });
 
             it('reports the granted devices on success', async () => {

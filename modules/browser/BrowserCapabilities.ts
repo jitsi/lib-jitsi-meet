@@ -90,6 +90,16 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if the current platform is macOS.
+     *
+     * @returns {boolean}
+     */
+    isMacOS(): boolean {
+        // ua-parser-js 2 renamed 'Mac OS' to 'macOS'.
+        return [ 'Mac OS', 'macOS' ].includes(this.getOS());
+    }
+
+    /**
      * Checks if the client is running on a mobile device.
      *
      * @returns {boolean}

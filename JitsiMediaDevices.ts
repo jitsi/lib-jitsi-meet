@@ -9,6 +9,11 @@ import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 
 const AUDIO_PERMISSION_NAME = 'microphone' as PermissionName;
+
+/**
+ * How long (in ms) after the user's answer at the prompt a change of the Permissions API to denied is that answer.
+ */
+const PROMPT_ANSWER_CHANGE_TIME = 2000;
 const PERMISSION_GRANTED_STATUS = 'granted';
 const VIDEO_PERMISSION_NAME = 'camera' as PermissionName;
 
@@ -22,6 +27,7 @@ export default class JitsiMediaDevices extends Listenable {
     private _permissionsApiStates: { [key: string]: PermissionState; };
     private _permissionsApiSupported: Promise<boolean>;
     private _permissionStatus: { [key: string]: IPermissionStatus; };
+    private _userDenialTimes: { [key: string]: number; };
 
     /**
      * Initializes a `JitsiMediaDevices` object. There will be a single
@@ -34,6 +40,7 @@ export default class JitsiMediaDevices extends Listenable {
         this._permissionsApiStates = {};
         this._permissionsApiSupported = Promise.resolve(false);
         this._permissionStatus = {};
+        this._userDenialTimes = {};
     }
 
     /**
@@ -101,7 +108,8 @@ export default class JitsiMediaDevices extends Listenable {
         for (const type of changed) {
             this._permissionStatus[type] = statuses[type];
         }
-        this.eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSION_STATUS_CHANGED, { ...this._permissionStatus });
+        this.eventEmitter.emit(JitsiMediaDevicesEvents.PERMISSION_STATUS_CHANGED, Object.fromEntries(
+            Object.entries(this._permissionStatus).map(([ type, status ]) => [ type, { ...status } ])));
     }
 
     /**
@@ -124,9 +132,17 @@ export default class JitsiMediaDevices extends Listenable {
             return;
         }
 
+        // The change that follows a block at the prompt keeps the user as the reason, any later one is a block in the
+        // site settings.
+        const blockedAtPrompt = current?.reason === PermissionDenialReason.USER
+            && Date.now() - this._userDenialTimes[type] < PROMPT_ANSWER_CHANGE_TIME;
+
         this._handlePermissionStatusChange({
             [type]: state === MediaPermissionState.DENIED
-                ? { reason: current?.reason ?? PermissionDenialReason.BROWSER, state: MediaPermissionState.DENIED }
+                ? {
+                    reason: blockedAtPrompt ? PermissionDenialReason.USER : PermissionDenialReason.BROWSER,
+                    state: MediaPermissionState.DENIED
+                }
                 : { state: state as MediaPermissionState }
         });
     }
@@ -142,6 +158,17 @@ export default class JitsiMediaDevices extends Listenable {
         const adjusted: { [key: string]: IPermissionStatus; } = {};
 
         for (const [ type, status ] of Object.entries(statuses)) {
+            const current = this._permissionStatus[type];
+
+            // The site is blocked once the user blocked it at the prompt, so a request that follows, e.g. a retry of
+            // each device, fails at once.
+            if (status.reason === PermissionDenialReason.BROWSER
+                    && current?.state === MediaPermissionState.DENIED && current.reason === PermissionDenialReason.USER) {
+                continue;
+            }
+            if (status.reason === PermissionDenialReason.USER) {
+                this._userDenialTimes[type] = Date.now();
+            }
             adjusted[type] = status.reason === PermissionDenialReason.USER
                     && this._permissionsApiStates[type] === MediaPermissionState.PROMPT
                 ? { reason: status.reason, state: MediaPermissionState.PROMPT }

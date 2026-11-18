@@ -35,6 +35,12 @@ export enum PermissionDenialReason {
     OS = 'os',
 
     /**
+     * Not allowed by the page's permissions policy, e.g. an iframe without {@code allow="camera; microphone"}. Only
+     * the embedding page can change it.
+     */
+    POLICY = 'policy',
+
+    /**
      * Denied or dismissed at the browser's prompt.
      */
     USER = 'user'

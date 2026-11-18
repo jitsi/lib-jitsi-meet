@@ -15,6 +15,7 @@ describe( "/service/RTC/MediaPermission members", () => {
         expect( MediaPermissionState.PROMPT ).toBe( 'prompt' );
         expect( PermissionDenialReason.BROWSER ).toBe( 'browser' );
         expect( PermissionDenialReason.OS ).toBe( 'os' );
+        expect( PermissionDenialReason.POLICY ).toBe( 'policy' );
         expect( PermissionDenialReason.USER ).toBe( 'user' );
     } );
 
