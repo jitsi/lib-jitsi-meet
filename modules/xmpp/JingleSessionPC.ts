@@ -15,6 +15,7 @@ import { ISelectedCandidatePairStats } from '../../service/RTC/TransportCost';
 import { VideoType } from '../../service/RTC/VideoType';
 import { IMediaConnectivity } from '../../service/connectivity/MediaConnectivity';
 import { AnalyticsEvents, createAudioWedgeRecoveryEvent, createJingleEvent } from '../../service/statistics/AnalyticsEvents';
+import { JingleReasonCondition } from '../../service/xmpp/JingleReasonCondition';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import { COMMIT_HASH } from '../../version';
@@ -221,7 +222,7 @@ interface ISourceFrameHeight {
  * Interface for Jingle session termination options.
  */
 export interface ITerminateOptions {
-    reason?: string;
+    reason?: JingleReasonCondition;
     reasonDescription?: string;
     requestRestart?: boolean;
     sendSessionTerminate?: boolean;
@@ -2702,7 +2703,7 @@ export default class JingleSessionPC extends JingleSession {
 
         // P2P media moves to the bridge right away, and Jicofo ends the bridge session of a participant left alone
         // as expired, so only the end of any other bridge session interrupts the media.
-        !this.isP2P && reasonCondition !== 'expired' && this._mediaConnectivityMonitor?.onSessionEnded();
+        !this.isP2P && reasonCondition !== JingleReasonCondition.EXPIRED && this._mediaConnectivityMonitor?.onSessionEnded();
 
         this.close();
     }
@@ -3200,7 +3201,7 @@ export default class JingleSessionPC extends JingleSession {
                         xmlns: 'urn:xmpp:jingle:1'
                     })
                     .c('reason')
-                    .c((options?.reason) || 'success')
+                    .c((options?.reason) || JingleReasonCondition.SUCCESS)
                     .up();
 
             if (options?.reasonDescription) {

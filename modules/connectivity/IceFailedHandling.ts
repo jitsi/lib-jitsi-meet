@@ -1,6 +1,7 @@
 import { getLogger } from '@jitsi/logger';
 
 import JitsiConference from '../../JitsiConference';
+import { JingleReasonCondition } from '../../service/xmpp/JingleReasonCondition';
 import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 
@@ -48,7 +49,7 @@ export default class IceFailedHandling {
             logger.info(`Sending ICE failed - the connection did not recover, ICE state: ${jvbConnIceState}`);
             RTCStats.sendStatsEntry(RTCStatsEvents.JVB_ICE_RESTARTED_EVENT);
             this._conference._stopJvbSession({
-                reason: 'connectivity-error',
+                reason: JingleReasonCondition.CONNECTIVITY_ERROR,
                 reasonDescription: 'ICE FAILED',
                 requestRestart: true,
                 sendSessionTerminate: true
