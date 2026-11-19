@@ -2700,8 +2700,9 @@ export default class JingleSessionPC extends JingleSession {
             });
         }
 
-        // P2P media moves to the bridge right away, only the end of a bridge session interrupts it.
-        !this.isP2P && this._mediaConnectivityMonitor?.onSessionEnded();
+        // P2P media moves to the bridge right away, and Jicofo ends the bridge session of a participant left alone
+        // as expired, so only the end of any other bridge session interrupts the media.
+        !this.isP2P && reasonCondition !== 'expired' && this._mediaConnectivityMonitor?.onSessionEnded();
 
         this.close();
     }

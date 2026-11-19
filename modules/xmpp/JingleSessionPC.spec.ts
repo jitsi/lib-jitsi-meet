@@ -1293,6 +1293,21 @@ describe('JingleSessionPC media connectivity', () => {
         expect(session.getMediaConnectivity()).toBeUndefined();
     });
 
+    it('reports no interruption when Jicofo ends the session of a participant left alone', async () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        session.onTerminated('expired', 'Idle session timeout');
+
+        expect(emit).not.toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, jasmine.objectContaining({
+            status: MediaConnectivityStatus.INTERRUPTED
+        }));
+        expect(session.getMediaConnectivity()).toBeUndefined();
+    });
+
     it('follows the selected pair from its own peerconnection\'s stats poll until closed', async () => {
         const tcpRelay = {
             local: { candidateType: 'relay', id: 'L1', protocol: 'udp', relayProtocol: 'tls', type: 'local-candidate' },
