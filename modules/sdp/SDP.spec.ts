@@ -1346,7 +1346,7 @@ a=ssrc-group:FID 2306112481 620660772
 a=rtcp-mux
 `.split('\n').join('\r\n');
             const offer = createStanzaElement(stanza);
-            const jsonMessages = findAll(offer, 'jingle>json-message');
+            const jsonMessages = findAll(offer, ':scope>jingle>json-message');
 
             for (let i = 0; i < jsonMessages.length; i++) {
                 expandSourcesFromJson(offer, jsonMessages[i]);
