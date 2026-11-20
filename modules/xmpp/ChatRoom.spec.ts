@@ -1723,12 +1723,32 @@ describe('ChatRoom', () => {
                 'secret');
         });
 
-        it('handles only the invite in a message that carries other elements', () => {
+        const expectOnlyInvite = () => {
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                ROOM_JID,
+                INVITER_JID,
+                'You are invited',
+                'secret');
+        };
+
+        it('handles only the invite in a message that also has a subject and a json-message', () => {
             const extra = ''
                 + '<subject>Another subject</subject>'
                 + '<json-message xmlns="http://jitsi.org/jitmeet">'
                     + '{"type":"time_restricted","durationSeconds":60,"elapsedSeconds":0}'
-                + '</json-message>'
+                + '</json-message>';
+
+            room.subject = 'Room subject';
+            room.onMessage(inviteMessage(ROOM_JID, extra), ROOM_JID);
+
+            expectOnlyInvite();
+            expect(room.subject).toEqual('Room subject');
+        });
+
+        it('handles only the invite in a message that also has a moderation element', () => {
+            const extra = ''
                 + '<apply-to xmlns="urn:xmpp:fasten:0" id="some-message-id">'
                     + '<moderated xmlns="urn:xmpp:message-moderate:1">'
                         + '<retract xmlns="urn:xmpp:message-retract:1"/>'
@@ -1737,14 +1757,18 @@ describe('ChatRoom', () => {
 
             room.onMessage(inviteMessage(ROOM_JID, extra), ROOM_JID);
 
-            expect(emitterSpy.calls.count()).toEqual(1);
-            expect(emitterSpy).toHaveBeenCalledWith(
-                XMPPEvents.INVITE_MESSAGE_RECEIVED,
-                ROOM_JID,
-                INVITER_JID,
-                'You are invited',
-                'secret');
-            expect(room.subject).not.toEqual('Another subject');
+            expectOnlyInvite();
+        });
+
+        it('handles only the invite in a message that also has reactions', () => {
+            const extra = ''
+                + '<reactions xmlns="urn:xmpp:reactions:0" id="some-message-id">'
+                    + '<reaction>👍</reaction>'
+                + '</reactions>';
+
+            room.onMessage(inviteMessage(ROOM_JID, extra), ROOM_JID);
+
+            expectOnlyInvite();
         });
 
         it('does not treat an invite from an occupant as an invite', () => {

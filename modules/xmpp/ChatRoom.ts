@@ -1636,30 +1636,6 @@ export default class ChatRoom extends Listenable {
             return true;
         }
 
-        const reactions = findAll(msg, ':scope>[*|xmlns="urn:xmpp:reactions:0"]>reaction');
-
-        if (reactions.length > 0) {
-            const messageId = getAttribute(findFirst(msg, ':scope>[*|xmlns="urn:xmpp:reactions:0"]'), 'id');
-            const reactionList = [];
-
-            reactions.forEach(reactionElem => {
-                const reaction = getText(reactionElem);
-                const m = reaction.match(EMOJI_REGEX);
-
-                // Only allow one reaction per <reaction> element.
-                if (m?.[0]) {
-                    reactionList.push(m[0]);
-                }
-            });
-
-            if (reactionList.length > 0) {
-                this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reactionList, messageId);
-            }
-
-            return true;
-        }
-
-
         const bodyEl = findFirst(msg, ':scope>body');
         const txt = bodyEl ? getText(bodyEl) : '';
 
@@ -1679,6 +1655,29 @@ export default class ChatRoom extends Listenable {
 
             this.eventEmitter.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
                 from, getAttribute(invite, 'from'), txt, password);
+
+            return true;
+        }
+
+        const reactions = findAll(msg, ':scope>[*|xmlns="urn:xmpp:reactions:0"]>reaction');
+
+        if (reactions.length > 0) {
+            const messageId = getAttribute(findFirst(msg, ':scope>[*|xmlns="urn:xmpp:reactions:0"]'), 'id');
+            const reactionList = [];
+
+            reactions.forEach(reactionElem => {
+                const reaction = getText(reactionElem);
+                const m = reaction.match(EMOJI_REGEX);
+
+                // Only allow one reaction per <reaction> element.
+                if (m?.[0]) {
+                    reactionList.push(m[0]);
+                }
+            });
+
+            if (reactionList.length > 0) {
+                this.eventEmitter.emit(XMPPEvents.REACTION_RECEIVED, from, reactionList, messageId);
+            }
 
             return true;
         }
