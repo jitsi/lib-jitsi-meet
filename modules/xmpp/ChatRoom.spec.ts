@@ -1670,4 +1670,92 @@ describe('ChatRoom', () => {
                 jasmine.anything());
         });
     });
+
+    describe('onMessage - mediated invite', () => {
+        const ROOM_JID = 'someroom@muc.example.com';
+        const INVITER_JID = `${ROOM_JID}/inviter1`;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+
+        const inviteMessage = (from: string, extra = '') => {
+            const msgStr = ''
+                + `<message to="user@example.com/res" from="${from}" xmlns="jabber:client">`
+                    + '<body>You are invited</body>'
+                    + extra
+                    + '<x xmlns="http://jabber.org/protocol/muc#user">'
+                        + `<invite from="${INVITER_JID}"><reason/></invite>`
+                        + '<password>secret</password>'
+                    + '</x>'
+                + '</message>';
+
+            return new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+        };
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: { hosts: {} },
+                addListener: () => {}, // eslint-disable-line no-empty-function
+                tryParseJSONAndVerify: XMPP.prototype.tryParseJSONAndVerify
+            };
+
+            room = new ChatRoom(
+                {} as XmppConnection /* connection */,
+                ROOM_JID,
+                'password',
+                xmpp as any,
+                {} /* options */);
+            room.myroomjid = `${ROOM_JID}/abc123`;
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('emits INVITE_MESSAGE_RECEIVED for an invite from the room', () => {
+            room.onMessage(inviteMessage(ROOM_JID), ROOM_JID);
+
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                ROOM_JID,
+                INVITER_JID,
+                'You are invited',
+                'secret');
+        });
+
+        it('handles only the invite in a message that carries other elements', () => {
+            const extra = ''
+                + '<subject>Another subject</subject>'
+                + '<json-message xmlns="http://jitsi.org/jitmeet">'
+                    + '{"type":"time_restricted","durationSeconds":60,"elapsedSeconds":0}'
+                + '</json-message>'
+                + '<apply-to xmlns="urn:xmpp:fasten:0" id="some-message-id">'
+                    + '<moderated xmlns="urn:xmpp:message-moderate:1">'
+                        + '<retract xmlns="urn:xmpp:message-retract:1"/>'
+                    + '</moderated>'
+                + '</apply-to>';
+
+            room.onMessage(inviteMessage(ROOM_JID, extra), ROOM_JID);
+
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                ROOM_JID,
+                INVITER_JID,
+                'You are invited',
+                'secret');
+            expect(room.subject).not.toEqual('Another subject');
+        });
+
+        it('does not treat an invite from an occupant as an invite', () => {
+            room.onMessage(inviteMessage(INVITER_JID), INVITER_JID);
+
+            expect(emitterSpy).not.toHaveBeenCalledWith(
+                XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                jasmine.anything(),
+                jasmine.anything(),
+                jasmine.anything(),
+                jasmine.anything());
+        });
+    });
 });
