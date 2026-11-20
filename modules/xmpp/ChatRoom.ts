@@ -1635,6 +1635,29 @@ export default class ChatRoom extends Listenable {
             return true;
         }
 
+        const bodyEl = findFirst(msg, ':scope>body');
+        const txt = bodyEl ? getText(bodyEl) : '';
+
+        // A mediated invite is relayed by the room for the user who sent it. It is handled as an invite only,
+        // and nothing else in the stanza is read as sent by the room.
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const invite = from === this.roomjid
+            && findFirst(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>invite');
+
+        if (invite) {
+            const passwordSelect = findFirst(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>password');
+            let password;
+
+            if (passwordSelect) {
+                password = getText(passwordSelect);
+            }
+
+            this.eventEmitter.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                from, getAttribute(invite, 'from'), txt, password);
+
+            return true;
+        }
+
         const reactions = findAll(msg, ':scope>[*|xmlns="urn:xmpp:reactions:0"]>reaction');
 
         if (reactions.length > 0) {
@@ -1658,9 +1681,6 @@ export default class ChatRoom extends Listenable {
             return true;
         }
 
-
-        const bodyEl = findFirst(msg, ':scope>body');
-        const txt = bodyEl ? getText(bodyEl) : '';
         const subject = findFirst(msg, ':scope>subject');
 
         if (subject) {
@@ -1692,23 +1712,10 @@ export default class ChatRoom extends Listenable {
             }
         }
 
-        if (from === this.roomjid) {
-            let invite;
-
-            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
-            if (exists(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]')) {
-                this.discoRoomInfo();
-            } else if (invite = findFirst(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>invite')) {
-                const passwordSelect = findFirst(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>password');
-                let password;
-
-                if (passwordSelect) {
-                    password = getText(passwordSelect);
-                }
-
-                this.eventEmitter.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
-                    from, getAttribute(invite, 'from'), txt, password);
-            }
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        if (from === this.roomjid
+                && exists(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]')) {
+            this.discoRoomInfo();
         }
 
         // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
