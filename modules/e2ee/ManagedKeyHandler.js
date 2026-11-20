@@ -81,20 +81,29 @@ export class ManagedKeyHandler extends KeyHandler {
      * @returns {void}
      */
     async _setEnabled(enabled) {
-        if (enabled) {
-            // Initialize Olm sessions with all participants.
-            await this._olmAdapter.initSessions();
-            logger.debug('All Olm sessions established, proceeding with key distribution');
+        if (!enabled) {
+            // The e2ee.enabled presence tells the participants to stop using our key, no message is sent for it.
+            this._key = false;
+            const keyIndex = this._olmAdapter.setKey(this._key);
+
+            this.e2eeCtx.setKey(this.conference.myUserId(), this._key, keyIndex);
+            this._olmAdapter.clearAllParticipantsSessions();
+
+            return;
         }
-        this._key = enabled ? this._generateKey() : false;
-        const index = await this._olmAdapter.updateKey(this._key);
+
+        // The key exists before the sessions are set up, so a session-ack that is sent meanwhile delivers it.
+        this._key = this._generateKey();
+        this._olmAdapter.setKey(this._key);
+
+        // Initialize Olm sessions with all participants.
+        await this._olmAdapter.initSessions();
+        logger.debug('All Olm sessions established, proceeding with key distribution');
+
+        // Only the participants that did not get the key in a session-ack are sent a key-info.
+        const index = await this._olmAdapter.sendKey();
 
         this.e2eeCtx.setKey(this.conference.myUserId(), this._key, index);
-
-        // Clear sessions after key distribution when disabling.
-        if (!enabled) {
-            this._olmAdapter.clearAllParticipantsSessions();
-        }
     }
 
     /**
@@ -110,11 +119,6 @@ export class ManagedKeyHandler extends KeyHandler {
         switch (name) {
         case 'e2ee.idKey':
             logger.debug(`Participant ${participant.getId()} updated their id key: ${newValue}`);
-            break;
-        case 'e2ee.enabled':
-            if (!newValue && this.enabled) {
-                this._olmAdapter.clearParticipantSession(participant);
-            }
             break;
         }
     }
@@ -143,7 +147,7 @@ export class ManagedKeyHandler extends KeyHandler {
 
     /**
      * Rotates the local key. Rotating the key implies creating a new one, then distributing it
-     * to all participants and once they all received it, start using it.
+     * to all participants and once they had the time to receive it, start using it.
      *
      * @private
      */
