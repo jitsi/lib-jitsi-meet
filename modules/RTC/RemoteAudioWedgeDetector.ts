@@ -9,13 +9,13 @@ import TraceablePeerConnection from './TraceablePeerConnection';
 const logger = getLogger('rtc:RemoteAudioWedgeDetector');
 
 /**
- * The default duration (in milliseconds) for which a mapped, unmuted remote audio source must receive zero inbound RTP
- * before it is considered wedged.
+ * The default duration (in milliseconds) of unmuted time that a mapped remote audio source must accumulate at zero
+ * inbound RTP before it is considered wedged.
  */
 const DEFAULT_WEDGE_TIMEOUT_MS = 15000;
 
 /**
- * The minimum number of consecutive eligible (mapped + unmuted) zero-RTP samples required before a source can be
+ * The minimum number of eligible (mapped + unmuted) zero-RTP samples required in a streak before a source can be
  * declared wedged, regardless of how short the configured timeout is. This debounces transient stats artifacts - most
  * notably the inbound-rtp report being momentarily absent (treated as zero) during renegotiation/track churn - so a
  * single bad sample cannot trigger a recovery.
@@ -32,14 +32,20 @@ const MAX_RECOVERY_ATTEMPTS = 2;
 interface IEligibleZeroState {
 
     /**
-     * The number of consecutive eligible zero-RTP samples observed in the current streak.
+     * The eligible (mapped + unmuted) zero-RTP time, in milliseconds, accumulated by the current streak. The interval
+     * between two samples is counted when the source is unmuted at the sample that ends it.
      */
-    samples: number;
+    elapsed: number;
 
     /**
-     * The timestamp (Date.now()) of the first eligible zero-RTP sample in the current streak.
+     * The timestamp (Date.now()) of the previous sample of the source, muted or not.
      */
-    since: number;
+    lastSampleAt: number;
+
+    /**
+     * The number of eligible zero-RTP samples observed in the current streak.
+     */
+    samples: number;
 }
 
 interface IRecoveryState {
@@ -65,8 +71,8 @@ export interface IRemoteAudioWedgeDetectorOptions {
     onWedgeDetected: (track: JitsiRemoteTrack) => void;
 
     /**
-     * The duration (in milliseconds) for which a source must receive zero inbound RTP before it is considered wedged.
-     * Defaults to {@link DEFAULT_WEDGE_TIMEOUT_MS}.
+     * The duration (in milliseconds) of unmuted time that a source must accumulate at zero inbound RTP before it is
+     * considered wedged. Defaults to {@link DEFAULT_WEDGE_TIMEOUT_MS}.
      */
     wedgeTimeoutMs?: number;
 }
@@ -93,10 +99,14 @@ export interface IRemoteAudioWedgeDetectorOptions {
  * (DTX/comfort noise). A source that has ever received a packet is therefore considered healthy and is excluded from
  * further evaluation.
  *
- * A source must stay continuously eligible (mapped + unmuted) and at zero RTP for {@code wedgeTimeoutMs} of wall-clock
- * time before it fires. Eligibility - unlike the cumulative packet count - is not monotonic (a participant can mute and
- * unmute), so the streak is reset whenever the source becomes muted, unmapped, or receives any packet; this is what the
- * repeated samples verify. A {@link MIN_SAMPLES} floor debounces transient stats artifacts.
+ * A source must accumulate {@code wedgeTimeoutMs} of eligible (mapped + unmuted) time at zero RTP before it fires.
+ * Eligibility - unlike the cumulative packet count - is not monotonic (a participant can mute and unmute). A mute only
+ * pauses the streak, and the time accumulated so far is kept. Otherwise a sender whose mute state changes more often
+ * than the detection window would never be recovered, although the receive slot stays wedged for as long as the
+ * peerconnection lives. The mute state is only read at each stats poll, so the unmuted time is an estimate: the
+ * interval between two polls is counted in full when the source is unmuted at the poll that ends it, and not at all
+ * otherwise. The streak is dropped when the source is unmapped, when an unmuted sample shows that it has received a
+ * packet, and when media transfer is suspended. A {@link MIN_SAMPLES} floor debounces transient stats artifacts.
  *
  * Evaluation is skipped entirely while media transfer is suspended on the peerconnection. A JVB session is kept alive
  * but suspended for the duration of an active P2P session, and a suspended session receives no RTP at all by design, so
@@ -201,9 +211,11 @@ export default class RemoteAudioWedgeDetector {
             return;
         }
 
-        // A source can only be wedged if it is mapped, unmuted, not in a post-recovery cooldown, and has not yet been
-        // confirmed healthy (received a packet).
+        // A source is only evaluated if it is mapped, unmuted, not in a post-recovery cooldown, not out of recovery
+        // attempts, and has not yet been confirmed healthy (received a packet). A muted source that is otherwise
+        // eligible is not evaluated, but its streak is paused instead of dropped.
         const candidates: Array<{ ssrc: number; track: JitsiRemoteTrack; }> = [];
+        const pausedSsrcs = new Set<number>();
 
         for (const track of this._pc.getRemoteTracks(undefined, MediaType.AUDIO)) {
             const ssrc = track.getSsrc();
@@ -212,7 +224,7 @@ export default class RemoteAudioWedgeDetector {
                 continue; // eslint-disable-line no-continue
             }
 
-            if (this._healthyBySsrc.has(ssrc) || track.isMuted()) {
+            if (this._healthyBySsrc.has(ssrc)) {
                 continue; // eslint-disable-line no-continue
             }
 
@@ -222,18 +234,27 @@ export default class RemoteAudioWedgeDetector {
                 continue; // eslint-disable-line no-continue
             }
 
+            if (track.isMuted()) {
+                pausedSsrcs.add(ssrc);
+
+                continue; // eslint-disable-line no-continue
+            }
+
             candidates.push({
                 ssrc,
                 track
             });
         }
 
-        // Drop streak bookkeeping for any SSRC that is no longer a candidate (unmapped, muted, cooling down, or now
-        // healthy). This is what resets the streak for a source that became ineligible mid-window.
+        // Drop streak bookkeeping for any SSRC that is no longer a candidate (unmapped, cooling down, or now healthy).
+        // This is what resets the streak for a source that became ineligible mid-window. A muted source keeps its
+        // streak, and the interval that ends at this sample is not counted.
         const candidateSsrcs = new Set(candidates.map(candidate => candidate.ssrc));
 
-        for (const ssrc of this._eligibleZeroBySsrc.keys()) {
-            if (!candidateSsrcs.has(ssrc)) {
+        for (const [ ssrc, state ] of this._eligibleZeroBySsrc) {
+            if (pausedSsrcs.has(ssrc)) {
+                state.lastSampleAt = now;
+            } else if (!candidateSsrcs.has(ssrc)) {
                 this._eligibleZeroBySsrc.delete(ssrc);
             }
         }
@@ -251,25 +272,29 @@ export default class RemoteAudioWedgeDetector {
             const state = this._eligibleZeroBySsrc.get(ssrc);
 
             if (!state) {
-                // Start of a streak: record when the source first went silent so the elapsed duration can be measured
+                // Start of a streak: record the time of the sample so the eligible zero-RTP duration can be measured
                 // against wall-clock time on subsequent samples.
                 this._eligibleZeroBySsrc.set(ssrc, {
-                    samples: 1,
-                    since: now
+                    elapsed: 0,
+                    lastSampleAt: now,
+                    samples: 1
                 });
 
                 continue; // eslint-disable-line no-continue
             }
 
+            // The source is unmuted at this sample, so count the interval since the previous one.
+            state.elapsed += now - state.lastSampleAt;
+            state.lastSampleAt = now;
             state.samples++;
 
-            if (state.samples >= MIN_SAMPLES && now - state.since >= this._wedgeTimeoutMs) {
+            if (state.samples >= MIN_SAMPLES && state.elapsed >= this._wedgeTimeoutMs) {
                 const sourceName = track.getSourceName();
                 const attempts = (this._recoveryStateBySsrc.get(ssrc)?.attempts ?? 0) + 1;
 
                 logger.warn(`Detected wedged remote audio source ${sourceName} (ssrc=${ssrc}, owner=`
-                    + `${track.getParticipantId()}): zero inbound RTP for ${now - state.since}ms `
-                    + `while continuously mapped and unmuted. Triggering recovery (attempt ${attempts} of `
+                    + `${track.getParticipantId()}): zero inbound RTP for ${state.elapsed}ms `
+                    + `while mapped and unmuted. Triggering recovery (attempt ${attempts} of `
                     + `${MAX_RECOVERY_ATTEMPTS}).`);
                 this._eligibleZeroBySsrc.delete(ssrc);
 
