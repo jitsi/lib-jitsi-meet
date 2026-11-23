@@ -42,13 +42,18 @@ class FeatureFlags {
      * regression was introduced in Chromium 148. Earlier Chromium versions do not have the bug, so there is nothing to
      * work around there.
      *
+     * Also enabled on React Native. It is not Chromium-based, but react-native-webrtc is built on the same libwebrtc,
+     * so it is expected to have the same demuxer and, from the libwebrtc version that Chromium 148 uses, the same
+     * wedge. The libwebrtc version is not visible to JS there, so the version limit cannot be enforced: mid demux is
+     * enabled on every React Native build when the flag is set, including one whose libwebrtc predates the regression.
+     *
      * @returns {boolean}
      */
     isRtpMidDemuxSupported(): boolean {
         return this._rtpMidDemux
             && this._ssrcRewriting
-            && browser.isChromiumBased()
-            && browser.isEngineVersionGreaterThan(147);
+            && (browser.isReactNative()
+                || (browser.isChromiumBased() && browser.isEngineVersionGreaterThan(147)));
     }
 
     /**
