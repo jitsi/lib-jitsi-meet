@@ -85,6 +85,10 @@ describe('ScreenObtainer', () => {
             });
         }
 
+        it('restricts own audio in Electron on macOS as named by ua-parser-js 2', () => {
+            expect(audioConstraints('44.0.0', 'macOS')).toEqual({ restrictOwnAudio: true });
+        });
+
         it('restricts own audio in Electron on Windows', () => {
             expect(audioConstraints('44.0.0', 'Windows')).toEqual({ restrictOwnAudio: true });
         });
