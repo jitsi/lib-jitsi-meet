@@ -1,5 +1,6 @@
 import { getLogger } from '@jitsi/logger';
 
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 
@@ -32,20 +33,26 @@ const MAX_RECOVERY_ATTEMPTS = 2;
 interface IEligibleZeroState {
 
     /**
-     * The eligible (mapped + unmuted) zero-RTP time, in milliseconds, accumulated by the current streak. The interval
-     * between two samples is counted when the source is unmuted at the sample that ends it.
+     * The unmuted time, in milliseconds, accumulated by the current streak up to the last mute. The time of the
+     * unmuted period that is still open is not included, see {@link unmutedSince}.
      */
     elapsed: number;
 
     /**
-     * The timestamp (Date.now()) of the previous sample of the source, muted or not.
-     */
-    lastSampleAt: number;
-
-    /**
-     * The number of eligible zero-RTP samples observed in the current streak.
+     * The number of zero-RTP samples observed in the current streak.
      */
     samples: number;
+
+    /**
+     * The timestamp (Date.now()) of the first sample of the current streak.
+     */
+    since: number;
+
+    /**
+     * The timestamp (Date.now()) at which the unmuted period that is still open started, or undefined while the source
+     * is muted.
+     */
+    unmutedSince?: number;
 }
 
 interface IRecoveryState {
@@ -99,14 +106,17 @@ export interface IRemoteAudioWedgeDetectorOptions {
  * (DTX/comfort noise). A source that has ever received a packet is therefore considered healthy and is excluded from
  * further evaluation.
  *
- * A source must accumulate {@code wedgeTimeoutMs} of eligible (mapped + unmuted) time at zero RTP before it fires.
- * Eligibility - unlike the cumulative packet count - is not monotonic (a participant can mute and unmute). A mute only
- * pauses the streak, and the time accumulated so far is kept. Otherwise a sender whose mute state changes more often
- * than the detection window would never be recovered, although the receive slot stays wedged for as long as the
- * peerconnection lives. The mute state is only read at each stats poll, so the unmuted time is an estimate: the
- * interval between two polls is counted in full when the source is unmuted at the poll that ends it, and not at all
- * otherwise. The streak is dropped when the source is unmapped, when an unmuted sample shows that it has received a
- * packet, and when media transfer is suspended. A {@link MIN_SAMPLES} floor debounces transient stats artifacts.
+ * A source must accumulate {@code wedgeTimeoutMs} of unmuted time at zero RTP before it fires. Eligibility - unlike the
+ * cumulative packet count - is not monotonic (a participant can mute and unmute). A mute only pauses the streak, and
+ * the time accumulated so far is kept. If a mute reset the streak, a sender whose mute state changes more often than
+ * the detection window would be recovered only when several stats polls in a row found it unmuted, which can take
+ * minutes, although the receive slot stays wedged for as long as the peerconnection lives. The unmuted time is added
+ * up from the mute changes of the track ({@link JitsiTrackEvents.TRACK_MUTE_CHANGED}), so it is exact from the first
+ * sample of the streak. The packet counts are only available at each stats poll, so a streak starts at a poll and the
+ * detector fires at a poll: with the default 10 s poll interval and 15 s timeout, a source fires 20 to 30 s of
+ * session time after its track is created at the earliest, and a session shorter than that cannot be recovered. The
+ * streak is dropped when the source is unmapped, when a sample shows that it has received a packet, and when media
+ * transfer is suspended. A {@link MIN_SAMPLES} floor debounces transient stats artifacts.
  *
  * Evaluation is skipped entirely while media transfer is suspended on the peerconnection. A JVB session is kept alive
  * but suspended for the duration of an active P2P session, and a suspended session receives no RTP at all by design, so
@@ -129,6 +139,12 @@ export default class RemoteAudioWedgeDetector {
      * Maps an SSRC to the state of its current streak of eligible (mapped + unmuted) zero-RTP samples.
      */
     private _eligibleZeroBySsrc: Map<number, IEligibleZeroState>;
+
+    /**
+     * The remote audio tracks whose mute changes the detector listens to. These are the tracks that were mapped at the
+     * last evaluation.
+     */
+    private _watchedTracks: Set<JitsiRemoteTrack>;
 
     /**
      * The set of SSRCs that have been observed receiving at least one RTP packet. Such a source is demuxing correctly
@@ -168,6 +184,7 @@ export default class RemoteAudioWedgeDetector {
         this._wedgeTimeoutMs = options.wedgeTimeoutMs ?? DEFAULT_WEDGE_TIMEOUT_MS;
         this._started = false;
         this._eligibleZeroBySsrc = new Map();
+        this._watchedTracks = new Set();
         this._healthyBySsrc = new Set();
         this._recoveryStateBySsrc = new Map();
     }
@@ -193,8 +210,56 @@ export default class RemoteAudioWedgeDetector {
     };
 
     /**
-     * Evaluates every mapped, unmuted remote audio source against the given inbound packet counts for the wedge
-     * signature.
+     * Handles a mute change of a watched remote audio track. Closes or opens the unmuted period of the streak of the
+     * track's receive slot, so that the unmuted time of the streak is exact between two stats polls.
+     *
+     * @param {JitsiRemoteTrack} track - The track whose mute state has changed.
+     * @returns {void}
+     */
+    private _onTrackMuteChanged = (track: JitsiRemoteTrack): void => {
+        const ssrc = track.getSsrc();
+        const state = typeof ssrc === 'number' ? this._eligibleZeroBySsrc.get(ssrc) : undefined;
+
+        if (!state) {
+            return;
+        }
+
+        const now = Date.now();
+
+        if (track.isMuted()) {
+            if (typeof state.unmutedSince === 'number') {
+                state.elapsed += now - state.unmutedSince;
+                state.unmutedSince = undefined;
+            }
+        } else if (typeof state.unmutedSince !== 'number') {
+            state.unmutedSince = now;
+        }
+    };
+
+    /**
+     * Listens to the mute changes of the given tracks, and stops listening to those of every other track.
+     *
+     * @param {Set<JitsiRemoteTrack>} tracks - The tracks to watch.
+     * @returns {void}
+     */
+    private _watchTracks(tracks: Set<JitsiRemoteTrack>): void {
+        for (const track of this._watchedTracks) {
+            if (!tracks.has(track)) {
+                track.off(JitsiTrackEvents.TRACK_MUTE_CHANGED, this._onTrackMuteChanged);
+                this._watchedTracks.delete(track);
+            }
+        }
+
+        for (const track of tracks) {
+            if (!this._watchedTracks.has(track)) {
+                track.on(JitsiTrackEvents.TRACK_MUTE_CHANGED, this._onTrackMuteChanged);
+                this._watchedTracks.add(track);
+            }
+        }
+    }
+
+    /**
+     * Evaluates every mapped remote audio source against the given inbound packet counts for the wedge signature.
      *
      * @param {Map<number, number>} packetsBySsrc - Cumulative packetsReceived per inbound audio SSRC.
      * @returns {void}
@@ -211,11 +276,11 @@ export default class RemoteAudioWedgeDetector {
             return;
         }
 
-        // A source is only evaluated if it is mapped, unmuted, not in a post-recovery cooldown, not out of recovery
-        // attempts, and has not yet been confirmed healthy (received a packet). A muted source that is otherwise
-        // eligible is not evaluated, but its streak is paused instead of dropped.
+        // A source is only evaluated if it is mapped, not in a post-recovery cooldown, not out of recovery attempts,
+        // and has not yet been confirmed healthy (received a packet). A muted source is evaluated too: its streak is
+        // paused, and it fires when the unmuted time that the streak has accumulated reaches the timeout.
         const candidates: Array<{ ssrc: number; track: JitsiRemoteTrack; }> = [];
-        const pausedSsrcs = new Set<number>();
+        const mappedTracks = new Set<JitsiRemoteTrack>();
 
         for (const track of this._pc.getRemoteTracks(undefined, MediaType.AUDIO)) {
             const ssrc = track.getSsrc();
@@ -223,6 +288,8 @@ export default class RemoteAudioWedgeDetector {
             if (typeof ssrc !== 'number') {
                 continue; // eslint-disable-line no-continue
             }
+
+            mappedTracks.add(track);
 
             if (this._healthyBySsrc.has(ssrc)) {
                 continue; // eslint-disable-line no-continue
@@ -234,27 +301,20 @@ export default class RemoteAudioWedgeDetector {
                 continue; // eslint-disable-line no-continue
             }
 
-            if (track.isMuted()) {
-                pausedSsrcs.add(ssrc);
-
-                continue; // eslint-disable-line no-continue
-            }
-
             candidates.push({
                 ssrc,
                 track
             });
         }
 
-        // Drop streak bookkeeping for any SSRC that is no longer a candidate (unmapped, cooling down, or now healthy).
-        // This is what resets the streak for a source that became ineligible mid-window. A muted source keeps its
-        // streak, and the interval that ends at this sample is not counted.
+        this._watchTracks(mappedTracks);
+
+        // Drop the streak of an SSRC that is no longer a candidate (unmapped, cooling down, or out of recovery
+        // attempts). A muted source keeps its streak.
         const candidateSsrcs = new Set(candidates.map(candidate => candidate.ssrc));
 
-        for (const [ ssrc, state ] of this._eligibleZeroBySsrc) {
-            if (pausedSsrcs.has(ssrc)) {
-                state.lastSampleAt = now;
-            } else if (!candidateSsrcs.has(ssrc)) {
+        for (const ssrc of this._eligibleZeroBySsrc.keys()) {
+            if (!candidateSsrcs.has(ssrc)) {
                 this._eligibleZeroBySsrc.delete(ssrc);
             }
         }
@@ -272,30 +332,30 @@ export default class RemoteAudioWedgeDetector {
             const state = this._eligibleZeroBySsrc.get(ssrc);
 
             if (!state) {
-                // Start of a streak: record the time of the sample so the eligible zero-RTP duration can be measured
-                // against wall-clock time on subsequent samples.
+                // Start of a streak. The unmuted time is counted from this sample, or from the next unmute if the
+                // source is muted now.
                 this._eligibleZeroBySsrc.set(ssrc, {
                     elapsed: 0,
-                    lastSampleAt: now,
-                    samples: 1
+                    samples: 1,
+                    since: now,
+                    unmutedSince: track.isMuted() ? undefined : now
                 });
 
                 continue; // eslint-disable-line no-continue
             }
 
-            // The source is unmuted at this sample, so count the interval since the previous one.
-            state.elapsed += now - state.lastSampleAt;
-            state.lastSampleAt = now;
             state.samples++;
 
-            if (state.samples >= MIN_SAMPLES && state.elapsed >= this._wedgeTimeoutMs) {
+            const unmutedMs = state.elapsed + (typeof state.unmutedSince === 'number' ? now - state.unmutedSince : 0);
+
+            if (state.samples >= MIN_SAMPLES && unmutedMs >= this._wedgeTimeoutMs) {
                 const sourceName = track.getSourceName();
                 const attempts = (this._recoveryStateBySsrc.get(ssrc)?.attempts ?? 0) + 1;
 
                 logger.warn(`Detected wedged remote audio source ${sourceName} (ssrc=${ssrc}, owner=`
-                    + `${track.getParticipantId()}): zero inbound RTP for ${state.elapsed}ms `
-                    + `while mapped and unmuted. Triggering recovery (attempt ${attempts} of `
-                    + `${MAX_RECOVERY_ATTEMPTS}).`);
+                    + `${track.getParticipantId()}): zero inbound RTP for ${unmutedMs}ms of unmuted time while `
+                    + `mapped (${state.samples} samples over ${now - state.since}ms). Triggering recovery (attempt `
+                    + `${attempts} of ${MAX_RECOVERY_ATTEMPTS}).`);
                 this._eligibleZeroBySsrc.delete(ssrc);
 
                 // Suppress further detection for this source while the recycle renegotiation completes. Until then the
@@ -310,7 +370,7 @@ export default class RemoteAudioWedgeDetector {
                 if (attempts >= MAX_RECOVERY_ATTEMPTS) {
                     logger.warn(`Remote audio source ${sourceName} (ssrc=${ssrc}) has been recycled `
                         + `${attempts} times without receiving any RTP; it is not recoverable by recycling. No `
-                        + 'further recovery will be attempted for it on this m-line.');
+                        + 'further recovery will be attempted for this receive slot.');
                 }
 
                 this._onWedgeDetected(track);
@@ -344,6 +404,7 @@ export default class RemoteAudioWedgeDetector {
             this._pc.eventEmitter.removeListener(RTCEvents.INBOUND_AUDIO_STATS, this._onInboundAudioStats);
             this._started = false;
         }
+        this._watchTracks(new Set());
         this._eligibleZeroBySsrc.clear();
         this._healthyBySsrc.clear();
         this._recoveryStateBySsrc.clear();
