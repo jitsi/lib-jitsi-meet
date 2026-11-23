@@ -521,6 +521,18 @@ describe('JingleSessionPC', () => {
             expect(Statistics.sendAnalytics).not.toHaveBeenCalled();
         });
 
+        it('skips recovery when the slot is demuxed by mid', () => {
+            spyOn(peerconnection, 'getTrackBySSRC').and.returnValue(mockTrack(111, 'source-A'));
+            spyOn(peerconnection, 'getRemoteSourceInfoBySourceName').and.returnValue({ mid: 'a3' });
+
+            (jingleSession as any)._recoverWedgedAudioSource(mockTrack(111, 'source-A'));
+            runQueuedTask();
+
+            expect(peerconnection.getRemoteSourceInfoBySourceName).toHaveBeenCalledWith('source-A');
+            expect(addOrRemoveSpy).not.toHaveBeenCalled();
+            expect(Statistics.sendAnalytics).not.toHaveBeenCalled();
+        });
+
         it('skips recovery when the slot was removed', () => {
             spyOn(peerconnection, 'getTrackBySSRC').and.returnValue(null);
 
