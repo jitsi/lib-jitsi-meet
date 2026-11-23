@@ -1682,7 +1682,13 @@ export default class ChatRoom extends Listenable {
             return true;
         }
 
-        const subject = findFirst(msg, ':scope>subject');
+        // XEP-0045 §8.1: only a groupchat message with a <subject> and no <body> or <thread> changes the subject.
+        // Any other message with a <subject> is an ordinary message, and the room does not handle it as a subject
+        // change. The room sends a subject change from the bare room jid or from the jid of the occupant that set it.
+        const subject = type === 'groupchat'
+            && !exists(msg, ':scope>body')
+            && !exists(msg, ':scope>thread')
+            && findFirst(msg, ':scope>subject');
 
         if (subject) {
             const subjectText = getText(subject);

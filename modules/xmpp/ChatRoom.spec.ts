@@ -1782,4 +1782,101 @@ describe('ChatRoom', () => {
                 jasmine.anything());
         });
     });
+
+    describe('onMessage - subject', () => {
+        const ROOM_JID = 'someroom@muc.example.com';
+        const SETTER_JID = `${ROOM_JID}/setter1`;
+        const OCCUPANT_JID = `${ROOM_JID}/occupant1`;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+
+        const subjectMessage = (from: string, type: string, extra = '') => {
+            const msgStr = ''
+                + `<message to="user@example.com/res" from="${from}" type="${type}" xmlns="jabber:client">`
+                    + '<subject>New subject</subject>'
+                    + extra
+                + '</message>';
+
+            return new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+        };
+
+        const expectSubjectUnchanged = () => {
+            expect(room.subject).toEqual('Room subject');
+            expect(emitterSpy).not.toHaveBeenCalledWith(XMPPEvents.SUBJECT_CHANGED, jasmine.anything());
+        };
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: { hosts: {} },
+                addListener: () => {}, // eslint-disable-line no-empty-function
+                tryParseJSONAndVerify: XMPP.prototype.tryParseJSONAndVerify
+            };
+
+            room = new ChatRoom(
+                {} as XmppConnection /* connection */,
+                ROOM_JID,
+                'password',
+                xmpp as any,
+                {} /* options */);
+            room.myroomjid = `${ROOM_JID}/abc123`;
+            room.subject = 'Room subject';
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('changes the subject on a subject-only groupchat message from the room', () => {
+            room.onMessage(subjectMessage(ROOM_JID, 'groupchat'), ROOM_JID);
+
+            expect(room.subject).toEqual('New subject');
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.SUBJECT_CHANGED, 'New subject');
+        });
+
+        it('changes the subject on a subject-only groupchat message from the occupant that set it', () => {
+            room.onMessage(subjectMessage(SETTER_JID, 'groupchat'), SETTER_JID);
+
+            expect(room.subject).toEqual('New subject');
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.SUBJECT_CHANGED, 'New subject');
+        });
+
+        it('clears the subject on an empty subject-only groupchat message', () => {
+            const msg = new DOMParser().parseFromString(''
+                + `<message to="user@example.com/res" from="${SETTER_JID}" type="groupchat" xmlns="jabber:client">`
+                    + '<subject/>'
+                + '</message>', 'text/xml').documentElement;
+
+            room.onMessage(msg, SETTER_JID);
+
+            expect(room.subject).toEqual('');
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.SUBJECT_CHANGED, '');
+        });
+
+        it('does not change the subject on a groupchat message that has a thread', () => {
+            room.onMessage(subjectMessage(OCCUPANT_JID, 'groupchat', '<thread>t1</thread>'), OCCUPANT_JID);
+
+            expectSubjectUnchanged();
+        });
+
+        it('does not change the subject on a groupchat message that has a body', () => {
+            room.onMessage(subjectMessage(OCCUPANT_JID, 'groupchat', '<body>hello</body>'), OCCUPANT_JID);
+
+            expectSubjectUnchanged();
+        });
+
+        it('does not change the subject on a private message', () => {
+            room.onMessage(subjectMessage(OCCUPANT_JID, 'chat'), OCCUPANT_JID);
+
+            expectSubjectUnchanged();
+        });
+
+        it('does not change the subject on a message with no type', () => {
+            const msg = subjectMessage(OCCUPANT_JID, 'normal');
+
+            msg.removeAttribute('type');
+            room.onMessage(msg, OCCUPANT_JID);
+
+            expectSubjectUnchanged();
+        });
+    });
 });
