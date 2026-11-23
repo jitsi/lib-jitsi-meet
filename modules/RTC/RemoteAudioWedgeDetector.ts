@@ -44,7 +44,8 @@ interface IEligibleZeroState {
     samples: number;
 
     /**
-     * The timestamp (Date.now()) of the first sample of the current streak.
+     * The timestamp (Date.now()) at which the current streak started: the time the track was added, or the first
+     * sample.
      */
     since: number;
 
@@ -111,12 +112,14 @@ export interface IRemoteAudioWedgeDetectorOptions {
  * the time accumulated so far is kept. If a mute reset the streak, a sender whose mute state changes more often than
  * the detection window would be recovered only when several stats polls in a row found it unmuted, which can take
  * minutes, although the receive slot stays wedged for as long as the peerconnection lives. The unmuted time is added
- * up from the mute changes of the track ({@link JitsiTrackEvents.TRACK_MUTE_CHANGED}), so it is exact from the first
- * sample of the streak. The packet counts are only available at each stats poll, so a streak starts at a poll and the
- * detector fires at a poll: with the default 10 s poll interval and 15 s timeout, a source fires 20 to 30 s of
- * session time after its track is created at the earliest, and a session shorter than that cannot be recovered. The
- * streak is dropped when the source is unmapped, when a sample shows that it has received a packet, and when media
- * transfer is suspended. A {@link MIN_SAMPLES} floor debounces transient stats artifacts.
+ * up from the mute changes of the track ({@link JitsiTrackEvents.TRACK_MUTE_CHANGED}), so it is exact. It is counted
+ * from the time the track is added to the peerconnection ({@link RTCEvents.REMOTE_TRACK_ADDED}), or from the first
+ * sample for a track that existed before the detector was started. At each sample the mute state of the streak is
+ * compared with the mute state of the track and corrected, in case a mute change was not delivered. The packet counts
+ * are only available at each stats poll, so the detector fires at a poll: with the default 10 s poll interval and 15 s
+ * timeout, a source fires 15 to 25 s after its track is added at the earliest, and a session shorter than that cannot
+ * be recovered. The streak is dropped when the source is unmapped, when a sample shows that it has received a packet,
+ * and when media transfer is suspended. A {@link MIN_SAMPLES} floor debounces transient stats artifacts.
  *
  * Evaluation is skipped entirely while media transfer is suspended on the peerconnection. A JVB session is kept alive
  * but suspended for the duration of an active P2P session, and a suspended session receives no RTP at all by design, so
@@ -237,6 +240,43 @@ export default class RemoteAudioWedgeDetector {
     };
 
     /**
+     * Handles a remote track that was added to a peerconnection. Starts the streak of an audio track of the monitored
+     * peerconnection and listens to its mute changes, so that the unmuted time is counted from now and not from the
+     * next stats poll. The next evaluation drops the streak if the source is not eligible.
+     *
+     * @param {JitsiRemoteTrack} track - The added track.
+     * @param {TraceablePeerConnection} pc - The peerconnection the track was added to.
+     * @returns {void}
+     */
+    private _onRemoteTrackAdded = (track: JitsiRemoteTrack, pc: TraceablePeerConnection): void => {
+        if (pc !== this._pc || track.getType() !== MediaType.AUDIO) {
+            return;
+        }
+
+        const ssrc = track.getSsrc();
+
+        if (typeof ssrc !== 'number') {
+            return;
+        }
+
+        if (!this._watchedTracks.has(track)) {
+            track.on(JitsiTrackEvents.TRACK_MUTE_CHANGED, this._onTrackMuteChanged);
+            this._watchedTracks.add(track);
+        }
+
+        if (!this._eligibleZeroBySsrc.has(ssrc)) {
+            const now = Date.now();
+
+            this._eligibleZeroBySsrc.set(ssrc, {
+                elapsed: 0,
+                samples: 0,
+                since: now,
+                unmutedSince: track.isMuted() ? undefined : now
+            });
+        }
+    };
+
+    /**
      * Listens to the mute changes of the given tracks, and stops listening to those of every other track.
      *
      * @param {Set<JitsiRemoteTrack>} tracks - The tracks to watch.
@@ -332,8 +372,8 @@ export default class RemoteAudioWedgeDetector {
             const state = this._eligibleZeroBySsrc.get(ssrc);
 
             if (!state) {
-                // Start of a streak. The unmuted time is counted from this sample, or from the next unmute if the
-                // source is muted now.
+                // Start of the streak of a track that was not seen when it was added. The unmuted time is counted from
+                // this sample, or from the next unmute if the source is muted now.
                 this._eligibleZeroBySsrc.set(ssrc, {
                     elapsed: 0,
                     samples: 1,
@@ -345,6 +385,14 @@ export default class RemoteAudioWedgeDetector {
             }
 
             state.samples++;
+
+            // Correct the streak if a mute change of the track was not delivered. The time of the change is not known,
+            // so an unmuted period that a mute has ended is not counted, and one that has started is counted from now.
+            if (track.isMuted()) {
+                state.unmutedSince = undefined;
+            } else if (typeof state.unmutedSince !== 'number') {
+                state.unmutedSince = now;
+            }
 
             const unmutedMs = state.elapsed + (typeof state.unmutedSince === 'number' ? now - state.unmutedSince : 0);
 
@@ -379,8 +427,8 @@ export default class RemoteAudioWedgeDetector {
     }
 
     /**
-     * Starts the watchdog by subscribing to the {@link StatsCollector}'s inbound audio stats. Subsequent calls are
-     * no-ops while it is already running.
+     * Starts the watchdog by subscribing to the {@link StatsCollector}'s inbound audio stats and to the remote tracks
+     * that are added. Subsequent calls are no-ops while it is already running.
      *
      * @returns {void}
      */
@@ -392,6 +440,7 @@ export default class RemoteAudioWedgeDetector {
         logger.debug(`Starting remote audio wedge detector (wedgeTimeout=${this._wedgeTimeoutMs}ms), driven by the `
             + 'stats collector inbound audio stats');
         this._pc.eventEmitter.addListener(RTCEvents.INBOUND_AUDIO_STATS, this._onInboundAudioStats);
+        this._pc.eventEmitter.addListener(RTCEvents.REMOTE_TRACK_ADDED, this._onRemoteTrackAdded);
     }
 
     /**
@@ -402,6 +451,7 @@ export default class RemoteAudioWedgeDetector {
     stop(): void {
         if (this._started) {
             this._pc.eventEmitter.removeListener(RTCEvents.INBOUND_AUDIO_STATS, this._onInboundAudioStats);
+            this._pc.eventEmitter.removeListener(RTCEvents.REMOTE_TRACK_ADDED, this._onRemoteTrackAdded);
             this._started = false;
         }
         this._watchTracks(new Set());
