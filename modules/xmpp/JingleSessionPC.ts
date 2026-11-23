@@ -863,6 +863,11 @@ export default class JingleSessionPC extends JingleSession {
      * source that was detected as wedged - letting the normal sources-map flow own the slot and the watchdog re-detect
      * on a later cycle. This prevents recycling a source with stale owner/source-name metadata.
      *
+     * A source that the bridge demuxes by mid is not recycled. The source-add would give the fresh m-line a new mid,
+     * while the bridge keeps the slot's mid on the forwarded packets, and the rejected m-line still holds that mid in
+     * the SDP. Mid demux removes the cause of the wedge, so a detection there is a source that receives nothing because
+     * nothing is sent to it.
+     *
      * @param {JitsiRemoteTrack} track - The wedged remote audio track.
      * @returns {void}
      */
@@ -892,6 +897,16 @@ export default class JingleSessionPC extends JingleSession {
 
             const source = currentTrack.getSourceName();
             const owner = currentTrack.getParticipantId();
+
+            // A recycled source gets a new m-line with a new mid, but the bridge keeps the slot's mid on the packets.
+            // The recycle would move the slot to an m-line that those packets do not match.
+            if (this.peerconnection.getRemoteSourceInfoBySourceName(source)?.mid) {
+                logger.warn(`${this} Skipping wedge recovery for audio source ${source} (ssrc=${ssrc}): the slot is `
+                    + 'demuxed by mid, and recycling it would change the mid of its m-line.');
+                finishedCallback();
+
+                return;
+            }
 
             logger.warn(`${this} Recycling wedged remote audio source ${source} (ssrc=${ssrc}, owner=${owner})`);
 
