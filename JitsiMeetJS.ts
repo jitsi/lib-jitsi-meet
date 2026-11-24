@@ -28,6 +28,7 @@ import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
+import runIceConnectivityCheck, { IIceConnectivityResult } from './modules/statistics/IceConnectivityCheck';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import runPreCallTest, { IIceServer, IPreCallResult } from './modules/statistics/PreCallTest';
 import Statistics from './modules/statistics/statistics';
@@ -607,6 +608,18 @@ const JitsiMeetJS = {
         sendStatsEntry(statsType: RTCStatsEvents, data?: Optional<any>) {
             RTCStats.sendStatsEntry(statsType, null, data);
         }
+    },
+
+    /**
+     * Checks whether the browser can reach the TURN servers, and over which transport, without sending any test
+     * traffic.
+     *
+     * @param {Array<IIceServer>} iceServers - The STUN and TURN servers to check.
+     * @param {number} [timeout] - How long to wait for the connection, in milliseconds.
+     * @returns {Promise<IIceConnectivityResult>} Resolves with the result; never rejects.
+     */
+    runIceConnectivityCheck(iceServers: IIceServer[], timeout?: number): Promise<IIceConnectivityResult> {
+        return runIceConnectivityCheck(iceServers, timeout);
     },
 
     /**
