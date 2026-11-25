@@ -7,11 +7,13 @@ import JitsiRemoteTrack from './modules/RTC/JitsiRemoteTrack';
 import { P2PFallbackReason } from './modules/qualitycontrol/QualityController';
 import { ReceiverAudioController } from './modules/qualitycontrol/ReceiveAudioController';
 import TraceablePeerConnection from './modules/RTC/TraceablePeerConnection';
+import Statistics from './modules/statistics/statistics';
 import EventEmitter, { EventListener } from './modules/util/EventEmitter';
 import SignalingLayerImpl from './modules/xmpp/SignalingLayerImpl';
 import { MediaType } from './service/RTC/MediaType';
 import { RTCEvents } from './service/RTC/RTCEvents';
 import { TransportCost } from './service/RTC/TransportCost';
+import { MediaConnectivityStatus } from './service/connectivity/MediaConnectivity';
 
 describe('JitsiConference', () => {
     describe('remote track relays across SSRC remaps', () => {
@@ -421,6 +423,186 @@ describe('JitsiConference', () => {
                 false,                        // isVisitor
                 undefined                     // replyToId
             );
+        });
+    });
+
+    describe('media connectivity', () => {
+        const proto = JitsiConference.prototype as any;
+        const assessment = (status: MediaConnectivityStatus) => ({ status });
+        let conference;
+        let jvb;
+        let p2p;
+
+        beforeEach(() => {
+            jvb = { getMediaConnectivity: () => assessment(MediaConnectivityStatus.AT_RISK) };
+            p2p = { getMediaConnectivity: () => undefined };
+            conference = {
+                _maybeEmitMediaConnectivity: proto._maybeEmitMediaConnectivity,
+                eventEmitter: { emit: jasmine.createSpy('emit') },
+                getActiveMediaSession: () => (conference.p2p ? p2p : jvb),
+                p2p: false
+            };
+        });
+
+        const onChanged = session => proto._onMediaConnectivityChanged.call(conference, session);
+
+        it('forwards only the active session, once per assessment', () => {
+            onChanged(p2p);
+            onChanged(jvb);
+            onChanged(jvb);
+
+            expect(conference.eventEmitter.emit.calls.allArgs()).toEqual([
+                [ JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED, assessment(MediaConnectivityStatus.AT_RISK) ]
+            ]);
+        });
+
+        it('keeps a failure or an interruption through restarted sessions until one connects', () => {
+            const { AT_RISK, FAILED, GOOD, INTERRUPTED } = MediaConnectivityStatus;
+
+            for (const status of [ AT_RISK, FAILED, AT_RISK, FAILED, AT_RISK, GOOD, INTERRUPTED, AT_RISK, GOOD ]) {
+                jvb = { getMediaConnectivity: () => assessment(status) };
+                onChanged(jvb);
+            }
+
+            expect(conference.eventEmitter.emit.calls.allArgs().map(([ , e ]) => e.status))
+                .toEqual([ AT_RISK, FAILED, GOOD, INTERRUPTED, GOOD ]);
+            expect(proto.getMediaConnectivity.call(conference)).toEqual(assessment(GOOD));
+        });
+
+        it('keeps the last assessment until the newly active session reports one', () => {
+            onChanged(jvb);
+            conference.p2p = true;
+            proto._maybeEmitMediaConnectivity.call(conference);
+
+            expect(conference.eventEmitter.emit).toHaveBeenCalledTimes(1);
+            expect(proto.getMediaConnectivity.call(conference)).toEqual(assessment(MediaConnectivityStatus.AT_RISK));
+
+            p2p.getMediaConnectivity = () => assessment(MediaConnectivityStatus.GOOD);
+            onChanged(p2p);
+
+            expect(conference.eventEmitter.emit).toHaveBeenCalledWith(
+                JitsiConferenceEvents.MEDIA_CONNECTIVITY_CHANGED, assessment(MediaConnectivityStatus.GOOD));
+        });
+
+        it('doesn\'t emit again when only the round trip time changed', () => {
+            const good = (isP2P: boolean, rtt: number) => ({
+                p2p: isP2P,
+                reasons: [],
+                selectedPair: { rtt },
+                status: MediaConnectivityStatus.GOOD
+            });
+
+            jvb.getMediaConnectivity = () => good(false, 20);
+            onChanged(jvb);
+            jvb.getMediaConnectivity = () => good(false, 35);
+            proto._maybeEmitMediaConnectivity.call(conference);
+            p2p.getMediaConnectivity = () => good(true, 5);
+            conference.p2p = true;
+            proto._maybeEmitMediaConnectivity.call(conference);
+
+            expect(conference.eventEmitter.emit.calls.allArgs().map(([ , e ]) => e.selectedPair.rtt)).toEqual([ 20, 5 ]);
+        });
+    });
+
+    describe('incoming P2P offer', () => {
+        const proto = JitsiConference.prototype as any;
+        const ROOM = 'room@conference.example.com';
+        const offer = new DOMParser().parseFromString(
+            '<jingle xmlns="urn:xmpp:jingle:1" action="session-initiate" sid="abc"><content name="0"/></jingle>',
+            'text/xml').documentElement;
+
+        const NOT_A_PARTICIPANT = {
+            reason: 'security-error',
+            reasonDescription: 'Rejecting session-initiate from non-participant.'
+        };
+        const REQUIREMENTS_NOT_MET = {
+            reason: 'decline',
+            reasonDescription: 'P2P requirements not met'
+        };
+
+        // The real prototype methods with only the members that _onIncomingCallP2P and _shouldBeInP2PMode use.
+        const makeConference = (participantJids: string[], p2pJingleSession: unknown = null) => ({
+            _acceptP2PIncomingCall: jasmine.createSpy('_acceptP2PIncomingCall'),
+            _buildDesiredTranslations: () => new Map(),
+            _firefoxP2pEnabled: true,
+            _hasVisitors: false,
+            _p2pFallbackLatched: false,
+            _rejectIncomingCall: jasmine.createSpy('_rejectIncomingCall'),
+            _shouldBeInP2PMode: proto._shouldBeInP2PMode,
+            _transcribingEnabled: false,
+            getParticipants: () => participantJids.map(jid => ({
+                getBotType: () => undefined,
+                getJid: () => jid,
+                hasFeature: () => false
+            })),
+            isP2PEnabled: () => true,
+            isP2PTestModeEnabled: () => false,
+            p2pJingleSession,
+            qualityController: {
+                audioController: {
+                    getServiceIncludes: () => []
+                }
+            }
+        });
+
+        beforeEach(() => {
+            spyOn(Statistics, 'sendAnalytics');
+        });
+
+        it('accepts an offer from the only other participant', () => {
+            const conference = makeConference([ `${ROOM}/aaaaaaaa` ]);
+            const session = { remoteJid: `${ROOM}/aaaaaaaa` };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).toHaveBeenCalledOnceWith(session, offer);
+            expect(conference._rejectIncomingCall).not.toHaveBeenCalled();
+        });
+
+        it('declines an offer from a sender that is not a participant', () => {
+            const conference = makeConference([ `${ROOM}/aaaaaaaa` ]);
+            const session = { remoteJid: 'cccccccc@example.com/resource' };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
+            expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
+                session, jasmine.objectContaining(NOT_A_PARTICIPANT));
+        });
+
+        it('declines an offer from a participant that left the conference', () => {
+            const conference = makeConference([ `${ROOM}/aaaaaaaa` ]);
+            const session = { remoteJid: `${ROOM}/bbbbbbbb` };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
+            expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
+                session, jasmine.objectContaining(NOT_A_PARTICIPANT));
+        });
+
+        it('declines an offer from a sender that is not a participant and keeps the session in progress', () => {
+            const current = { remoteJid: `${ROOM}/aaaaaaaa` };
+            const conference = makeConference([ `${ROOM}/aaaaaaaa` ], current);
+            const session = { remoteJid: 'cccccccc@example.com/resource' };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
+            expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
+                session, jasmine.objectContaining(NOT_A_PARTICIPANT));
+            expect(conference.p2pJingleSession).toBe(current);
+        });
+
+        it('declines an offer from a participant when there is more than one', () => {
+            const conference = makeConference([ `${ROOM}/aaaaaaaa`, `${ROOM}/bbbbbbbb` ]);
+            const session = { remoteJid: `${ROOM}/aaaaaaaa` };
+
+            proto._onIncomingCallP2P.call(conference, session, offer);
+
+            expect(conference._acceptP2PIncomingCall).not.toHaveBeenCalled();
+            expect(conference._rejectIncomingCall).toHaveBeenCalledOnceWith(
+                session, jasmine.objectContaining(REQUIREMENTS_NOT_MET));
         });
     });
 

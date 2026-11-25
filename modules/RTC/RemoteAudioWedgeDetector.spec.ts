@@ -1,3 +1,4 @@
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import EventEmitter from '../util/EventEmitter';
@@ -5,7 +6,8 @@ import EventEmitter from '../util/EventEmitter';
 import RemoteAudioWedgeDetector from './RemoteAudioWedgeDetector';
 
 /**
- * Builds a minimal mock of a remote audio track.
+ * Builds a minimal mock of a remote audio track. The mock emits the mute change to its listeners, as
+ * {@link JitsiRemoteTrack.setMute} does.
  *
  * @param {number} ssrc - The track SSRC.
  * @param {string} source - The source name.
@@ -13,12 +15,37 @@ import RemoteAudioWedgeDetector from './RemoteAudioWedgeDetector';
  * @returns {object}
  */
 function mockTrack(ssrc: number, source: string, muted = false): any {
-    return {
+    const listeners = new Set<(track: any) => void>();
+    let isMuted = muted;
+    const track = {
         getParticipantId: () => 'endpoint-1',
         getSourceName: () => source,
         getSsrc: () => ssrc,
-        isMuted: () => muted
+        getType: () => MediaType.AUDIO,
+        isMuted: () => isMuted,
+        listenerCount: () => listeners.size,
+        off: (eventId: string, listener: (track: any) => void) => {
+            expect(eventId).toBe(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+            listeners.delete(listener);
+        },
+        on: (eventId: string, listener: (track: any) => void) => {
+            expect(eventId).toBe(JitsiTrackEvents.TRACK_MUTE_CHANGED);
+            listeners.add(listener);
+        },
+        setMute: (value: boolean) => {
+            if (isMuted !== value) {
+                isMuted = value;
+                listeners.forEach(listener => listener(track));
+            }
+        },
+
+        // Changes the mute state without the mute change event, as when the listener of the detector was removed.
+        setMuteSilently: (value: boolean) => {
+            isMuted = value;
+        }
     };
+
+    return track;
 }
 
 /**
@@ -166,6 +193,320 @@ describe('RemoteAudioWedgeDetector', () => {
             tick();
         }
         expect(onWedgeDetected).not.toHaveBeenCalled();
+    });
+
+    it('adds up the unmuted time of a source that is muted at every sample but the first', () => {
+        const track = mockTrack(111, 'source-A');
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        tracks = [ track ];
+        poll(entries); // t=0, streak starts
+
+        // The source is unmuted for the first 600 ms of every second, and muted when it is sampled.
+        for (let i = 0; i < 4; i++) {
+            track.setMute(false);
+            jasmine.clock().tick(600);
+            track.setMute(true);
+            jasmine.clock().tick(400);
+            poll(entries); // t=1000 to t=4000, 600 ms to 2400 ms unmuted
+        }
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        track.setMute(false);
+        jasmine.clock().tick(600);
+        track.setMute(true);
+        jasmine.clock().tick(400);
+        poll(entries); // t=5000, 3000 ms unmuted >= WEDGE_TIMEOUT_MS
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+        expect(onWedgeDetected.calls.mostRecent().args[0]).toBe(track);
+    });
+
+    it('does not count the time a source is muted', () => {
+        const track = mockTrack(111, 'source-A');
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        tracks = [ track ];
+        poll(entries); // t=0, streak starts
+        tick();
+        poll(entries); // t=1000, 1000 ms unmuted
+
+        track.setMute(true);
+        for (let i = 0; i < 10; i++) {
+            tick();
+            poll(entries); // t=2000 to t=11000, muted
+        }
+
+        track.setMute(false);
+        tick();
+        poll(entries); // t=12000, 2000 ms unmuted
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        tick();
+        poll(entries); // t=13000, 3000 ms unmuted >= WEDGE_TIMEOUT_MS
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    it('starts the streak of a source that is muted at its first sample', () => {
+        const track = mockTrack(111, 'source-A', true /* muted */);
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        tracks = [ track ];
+        poll(entries); // t=0, streak starts, muted
+        jasmine.clock().tick(500);
+        track.setMute(false); // t=500
+        jasmine.clock().tick(500);
+        poll(entries); // t=1000, 500 ms unmuted
+        tick();
+        poll(entries); // t=2000
+        tick();
+        poll(entries); // t=3000, 2500 ms unmuted
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        tick();
+        poll(entries); // t=4000, 3500 ms unmuted >= WEDGE_TIMEOUT_MS
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    it('fires for a mostly muted source at the default timeout and stats interval', () => {
+        const detector2 = new RemoteAudioWedgeDetector(pc, { onWedgeDetected });
+        const track = mockTrack(111, 'source-A', true /* muted */);
+        const evaluate = () => (detector2 as any)._evaluate(toMap([ { packetsReceived: 0, ssrc: 111 } ]));
+
+        tracks = [ track ];
+        evaluate(); // t=0, streak starts, muted
+
+        // The source is unmuted for 4 s of every 10 s, and muted at every sample.
+        for (let i = 0; i < 3; i++) {
+            jasmine.clock().tick(3000);
+            track.setMute(false);
+            jasmine.clock().tick(4000);
+            track.setMute(true);
+            jasmine.clock().tick(3000);
+            evaluate(); // t=10000 to t=30000, 4000 ms to 12000 ms unmuted
+        }
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        jasmine.clock().tick(3000);
+        track.setMute(false);
+        jasmine.clock().tick(4000);
+        track.setMute(true);
+        jasmine.clock().tick(3000);
+        evaluate(); // t=40000, 16000 ms unmuted >= 15000 ms
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+        detector2.stop();
+    });
+
+    it('stops recovering a source whose mute state keeps changing', () => {
+        const track = mockTrack(111, 'source-A');
+
+        tracks = [ track ];
+
+        for (let i = 0; i < 200; i++) {
+            track.setMute(i % 2 === 1);
+            poll([ { packetsReceived: 0, ssrc: 111 } ]);
+            tick();
+        }
+        expect(onWedgeDetected).toHaveBeenCalledTimes(2);
+    });
+
+    it('drops the streak of a source that is unmapped while it is muted', () => {
+        const track = mockTrack(111, 'source-A');
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        tracks = [ track ];
+        poll(entries); // t=0, streak starts
+        tick();
+        poll(entries); // t=1000
+        tick();
+        poll(entries); // t=2000, 2000 ms unmuted
+
+        track.setMute(true);
+        tick();
+        poll(entries); // t=3000, muted
+
+        tracks = [];
+        tick();
+        poll([]); // t=4000, unmapped, the paused streak is dropped
+
+        track.setMute(false);
+        tracks = [ track ];
+        tick();
+        poll(entries); // t=5000, fresh streak starts here
+        tick();
+        poll(entries); // t=6000
+        tick();
+        poll(entries); // t=7000, 2000 ms unmuted
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        tick();
+        poll(entries); // t=8000, 3000 ms unmuted >= WEDGE_TIMEOUT_MS
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    it('drops the streak of a muted source when media transfer is suspended', () => {
+        const track = mockTrack(111, 'source-A');
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        tracks = [ track ];
+        poll(entries); // t=0, streak starts
+        tick();
+        poll(entries); // t=1000
+        tick();
+        poll(entries); // t=2000, 2000 ms unmuted
+
+        track.setMute(true);
+        tick();
+        poll(entries); // t=3000, muted
+
+        pc.audioTransferActive = false;
+        tick();
+        poll(entries); // t=4000, suspended, the paused streak is dropped
+
+        pc.audioTransferActive = true;
+        track.setMute(false);
+        tick();
+        poll(entries); // t=5000, fresh streak starts here
+        tick();
+        poll(entries); // t=6000
+        tick();
+        poll(entries); // t=7000, 2000 ms unmuted
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        tick();
+        poll(entries); // t=8000, 3000 ms unmuted >= WEDGE_TIMEOUT_MS
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fire for a paused streak when the source has received packets', () => {
+        const track = mockTrack(111, 'source-A');
+
+        tracks = [ track ];
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=0, streak starts
+        tick();
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=1000
+        tick();
+        poll([ { packetsReceived: 0, ssrc: 111 } ]); // t=2000, 2000 ms unmuted
+
+        // The packets are seen while the source is muted. The source is healthy, and the paused streak must not fire
+        // when the source is unmuted again.
+        track.setMute(true);
+        tick();
+        poll([ { packetsReceived: 5, ssrc: 111 } ]); // t=3000, muted
+
+        track.setMute(false);
+        tick();
+        poll([ { packetsReceived: 5, ssrc: 111 } ]); // t=4000
+        tick();
+        poll([ { packetsReceived: 5, ssrc: 111 } ]); // t=5000
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+    });
+
+    it('counts the unmuted time from when the track is added, not from the first sample', () => {
+        const track = mockTrack(111, 'source-A');
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        detector.start();
+        tracks = [ track ];
+        pc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, track, pc); // t=0, streak starts
+
+        // The source is muted from t=800 to t=1000, so it is muted at the first sample.
+        jasmine.clock().tick(800);
+        track.setMute(true);
+        jasmine.clock().tick(100);
+        poll(entries); // t=900, 800 ms unmuted
+        jasmine.clock().tick(100);
+        track.setMute(false);
+        jasmine.clock().tick(900);
+        poll(entries); // t=1900, 1700 ms unmuted
+        tick();
+        poll(entries); // t=2900, 2700 ms unmuted
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        // A streak that started at the first sample would have 2900 ms here.
+        tick();
+        poll(entries); // t=3900, 3700 ms unmuted >= WEDGE_TIMEOUT_MS
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fire at the first sample after the track is added', () => {
+        const detector2 = new RemoteAudioWedgeDetector(pc, {
+            onWedgeDetected,
+            wedgeTimeoutMs: 500
+        });
+        const track = mockTrack(111, 'source-A');
+        const evaluate = () => (detector2 as any)._evaluate(toMap([ { packetsReceived: 0, ssrc: 111 } ]));
+
+        detector2.start();
+        tracks = [ track ];
+        pc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, track, pc); // t=0
+        tick();
+        evaluate(); // t=1000, 1000 ms unmuted but only one sample
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        tick();
+        evaluate(); // t=2000, second sample
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+        detector2.stop();
+    });
+
+    it('ignores a track that is added to another peerconnection, and a video track', () => {
+        const otherPcTrack = mockTrack(111, 'source-A');
+        const videoTrack = mockTrack(222, 'source-B');
+
+        videoTrack.getType = () => MediaType.VIDEO;
+        detector.start();
+        pc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, otherPcTrack, {});
+        pc.eventEmitter.emit(RTCEvents.REMOTE_TRACK_ADDED, videoTrack, pc);
+        expect(otherPcTrack.listenerCount()).toBe(0);
+        expect(videoTrack.listenerCount()).toBe(0);
+    });
+
+    it('corrects the streak at a sample when a mute change was not delivered', () => {
+        const track = mockTrack(111, 'source-A');
+        const entries = [ { packetsReceived: 0, ssrc: 111 } ];
+
+        tracks = [ track ];
+        poll(entries); // t=0, streak starts
+
+        // The mute is not delivered. The time of the mute is not known, so the open unmuted period is not counted.
+        jasmine.clock().tick(500);
+        track.setMuteSilently(true);
+        jasmine.clock().tick(500);
+        poll(entries); // t=1000, corrected to muted, 0 ms unmuted
+
+        // The unmute is not delivered either. The unmuted time is counted from the sample that finds it.
+        jasmine.clock().tick(500);
+        track.setMuteSilently(false);
+        jasmine.clock().tick(500);
+        poll(entries); // t=2000, corrected to unmuted
+        tick();
+        poll(entries); // t=3000, 1000 ms unmuted
+        tick();
+        poll(entries); // t=4000, 2000 ms unmuted
+        expect(onWedgeDetected).not.toHaveBeenCalled();
+
+        tick();
+        poll(entries); // t=5000, 3000 ms unmuted >= WEDGE_TIMEOUT_MS
+        expect(onWedgeDetected).toHaveBeenCalledTimes(1);
+    });
+
+    it('listens to the mute changes of mapped tracks only, and of none after stop()', () => {
+        const trackA = mockTrack(111, 'source-A');
+        const trackB = mockTrack(222, 'source-B');
+
+        tracks = [ trackA, trackB ];
+        poll([]);
+        poll([]);
+        expect(trackA.listenerCount()).toBe(1);
+        expect(trackB.listenerCount()).toBe(1);
+
+        tracks = [ trackB ];
+        poll([]);
+        expect(trackA.listenerCount()).toBe(0);
+        expect(trackB.listenerCount()).toBe(1);
+
+        detector.stop();
+        expect(trackB.listenerCount()).toBe(0);
     });
 
     it('does not fire for a source that received packets and later reports zero (cumulative is monotonic)', () => {

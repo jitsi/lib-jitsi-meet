@@ -269,7 +269,7 @@ export default class JitsiTrack extends Listenable {
 
         if (this.stream) {
             this._onTrackAttach(container);
-            result = RTCUtils.attachMediaStream(container, this.stream);
+            result = RTCUtils.attachMediaStream(container, this.stream, this);
             if (this.isAudioTrack()) {
                 result = result.catch((error: Error) => {
                     this.emit(JitsiTrackEvents.TRACK_AUDIO_OUTPUT_FAILED, error);

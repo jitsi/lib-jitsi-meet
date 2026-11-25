@@ -259,6 +259,207 @@ describe('ChatRoom', () => {
                 undefined); // isSilent
         });
 
+        it('reads the muc user item from the direct child of the presence', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension">' +
+                        '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                            '<item jid="nested-jid" affiliation="nested-affiliation" role="nested-role"/>' +
+                        '</x>' +
+                    '</extension>' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="affiliation-attr" role="role-attr"/>' +
+                    '</x>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                'role-attr', // role
+                jasmine.any(Boolean), // isHiddenDomain
+                undefined, // statsID
+                undefined,
+                undefined,
+                undefined,
+                'jid=attr',
+                undefined, // features
+                0, // isReplaceParticipant
+                undefined); // isSilent
+            expect((room as any).members.fromjid.affiliation).toBe('affiliation-attr');
+        });
+
+        it('reads the muc user item when an extension holds a muc user element without an item', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension">' +
+                        '<x xmlns="http://jabber.org/protocol/muc#user"/>' +
+                    '</extension>' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="affiliation-attr" role="role-attr"/>' +
+                    '</x>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                'role-attr', // role
+                jasmine.any(Boolean), // isHiddenDomain
+                undefined, // statsID
+                undefined,
+                undefined,
+                undefined,
+                'jid=attr',
+                undefined, // features
+                0, // isReplaceParticipant
+                undefined); // isSilent
+        });
+
+        it('does not add a member when the muc user element is not a direct child of the presence', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension">' +
+                        '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                            '<item jid="nested-jid" affiliation="nested-affiliation" role="nested-role"/>' +
+                        '</x>' +
+                    '</extension>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+
+            const emittedEvents = emitterSpy.calls.allArgs().map((args: any[]) => args[0]);
+
+            expect(emittedEvents).not.toContain(XMPPEvents.MUC_MEMBER_JOINED);
+            expect((room as any).members.fromjid).toBeUndefined();
+        });
+
+        it('reads the last muc user element of the presence', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="first-jid" affiliation="first-affiliation" role="first-role"/>' +
+                    '</x>' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="affiliation-attr" role="role-attr"/>' +
+                    '</x>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                'role-attr', // role
+                jasmine.any(Boolean), // isHiddenDomain
+                undefined, // statsID
+                undefined,
+                undefined,
+                undefined,
+                'jid=attr',
+                undefined, // features
+                0, // isReplaceParticipant
+                undefined); // isSilent
+            expect((room as any).members.fromjid.affiliation).toBe('affiliation-attr');
+        });
+
+        describe('with a configured focus jid', () => {
+            beforeEach(() => {
+                const xmpp: IMockXMPP = {
+                    moderator: new Moderator({
+                        options: { focusUserJid: 'focus@auth.example.org' }
+                    } as any),
+                    options: {},
+                    addListener: () => {} // eslint-disable-line no-empty-function
+                };
+
+                room = new ChatRoom(
+                    {} as XmppConnection /* connection */,
+                    'jid',
+                    'password',
+                    xmpp as any,
+                    {} /* options */);
+                emitterSpy = spyOn(room.eventEmitter, 'emit');
+            });
+
+            it('marks a member as the focus from the muc user item of the presence', () => {
+                const presStr = '' +
+                    '<presence to="tojid" from="fromjid">' +
+                        '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                            '<item jid="focus@auth.example.org/focus" affiliation="owner" role="moderator"/>' +
+                        '</x>' +
+                    '</presence>';
+                const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+                room.onPresence(pres);
+
+                expect(room.isFocus('fromjid')).toBe(true);
+                expect(room.focusMucJid).toBe('fromjid');
+            });
+
+            it('does not mark a member as the focus from a muc user item inside an extension', () => {
+                const presStr = '' +
+                    '<presence to="tojid" from="fromjid">' +
+                        '<extension xmlns="urn:example:extension">' +
+                            '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                                '<item jid="focus@auth.example.org/focus" affiliation="owner" role="moderator"/>' +
+                            '</x>' +
+                        '</extension>' +
+                        '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                            '<item jid="jid=attr" affiliation="affiliation-attr" role="role-attr"/>' +
+                        '</x>' +
+                    '</presence>';
+                const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+                room.onPresence(pres);
+
+                expect(room.isFocus('fromjid')).toBe(false);
+                expect(room.focusMucJid).toBeNull();
+                expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.PRESENCE_RECEIVED, jasmine.objectContaining({
+                    isFocus: false
+                }));
+            });
+        });
+
+        it('does not read flip_device from inside an extension', () => {
+            const presStr = '' +
+                '<presence to="tojid" from="fromjid">' +
+                    '<extension xmlns="urn:example:extension">' +
+                        '<flip_device />' +
+                    '</extension>' +
+                    '<x xmlns="http://jabber.org/protocol/muc#user">' +
+                        '<item jid="jid=attr" affiliation="affiliation-attr" role="role-attr"/>' +
+                    '</x>' +
+                '</presence>';
+            const pres = new DOMParser().parseFromString(presStr, 'text/xml').documentElement;
+
+            room.onPresence(pres);
+
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.MUC_MEMBER_JOINED,
+                'fromjid',
+                undefined, // nick
+                'role-attr', // role
+                jasmine.any(Boolean), // isHiddenDomain
+                undefined, // statsID
+                undefined,
+                undefined,
+                undefined,
+                'jid=attr',
+                undefined, // features
+                0, // isReplaceParticipant
+                undefined); // isSilent
+        });
+
         it('parses muc user replacing other user correctly', () => {
             const presStr = '' +
               '<presence to="tojid" from="fromjid">' +
@@ -1467,6 +1668,215 @@ describe('ChatRoom', () => {
                 jasmine.anything(),
                 jasmine.anything(),
                 jasmine.anything());
+        });
+    });
+
+    describe('onMessage - mediated invite', () => {
+        const ROOM_JID = 'someroom@muc.example.com';
+        const INVITER_JID = `${ROOM_JID}/inviter1`;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+
+        const inviteMessage = (from: string, extra = '') => {
+            const msgStr = ''
+                + `<message to="user@example.com/res" from="${from}" xmlns="jabber:client">`
+                    + '<body>You are invited</body>'
+                    + extra
+                    + '<x xmlns="http://jabber.org/protocol/muc#user">'
+                        + `<invite from="${INVITER_JID}"><reason/></invite>`
+                        + '<password>secret</password>'
+                    + '</x>'
+                + '</message>';
+
+            return new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+        };
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: { hosts: {} },
+                addListener: () => {}, // eslint-disable-line no-empty-function
+                tryParseJSONAndVerify: XMPP.prototype.tryParseJSONAndVerify
+            };
+
+            room = new ChatRoom(
+                {} as XmppConnection /* connection */,
+                ROOM_JID,
+                'password',
+                xmpp as any,
+                {} /* options */);
+            room.myroomjid = `${ROOM_JID}/abc123`;
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('emits INVITE_MESSAGE_RECEIVED for an invite from the room', () => {
+            room.onMessage(inviteMessage(ROOM_JID), ROOM_JID);
+
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                ROOM_JID,
+                INVITER_JID,
+                'You are invited',
+                'secret');
+        });
+
+        const expectOnlyInvite = () => {
+            expect(emitterSpy.calls.count()).toEqual(1);
+            expect(emitterSpy).toHaveBeenCalledWith(
+                XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                ROOM_JID,
+                INVITER_JID,
+                'You are invited',
+                'secret');
+        };
+
+        it('handles only the invite in a message that also has a subject and a json-message', () => {
+            const extra = ''
+                + '<subject>Another subject</subject>'
+                + '<json-message xmlns="http://jitsi.org/jitmeet">'
+                    + '{"type":"time_restricted","durationSeconds":60,"elapsedSeconds":0}'
+                + '</json-message>';
+
+            room.subject = 'Room subject';
+            room.onMessage(inviteMessage(ROOM_JID, extra), ROOM_JID);
+
+            expectOnlyInvite();
+            expect(room.subject).toEqual('Room subject');
+        });
+
+        it('handles only the invite in a message that also has a moderation element', () => {
+            const extra = ''
+                + '<apply-to xmlns="urn:xmpp:fasten:0" id="some-message-id">'
+                    + '<moderated xmlns="urn:xmpp:message-moderate:1">'
+                        + '<retract xmlns="urn:xmpp:message-retract:1"/>'
+                    + '</moderated>'
+                + '</apply-to>';
+
+            room.onMessage(inviteMessage(ROOM_JID, extra), ROOM_JID);
+
+            expectOnlyInvite();
+        });
+
+        it('handles only the invite in a message that also has reactions', () => {
+            const extra = ''
+                + '<reactions xmlns="urn:xmpp:reactions:0" id="some-message-id">'
+                    + '<reaction>👍</reaction>'
+                + '</reactions>';
+
+            room.onMessage(inviteMessage(ROOM_JID, extra), ROOM_JID);
+
+            expectOnlyInvite();
+        });
+
+        it('does not treat an invite from an occupant as an invite', () => {
+            room.onMessage(inviteMessage(INVITER_JID), INVITER_JID);
+
+            expect(emitterSpy).not.toHaveBeenCalledWith(
+                XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                jasmine.anything(),
+                jasmine.anything(),
+                jasmine.anything(),
+                jasmine.anything());
+        });
+    });
+
+    describe('onMessage - subject', () => {
+        const ROOM_JID = 'someroom@muc.example.com';
+        const SETTER_JID = `${ROOM_JID}/setter1`;
+        const OCCUPANT_JID = `${ROOM_JID}/occupant1`;
+        let room: ChatRoom;
+        let emitterSpy: jasmine.Spy;
+
+        const subjectMessage = (from: string, type: string, extra = '') => {
+            const msgStr = ''
+                + `<message to="user@example.com/res" from="${from}" type="${type}" xmlns="jabber:client">`
+                    + '<subject>New subject</subject>'
+                    + extra
+                + '</message>';
+
+            return new DOMParser().parseFromString(msgStr, 'text/xml').documentElement;
+        };
+
+        const expectSubjectUnchanged = () => {
+            expect(room.subject).toEqual('Room subject');
+            expect(emitterSpy).not.toHaveBeenCalledWith(XMPPEvents.SUBJECT_CHANGED, jasmine.anything());
+        };
+
+        beforeEach(() => {
+            const xmpp = {
+                moderator: new Moderator({
+                    options: {}
+                } as any),
+                options: { hosts: {} },
+                addListener: () => {}, // eslint-disable-line no-empty-function
+                tryParseJSONAndVerify: XMPP.prototype.tryParseJSONAndVerify
+            };
+
+            room = new ChatRoom(
+                {} as XmppConnection /* connection */,
+                ROOM_JID,
+                'password',
+                xmpp as any,
+                {} /* options */);
+            room.myroomjid = `${ROOM_JID}/abc123`;
+            room.subject = 'Room subject';
+            emitterSpy = spyOn(room.eventEmitter, 'emit');
+        });
+
+        it('changes the subject on a subject-only groupchat message from the room', () => {
+            room.onMessage(subjectMessage(ROOM_JID, 'groupchat'), ROOM_JID);
+
+            expect(room.subject).toEqual('New subject');
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.SUBJECT_CHANGED, 'New subject');
+        });
+
+        it('changes the subject on a subject-only groupchat message from the occupant that set it', () => {
+            room.onMessage(subjectMessage(SETTER_JID, 'groupchat'), SETTER_JID);
+
+            expect(room.subject).toEqual('New subject');
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.SUBJECT_CHANGED, 'New subject');
+        });
+
+        it('clears the subject on an empty subject-only groupchat message', () => {
+            const msg = new DOMParser().parseFromString(''
+                + `<message to="user@example.com/res" from="${SETTER_JID}" type="groupchat" xmlns="jabber:client">`
+                    + '<subject/>'
+                + '</message>', 'text/xml').documentElement;
+
+            room.onMessage(msg, SETTER_JID);
+
+            expect(room.subject).toEqual('');
+            expect(emitterSpy).toHaveBeenCalledWith(XMPPEvents.SUBJECT_CHANGED, '');
+        });
+
+        it('does not change the subject on a groupchat message that has a thread', () => {
+            room.onMessage(subjectMessage(OCCUPANT_JID, 'groupchat', '<thread>t1</thread>'), OCCUPANT_JID);
+
+            expectSubjectUnchanged();
+        });
+
+        it('does not change the subject on a groupchat message that has a body', () => {
+            room.onMessage(subjectMessage(OCCUPANT_JID, 'groupchat', '<body>hello</body>'), OCCUPANT_JID);
+
+            expectSubjectUnchanged();
+        });
+
+        it('does not change the subject on a private message', () => {
+            room.onMessage(subjectMessage(OCCUPANT_JID, 'chat'), OCCUPANT_JID);
+
+            expectSubjectUnchanged();
+        });
+
+        it('does not change the subject on a message with no type', () => {
+            const msg = subjectMessage(OCCUPANT_JID, 'normal');
+
+            msg.removeAttribute('type');
+            room.onMessage(msg, OCCUPANT_JID);
+
+            expectSubjectUnchanged();
         });
     });
 });

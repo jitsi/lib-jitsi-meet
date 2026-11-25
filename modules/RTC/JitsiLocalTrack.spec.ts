@@ -1,20 +1,27 @@
+import { JitsiTrackEvents } from '../../JitsiTrackEvents';
 import { MediaType } from '../../service/RTC/MediaType';
 
 import JitsiLocalTrack, { IStreamEffect } from './JitsiLocalTrack';
+import RTCUtils from './RTCUtils';
 
 describe('JitsiLocalTrack', () => {
     const MIC_ID = 'mic-1';
     const MIC_LABEL = 'Scarlett 2i2 USB';
 
     function fakeTrack(label: string): any {
-        return {
+        const track = {
             enabled: true,
             getConstraints: () => ({}),
             getSettings: () => ({}),
             kind: 'audio',
             label,
-            readyState: 'live'
+            readyState: 'live',
+            stop: jasmine.createSpy('stop').and.callFake(() => {
+                track.readyState = 'ended';
+            })
         };
+
+        return track;
     }
 
     function fakeStream(track: MediaStreamTrack): MediaStream {
@@ -108,6 +115,231 @@ describe('JitsiLocalTrack', () => {
 
             micTrack.readyState = 'ended';
 
+            expect(localTrack.isEnded()).toBeTrue();
+        });
+    });
+
+    describe('stopStream', () => {
+        function createTrackWithEffect(): { effect: IStreamEffect; localTrack: any; micTrack: any; outputTrack: any; } {
+            const outputTrack = fakeTrack('MediaStreamAudioDestinationNode');
+            const effect = mixerEffect(outputTrack);
+
+            spyOn(effect, 'stopEffect');
+
+            return { effect, outputTrack, ...createTrack([ effect ]) };
+        }
+
+        it('stops the effect and the device but keeps the effect output as the track', () => {
+            const { effect, localTrack, micTrack, outputTrack } = createTrackWithEffect();
+
+            expect(localTrack.getTrack()).toBe(outputTrack);
+
+            localTrack.stopStream();
+
+            // The senders hold the effect output, so getTrack() must keep returning it.
+            expect(localTrack.getTrack()).toBe(outputTrack);
+            expect(effect.stopEffect).toHaveBeenCalledTimes(1);
+            expect(micTrack.stop).toHaveBeenCalled();
+            expect(outputTrack.stop).toHaveBeenCalled();
+            expect(localTrack.isEnded()).toBeTrue();
+        });
+
+        it('emits LOCAL_TRACK_STOPPED once for a track with a stream effect', async () => {
+            const audioContext = new AudioContext();
+            const oscillatorStream = (): MediaStream => {
+                const oscillator = audioContext.createOscillator();
+                const destination = audioContext.createMediaStreamDestination();
+
+                oscillator.connect(destination);
+                oscillator.start();
+
+                return destination.stream;
+            };
+            const micStream = oscillatorStream();
+            const localTrack = new JitsiLocalTrack({
+                constraints: {},
+                deviceId: MIC_ID,
+                effects: [ {
+                    isEnabled: () => true,
+                    startEffect: oscillatorStream,
+                    stopEffect: () => undefined
+                } as unknown as IStreamEffect ],
+                mediaType: MediaType.AUDIO,
+                rtcId: 1,
+                stream: micStream,
+                track: micStream.getTracks()[0]
+            });
+            const onStopped = jasmine.createSpy('onStopped');
+
+            localTrack.on(JitsiTrackEvents.LOCAL_TRACK_STOPPED, onStopped);
+            localTrack.stopStream();
+
+            // Chrome fires the inactive event of a stopped stream asynchronously.
+            await new Promise(resolve => setTimeout(resolve, 200));
+            await audioContext.close();
+
+            expect(onStopped).toHaveBeenCalledTimes(1);
+        });
+
+        it('stops the effect once when stopStream is called again', () => {
+            const { effect, localTrack } = createTrackWithEffect();
+
+            localTrack.stopStream();
+            localTrack.stopStream();
+
+            expect(effect.stopEffect).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not stop the effect again when the effect is removed after stopStream', async () => {
+            const { effect, localTrack, micTrack } = createTrackWithEffect();
+
+            localTrack.stopStream();
+            await localTrack.setEffect(undefined);
+
+            expect(effect.stopEffect).toHaveBeenCalledTimes(1);
+            expect(localTrack.getTrack()).toBe(micTrack);
+            expect(localTrack.isEnded()).toBeTrue();
+        });
+
+        it('removes the track from the peerconnection by the effect output when the effect is removed', async () => {
+            const { effect, localTrack, outputTrack } = createTrackWithEffect();
+            let trackOnRemove;
+
+            localTrack.conference = {
+                _addLocalTrackToPc: () => Promise.resolve(),
+                _removeLocalTrackFromPc: (track: any) => {
+                    trackOnRemove = track.getTrack();
+
+                    return Promise.resolve();
+                }
+            };
+            localTrack.stopStream();
+            await localTrack.setEffect(undefined);
+
+            expect(trackOnRemove).toBe(outputTrack);
+            expect(effect.stopEffect).toHaveBeenCalledTimes(1);
+        });
+
+        it('stops the effect once when the track is disposed after stopStream', async () => {
+            const { effect, localTrack } = createTrackWithEffect();
+
+            localTrack.stopStream();
+            await localTrack.dispose();
+
+            expect(effect.stopEffect).toHaveBeenCalledTimes(1);
+            expect(localTrack.disposed).toBeTrue();
+        });
+
+        it('keeps a track muted through an effect without its own mute muted', async () => {
+            const outputTrack = fakeTrack('MediaStreamAudioDestinationNode');
+            const { localTrack } = createTrack([ {
+                isEnabled: () => true,
+                startEffect: () => fakeStream(outputTrack),
+                stopEffect: () => undefined
+            } as unknown as IStreamEffect ]);
+
+            await localTrack.mute();
+            localTrack.stopStream();
+
+            expect(localTrack.isMuted()).toBeTrue();
+        });
+
+        it('stops the effect once when a video track is muted after stopStream', async () => {
+            const cameraTrack = { ...fakeTrack('FaceTime HD Camera'), kind: 'video' };
+            const outputTrack = { ...fakeTrack('canvas'), kind: 'video' };
+            const effect = mixerEffect(outputTrack);
+
+            spyOn(effect, 'stopEffect');
+
+            const localTrack: any = new JitsiLocalTrack({
+                constraints: { height: { ideal: 720 }, width: { ideal: 1280 } },
+                deviceId: 'camera-1',
+                effects: [ effect ],
+                mediaType: MediaType.VIDEO,
+                rtcId: 1,
+                stream: {
+                    getTracks: () => [ cameraTrack ],
+                    getVideoTracks: () => [ cameraTrack ]
+                } as unknown as MediaStream,
+                track: cameraTrack,
+                videoType: 'camera'
+            });
+
+            localTrack.stopStream();
+            await localTrack.mute();
+
+            expect(effect.stopEffect).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not report a video track unmuted after its effect was removed as ended', async () => {
+            const videoTrack = (label: string): any => {
+                const track = fakeTrack(label);
+
+                track.kind = 'video';
+
+                return track;
+            };
+            const videoStream = (track: any): MediaStream => ({
+                get active() {
+                    return track.readyState === 'live';
+                },
+                getTracks: () => [ track ],
+                getVideoTracks: () => [ track ]
+            }) as unknown as MediaStream;
+            const cameraTrack = videoTrack('FaceTime HD Camera');
+            const newCameraTrack = videoTrack('FaceTime HD Camera');
+            const outputTrack = videoTrack('canvas');
+            const localTrack: any = new JitsiLocalTrack({
+                constraints: { height: { ideal: 720 }, width: { ideal: 1280 } },
+                deviceId: 'camera-1',
+
+                // Like the virtual background, the effect has no mute state of its own.
+                effects: [ {
+                    isEnabled: () => true,
+                    startEffect: () => videoStream(outputTrack),
+                    stopEffect: () => undefined
+                } as unknown as IStreamEffect ],
+                mediaType: MediaType.VIDEO,
+                rtcId: 1,
+                stream: videoStream(cameraTrack),
+                track: cameraTrack,
+                videoType: 'camera'
+            });
+
+            spyOn(RTCUtils, 'obtainAudioAndVideoPermissions').and.returnValue(Promise.resolve([ {
+                stream: videoStream(newCameraTrack),
+                track: newCameraTrack,
+                videoType: 'camera'
+            } ]));
+
+            // The stopped stream reads as muted, so the effect is only dropped, without restoring the stream.
+            localTrack.stopStream();
+            await localTrack.setEffect(undefined);
+            await localTrack.unmute();
+
+            expect(localTrack.getTrack()).toBe(newCameraTrack);
+            expect(localTrack.isEnded()).toBeFalse();
+        });
+
+        it('stops a new effect started after stopStream', async () => {
+            const { localTrack } = createTrackWithEffect();
+            const newEffect = mixerEffect(fakeTrack('MediaStreamAudioDestinationNode'));
+
+            spyOn(newEffect, 'stopEffect');
+            localTrack.stopStream();
+            await localTrack.setEffect(newEffect);
+            localTrack.stopStream();
+
+            expect(newEffect.stopEffect).toHaveBeenCalledTimes(1);
+        });
+
+        it('stops the stream of a track without a stream effect', () => {
+            const { localTrack, micTrack } = createTrack();
+
+            localTrack.stopStream();
+
+            expect(localTrack.getTrack()).toBe(micTrack);
+            expect(micTrack.stop).toHaveBeenCalled();
             expect(localTrack.isEnded()).toBeTrue();
         });
     });

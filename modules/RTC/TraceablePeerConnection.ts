@@ -203,6 +203,7 @@ export default class TraceablePeerConnection {
     rtc: RTC;
     trace: ITraceFunction;
     onicecandidate?: ((event: RTCPeerConnectionIceEvent) => void);
+    onicecandidateerror?: ((event: RTCPeerConnectionIceErrorEvent) => void);
     onTrack: (evt: RTCTrackEvent) => void;
     onsignalingstatechange?: ((event: Event) => void);
     oniceconnectionstatechange?: ((event: Event) => void);
@@ -565,11 +566,15 @@ export default class TraceablePeerConnection {
                 this.onicecandidate(event);
             }
         };
+        this.onicecandidateerror = null;
         this.peerconnection.onicecandidateerror = (event: RTCPeerConnectionIceErrorEvent) => {
             const { address, errorCode, errorText, port, url } = event;
 
             logger.warn(`${this} ICE candidate error: url=${url} errorCode=${errorCode} errorText="${errorText}"`
                 + ` address=${address} port=${port}`);
+            if (this.onicecandidateerror !== null) {
+                this.onicecandidateerror(event);
+            }
         };
 
         this.onTrack = evt => {
@@ -2441,9 +2446,8 @@ export default class TraceablePeerConnection {
         if (oldTrack && !oldTrack.isMuted()) {
             transceiver = this.peerconnection.getTransceivers().find(t => t.sender.track === oldTrack.getTrack());
 
-            // The sender can hold a track the old track no longer exposes, e.g. the output of a stream effect that
-            // was stopped by stopStream(), so fall back to the transceiver mid recorded for the old track. Don't take
-            // that transceiver over if it is sending another local track.
+            // A failed setEffect() or applyConstraints() can leave the sender with no track or a stale one, so fall back
+            // to the old track's mid, unless another local track is sending on it.
             if (!transceiver) {
                 const oldMid = this.localTrackTransceiverMids.get(oldTrack.rtcId);
                 const midTransceiver = oldMid && this.peerconnection.getTransceivers().find(t => t.mid === oldMid);

@@ -52,6 +52,7 @@ describe( "/service/statistics/AnalyticsEvents members", () => {
         expect( AnalyticsEvents.ICE_DURATION ).toBe( 'ice.duration' );
         expect( AnalyticsEvents.ICE_ESTABLISHMENT_DURATION_DIFF ).toBe( 'ice.establishment.duration.diff' );
         expect( AnalyticsEvents.ICE_STATE_CHANGED ).toBe( 'ice.state.changed' );
+        expect( AnalyticsEvents.MEDIA_CONNECTIVITY_CHANGED ).toBe( 'ice.media_connectivity.changed' );
         expect( AnalyticsEvents.NO_BYTES_SENT ).toBe( 'track.no-bytes-sent' );
         expect( AnalyticsEvents.TRACK_UNMUTED ).toBe( 'track.unmuted' );
 

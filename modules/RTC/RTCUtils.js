@@ -5,6 +5,7 @@ import 'webrtc-adapter';
 import JitsiTrackError from '../../JitsiTrackError';
 import * as JitsiTrackErrors from '../../JitsiTrackErrors';
 import { CameraFacingMode } from '../../service/RTC/CameraFacingMode';
+import { MediaPermissionState, PermissionDenialReason } from '../../service/RTC/MediaPermission';
 import { RTCEvents } from '../../service/RTC/RTCEvents';
 import Resolutions from '../../service/RTC/Resolutions';
 import { VideoType } from '../../service/RTC/VideoType';
@@ -16,11 +17,30 @@ import Statistics from '../statistics/statistics';
 import Listenable from '../util/Listenable';
 import { isValidNumber } from '../util/MathUtil';
 
+import audioOutputManager, { isAudioOutputManagerEnabled } from './AudioOutputManager';
 import screenObtainer from './ScreenObtainer';
 
 const logger = getLogger('rtc:RTCUtils');
 
 const AVAILABLE_DEVICES_POLL_INTERVAL_TIME = 3000; // ms
+
+/**
+ * How long to wait (in ms) for the Permissions API or the device list when deciding why getUserMedia failed.
+ */
+const DENIAL_CHECK_TIMEOUT = 1000;
+
+/**
+ * The names of the devices in the Permissions API and in the permissions policy.
+ */
+const PERMISSION_NAMES = {
+    audio: 'microphone',
+    video: 'camera'
+};
+
+/**
+ * A permission denial faster than this (in ms) can't have been answered by a person at the browser's prompt.
+ */
+const PROMPT_ANSWER_MIN_TIME = 300;
 
 /**
  * Default MediaStreamConstraints to use for calls to getUserMedia.
@@ -322,6 +342,15 @@ class RTCUtils extends Listenable {
 
         screenObtainer.init(options);
 
+        logger.info(`Audio output manager: ${Boolean(options.audioOutput?.manager)}`);
+        if (options.audioOutput?.manager) {
+            const onDeviceListChanged = devices => this._onDeviceListChangedForAudioOutput(devices);
+
+            audioOutputManager.enable(options.audioOutput);
+            this.addListener(RTCEvents.DEVICE_LIST_AVAILABLE, onDeviceListChanged);
+            this.addListener(RTCEvents.DEVICE_LIST_CHANGED, onDeviceListChanged);
+        }
+
         this.enumerateDevices(ds => {
             availableDevices = ds.slice(0);
 
@@ -351,11 +380,16 @@ class RTCUtils extends Listenable {
      *
      * @param {*} element DOM element.
      * @param {*} stream MediaStream.
+     * @param {JitsiTrack} [track] - The track the stream belongs to.
      * @returns Promise<void> - rejected with the setSinkId error if the audio output device could not be applied.
      */
-    attachMediaStream(element, stream) {
+    attachMediaStream(element, stream, track) {
         if (element) {
             element.srcObject = stream;
+        }
+
+        if (element && isAudioOutputManagerEnabled() && this.isDeviceChangeAvailable('output')) {
+            return audioOutputManager.attach(element, stream, track);
         }
 
         // A new element already plays out of the default output, switching it to 'default' is a needless device switch.
@@ -460,20 +494,34 @@ class RTCUtils extends Listenable {
                 }, timeout);
             }
 
+            const startTime = Date.now();
+
+            // Read before the browser shows its prompt, an answer at the prompt changes them.
+            const statesBefore = this._getPermissionStates(umDevices);
+
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
                     logger.info('onUserMediaSuccess');
                     this._updateGrantedPermissions(umDevices, stream);
-                    if (!timeoutExpired) {
+                    if (timeoutExpired) {
+                        // The caller already got the timeout error, so nobody else will release the devices.
+                        logger.warn('getUserMedia resolved after the timeout, stopping the tracks');
+                        stream.getTracks().forEach(track => track.stop());
+                    } else {
                         if (typeof gumTimeout !== 'undefined') {
                             clearTimeout(gumTimeout);
                         }
                         resolve(stream);
                     }
                 })
-                .catch(error => {
-                    logger.warn(`Failed to get access to local media. ${error} ${JSON.stringify(constraints)}`);
-                    const jitsiError = new JitsiTrackError(error, constraints, umDevices);
+                .catch(async error => {
+                    const elapsed = Date.now() - startTime;
+                    const states = await statesBefore;
+                    const reason = await this._getPermissionDenialReason(error, umDevices, elapsed, states);
+
+                    logger.warn(`Failed to get access to local media. ${error} ${JSON.stringify(constraints)}`
+                        + `${reason ? ` denied by ${reason}` : ''}`);
+                    const jitsiError = new JitsiTrackError(error, constraints, umDevices, reason);
 
                     if (!timeoutExpired) {
                         // Skip emitting when the timeout already fired and reported the failure,
@@ -492,7 +540,7 @@ class RTCUtils extends Listenable {
                     }
 
                     if (jitsiError.name === JitsiTrackErrors.PERMISSION_DENIED) {
-                        this._updateGrantedPermissions(umDevices, undefined);
+                        this._updateGrantedPermissions(umDevices, undefined, reason, states);
                     }
                 });
         });
@@ -559,6 +607,17 @@ class RTCUtils extends Listenable {
     }
 
     /**
+     * Passes a new device list to the audio output manager while the audio output device can be changed, so that it
+     * doesn't call setSinkId after the probe has turned the change off.
+     *
+     * @param {MediaDeviceInfo[]} devices - The available devices.
+     * @returns {void}
+     */
+    _onDeviceListChangedForAudioOutput(devices) {
+        this.isDeviceChangeAvailable('output') && audioOutputManager.onDeviceListChanged(devices);
+    }
+
+    /**
      * Event handler for the 'devicechange' event.
      *
      * @param {MediaDeviceInfo[]} devices - list of media devices.
@@ -595,26 +654,147 @@ class RTCUtils extends Listenable {
     }
 
     /**
+     * Finds out why getUserMedia was denied access to the devices.
+     *
+     * @param {Error} error - The getUserMedia error.
+     * @param {Array<string>} umDevices - The requested devices.
+     * @param {number} elapsed - How long getUserMedia took to fail, in ms.
+     * @param {Object} states - The Permissions API states of the devices from before the call.
+     * @returns {Promise<PermissionDenialReason|undefined>} - Undefined when the error isn't a permission denial.
+     */
+    _getPermissionDenialReason(error, umDevices, elapsed, states = {}) {
+        const { message = '', name } = error ?? {};
+
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+            if (/denied by system/i.test(message)) {
+                return Promise.resolve(PermissionDenialReason.OS);
+            }
+            if (umDevices.some(type => this._isBlockedByPolicy(type))) {
+                return Promise.resolve(PermissionDenialReason.POLICY);
+            }
+
+            const known = umDevices.map(type => states[type]).filter(Boolean);
+
+            if (known.includes(MediaPermissionState.DENIED)) {
+                return Promise.resolve(PermissionDenialReason.BROWSER);
+            }
+
+            // Allowed for the site and by the policy, so only the system is left to block it. Where the page doesn't
+            // report its policy (Firefox, Safari) the policy could be the cause too.
+            if (typeof document !== 'undefined' && document.featurePolicy
+                    && known.length === umDevices.length
+                    && known.every(state => state === MediaPermissionState.GRANTED)) {
+                return Promise.resolve(PermissionDenialReason.OS);
+            }
+
+            return Promise.resolve(
+                elapsed < PROMPT_ANSWER_MIN_TIME ? PermissionDenialReason.BROWSER : PermissionDenialReason.USER);
+        }
+
+        // Firefox on macOS reports a device blocked by the OS as not found, tell it apart from a missing device. The
+        // error is also thrown while another Firefox tab captures the device.
+        if (name === 'NotFoundError' && browser.isFirefox() && browser.isMacOS() && !/concurrent/i.test(message)) {
+            const timeout = new Promise(resolve => setTimeout(resolve, DENIAL_CHECK_TIMEOUT));
+
+            return Promise.race([ navigator.mediaDevices.enumerateDevices(), timeout ])
+                .then(devices => {
+                    const found = Array.isArray(devices)
+                        && umDevices.every(type => devices.some(device => device.kind === `${type}input`));
+
+                    return found ? PermissionDenialReason.OS : undefined;
+                })
+                .catch(() => undefined);
+        }
+
+        return Promise.resolve();
+    }
+
+    /**
+     * Reads the Permissions API states of the requested devices.
+     *
+     * @param {Array<string>} umDevices - The requested devices.
+     * @returns {Promise<Object>} - The states by device, undefined where the Permissions API doesn't report one.
+     */
+    _getPermissionStates(umDevices) {
+        const query = type => {
+            try {
+                return navigator.permissions.query({ name: PERMISSION_NAMES[type] }).then(status => status.state);
+            } catch (error) {
+                return Promise.reject(error);
+            }
+        };
+
+        const states = Promise.all(umDevices.map(type => query(type).then(state => [ type, state ], () => [ type ])))
+            .then(entries => Object.fromEntries(entries));
+        const timeout = new Promise(resolve => setTimeout(() => resolve({}), DENIAL_CHECK_TIMEOUT));
+
+        return Promise.race([ states, timeout ]);
+    }
+
+    /**
+     * Whether the page's permissions policy blocks a device, e.g. in an iframe without the allow attribute. Only
+     * Chromium reports it.
+     *
+     * @param {string} type - The device, audio or video.
+     * @returns {boolean}
+     */
+    _isBlockedByPolicy(type) {
+        return typeof document !== 'undefined'
+            && document.featurePolicy?.allowsFeature?.(PERMISSION_NAMES[type]) === false;
+    }
+
+    /**
      * Updates the granted permissions based on the options we requested and the
      * streams we received.
      * @param um the options we requested to getUserMedia.
      * @param stream the stream we received from calling getUserMedia.
+     * @param {PermissionDenialReason} [reason] - Why access was denied, when getUserMedia failed.
+     * @param {Object} [states] - The Permissions API states of the devices from before the call.
      */
-    _updateGrantedPermissions(um, stream) {
+    _updateGrantedPermissions(um, stream, reason, states = {}) {
         const audioTracksReceived
             = Boolean(stream) && stream.getAudioTracks().length > 0;
         const videoTracksReceived
             = Boolean(stream) && stream.getVideoTracks().length > 0;
         const grantedPermissions = {};
+        const statuses = {};
+        const isDenied = type => {
+            switch (reason) {
+            case PermissionDenialReason.BROWSER:
+                // A combined request fails for every device, the site settings block only the ones they deny.
+                return Object.values(states).includes(MediaPermissionState.DENIED)
+                    ? states[type] === MediaPermissionState.DENIED
+                    : states[type] !== MediaPermissionState.GRANTED;
+            case PermissionDenialReason.POLICY:
+                return this._isBlockedByPolicy(type);
+            case PermissionDenialReason.USER:
+                // The prompt asks only for the devices that weren't granted.
+                return states[type] !== MediaPermissionState.GRANTED;
+            default:
+                return true;
+            }
+        };
+        const addStatus = (type, received) => {
+            if (received) {
+                statuses[type] = { state: MediaPermissionState.GRANTED };
+            } else if (!stream && isDenied(type)) {
+                statuses[type] = {
+                    ...reason && { reason },
+                    state: MediaPermissionState.DENIED
+                };
+            }
+        };
 
         if (um.indexOf('video') !== -1) {
             grantedPermissions.video = videoTracksReceived;
+            addStatus('video', videoTracksReceived);
         }
         if (um.indexOf('audio') !== -1) {
             grantedPermissions.audio = audioTracksReceived;
+            addStatus('audio', audioTracksReceived);
         }
 
-        this.eventEmitter.emit(RTCEvents.PERMISSIONS_CHANGED, grantedPermissions);
+        this.eventEmitter.emit(RTCEvents.PERMISSIONS_CHANGED, grantedPermissions, statuses);
     }
 
     /**
@@ -897,12 +1077,16 @@ class RTCUtils extends Listenable {
      *      navigator.mediaDevices.enumerateDevices(), 'default' for default
      *      device
      * @returns {Promise} - resolves when audio output is changed, is rejected
-     *      otherwise
+     *      otherwise. With the audio output manager, see {@link AudioOutputManager.setDevice}.
      */
     setAudioOutputDevice(deviceId) {
         if (!this.isDeviceChangeAvailable('output')) {
             return Promise.reject(
                 new Error('Audio output device change is not supported'));
+        }
+
+        if (isAudioOutputManagerEnabled()) {
+            return audioOutputManager.setDevice(deviceId);
         }
 
         return featureDetectionAudioEl.setSinkId(this.toSinkId(deviceId))
@@ -943,7 +1127,7 @@ class RTCUtils extends Listenable {
      * @returns {string}
      */
     getAudioOutputDevice() {
-        return audioOutputDeviceId;
+        return isAudioOutputManagerEnabled() ? audioOutputManager.getDevice() : audioOutputDeviceId;
     }
 
     /**

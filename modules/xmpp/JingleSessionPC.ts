@@ -8,10 +8,14 @@ import { CodecMimeType } from '../../service/RTC/CodecMimeType';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaDirection } from '../../service/RTC/MediaDirection';
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { IPeerMediaInfo, isSyntheticSourceKind } from '../../service/RTC/SignalingLayer';
 import { SSRC_GROUP_SEMANTICS } from '../../service/RTC/StandardVideoQualitySettings';
+import { ISelectedCandidatePairStats } from '../../service/RTC/TransportCost';
 import { VideoType } from '../../service/RTC/VideoType';
+import { IMediaConnectivity } from '../../service/connectivity/MediaConnectivity';
 import { AnalyticsEvents, createAudioWedgeRecoveryEvent, createJingleEvent } from '../../service/statistics/AnalyticsEvents';
+import { JingleReasonCondition } from '../../service/xmpp/JingleReasonCondition';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import { COMMIT_HASH } from '../../version';
@@ -23,6 +27,7 @@ import TraceablePeerConnection, { IAudioQuality, IVideoQuality } from '../RTC/Tr
 import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
+import MediaConnectivityMonitor from '../connectivity/MediaConnectivityMonitor';
 import FeatureFlags from '../flags/FeatureFlags';
 import SDP from '../sdp/SDP';
 import { SDPDiffer } from '../sdp/SDPDiffer';
@@ -180,6 +185,9 @@ interface IJingleSessionPCOptions {
     failICE?: boolean;
     forceTurnRelay?: boolean;
     gatherStats?: boolean;
+    mediaConnectivity?: {
+        checkingTimeout?: number;
+    };
     p2p?: object;
     startSilent?: boolean;
     testing?: {
@@ -214,7 +222,7 @@ interface ISourceFrameHeight {
  * Interface for Jingle session termination options.
  */
 export interface ITerminateOptions {
-    reason?: string;
+    reason?: JingleReasonCondition;
     reasonDescription?: string;
     requestRestart?: boolean;
     sendSessionTerminate?: boolean;
@@ -239,6 +247,8 @@ export default class JingleSessionPC extends JingleSession {
     private _xmppListeners: Array<() => void>;
     private _removeSenderVideoConstraintsChangeListener: Nullable<() => void>;
     private _audioWedgeDetector: Nullable<RemoteAudioWedgeDetector>;
+    private _mediaConnectivityMonitor: Nullable<MediaConnectivityMonitor>;
+    private _removeSelectedCandidatePairListener: Nullable<() => void>;
     private usesCodecSelectionAPI: boolean;
     private wasConnected: boolean;
     private isReconnect: boolean;
@@ -520,6 +530,8 @@ export default class JingleSessionPC extends JingleSession {
         this.establishmentDuration = undefined;
 
         this._audioWedgeDetector = null;
+        this._mediaConnectivityMonitor = null;
+        this._removeSelectedCandidatePairListener = null;
 
         this._xmppListeners = [];
         this._xmppListeners.push(
@@ -851,6 +863,11 @@ export default class JingleSessionPC extends JingleSession {
      * source that was detected as wedged - letting the normal sources-map flow own the slot and the watchdog re-detect
      * on a later cycle. This prevents recycling a source with stale owner/source-name metadata.
      *
+     * A source that the bridge demuxes by mid is not recycled. The source-add would give the fresh m-line a new mid,
+     * while the bridge keeps the slot's mid on the forwarded packets, and the rejected m-line still holds that mid in
+     * the SDP. Mid demux removes the cause of the wedge, so a detection there is a source that receives nothing because
+     * nothing is sent to it.
+     *
      * @param {JitsiRemoteTrack} track - The wedged remote audio track.
      * @returns {void}
      */
@@ -880,6 +897,16 @@ export default class JingleSessionPC extends JingleSession {
 
             const source = currentTrack.getSourceName();
             const owner = currentTrack.getParticipantId();
+
+            // A recycled source gets a new m-line with a new mid, but the bridge keeps the slot's mid on the packets.
+            // The recycle would move the slot to an m-line that those packets do not match.
+            if (this.peerconnection.getRemoteSourceInfoBySourceName(source)?.mid) {
+                logger.warn(`${this} Skipping wedge recovery for audio source ${source} (ssrc=${ssrc}): the slot is `
+                    + 'demuxed by mid, and recycling it would change the mid of its m-line.');
+                finishedCallback();
+
+                return;
+            }
 
             logger.warn(`${this} Recycling wedged remote audio source ${source} (ssrc=${ssrc}, owner=${owner})`);
 
@@ -2158,6 +2185,10 @@ export default class JingleSessionPC extends JingleSession {
 
         this._audioWedgeDetector?.stop();
         this._audioWedgeDetector = null;
+        this._mediaConnectivityMonitor?.dispose();
+        this._mediaConnectivityMonitor = null;
+        this._removeSelectedCandidatePairListener?.();
+        this._removeSelectedCandidatePairListener = null;
 
         if (this._iceRestartStatsTimer !== null) {
             window.clearInterval(this._iceRestartStatsTimer);
@@ -2167,6 +2198,7 @@ export default class JingleSessionPC extends JingleSession {
 
         if (this.peerconnection) {
             this.peerconnection.onicecandidate = null;
+            this.peerconnection.onicecandidateerror = null;
             this.peerconnection.oniceconnectionstatechange = null;
             this.peerconnection.onnegotiationneeded = null;
             this.peerconnection.onsignalingstatechange = null;
@@ -2264,6 +2296,39 @@ export default class JingleSessionPC extends JingleSession {
                     this.isP2P,
                     pcOptions);
 
+        this._mediaConnectivityMonitor = new MediaConnectivityMonitor({
+            checkingTimeout: this.options.mediaConnectivity?.checkingTimeout,
+            getStats: () => this.peerconnection.getStats(),
+            iceServers: (this.pcConfig as RTCConfiguration)?.iceServers,
+            isP2P: this.isP2P,
+            onChange: connectivity => {
+                const { candidates, iceServerErrors, p2p, reasons, selectedPair, status } = connectivity;
+
+                Statistics.sendAnalytics(
+                    AnalyticsEvents.MEDIA_CONNECTIVITY_CHANGED,
+                    {
+                        'host_candidates': candidates.host,
+                        'ice_server_errors': iceServerErrors.length,
+                        'local_candidate_type': selectedPair?.localType,
+                        p2p,
+                        protocol: selectedPair?.protocol,
+                        reasons: reasons.join(','),
+                        'relay_candidates': candidates.relay,
+                        'relay_protocol': selectedPair?.relayProtocol,
+                        rtt: selectedPair?.rtt,
+                        'srflx_candidates': candidates.srflx,
+                        status
+                    });
+                this.room.eventEmitter.emit(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, this, connectivity);
+            }
+        });
+        this.peerconnection.onicecandidateerror = ev => this._mediaConnectivityMonitor?.onCandidateError(ev);
+        this._removeSelectedCandidatePairListener = this.rtc.addCancellableListener(
+            RTCEvents.SELECTED_CANDIDATE_PAIR_STATS,
+            (tpc: TraceablePeerConnection, selected: Optional<ISelectedCandidatePairStats>) => {
+                tpc === this.peerconnection && this._mediaConnectivityMonitor?.onSelectedCandidatePair(selected);
+            });
+
         this.peerconnection.onicecandidate = ev => {
             if (!ev) {
                 // There was an incomplete check for ev before which left
@@ -2323,6 +2388,7 @@ export default class JingleSessionPC extends JingleSession {
                     });
                 this._gatheringReported = true;
             }
+            this._mediaConnectivityMonitor?.onLocalCandidate(candidate);
             if (this.isP2P) {
                 this._sendIceCandidate(candidate);
             }
@@ -2375,6 +2441,8 @@ export default class JingleSessionPC extends JingleSession {
                 XMPPEvents.ICE_CONNECTION_STATE_CHANGED,
                 this,
                 this.peerconnection.iceConnectionState);
+            this._mediaConnectivityMonitor?.onIceConnectionStateChange(
+                this.peerconnection.iceConnectionState as RTCIceConnectionState);
             switch (this.peerconnection.iceConnectionState) {
             case 'checking':
                 this._iceCheckingStartedTimestamp = now;
@@ -2471,6 +2539,7 @@ export default class JingleSessionPC extends JingleSession {
                 // https://bugs.chromium.org/p/chromium/issues/detail?id=982793
                 // for details) we use this workaround to recover from lost connections
                 if (icestate === 'disconnected') {
+                    this._mediaConnectivityMonitor?.onIceFailed();
                     this.room.eventEmitter.emit(
                         XMPPEvents.CONNECTION_ICE_FAILED, this);
                 }
@@ -2522,6 +2591,15 @@ export default class JingleSessionPC extends JingleSession {
      */
     public getIceConnectionState(): RTCIceConnectionState {
         return this.peerconnection.getConnectionState();
+    }
+
+    /**
+     * Returns the connectivity assessment of this session's ICE establishment.
+     *
+     * @returns {Optional<IMediaConnectivity>}
+     */
+    public getMediaConnectivity(): Optional<IMediaConnectivity> {
+        return this._mediaConnectivityMonitor?.getConnectivity();
     }
 
     /**
@@ -2637,6 +2715,10 @@ export default class JingleSessionPC extends JingleSession {
                 this.room.eventEmitter.emit(JitsiConferenceEvents.TRACK_REMOVED, track);
             });
         }
+
+        // P2P media moves to the bridge right away, and Jicofo ends the bridge session of a participant left alone
+        // as expired, so only the end of any other bridge session interrupts the media.
+        !this.isP2P && reasonCondition !== JingleReasonCondition.EXPIRED && this._mediaConnectivityMonitor?.onSessionEnded();
 
         this.close();
     }
@@ -3008,10 +3090,16 @@ export default class JingleSessionPC extends JingleSession {
      * @returns {void}
      */
     public setReceiverVideoConstraint(sourceReceiverConstraints: Map<string, number>): void {
-        logger.info(`${this} setReceiverVideoConstraint - constraints: ${JSON.stringify(sourceReceiverConstraints)}`);
+        logger.info(`${this} setReceiverVideoConstraint - constraints: ${
+            JSON.stringify(Object.fromEntries(sourceReceiverConstraints ?? []))}`);
+
+        // While the session is active every change has been sent, so an unchanged map is what the peer already has.
+        // Do not send it again: a burst of these IQs can trip the server's rate limit and drop the connection.
+        const unchanged = isEqual(this._sourceReceiverConstraints, sourceReceiverConstraints);
+
         this._sourceReceiverConstraints = sourceReceiverConstraints;
 
-        if (this.isP2P) {
+        if (this.isP2P && !unchanged) {
             // Tell the remote peer about our receive constraint. If Jingle session is not yet active the state will
             // be synced after offer/answer.
             if (this.state === JingleSessionState.ACTIVE) {
@@ -3128,7 +3216,7 @@ export default class JingleSessionPC extends JingleSession {
                         xmlns: 'urn:xmpp:jingle:1'
                     })
                     .c('reason')
-                    .c((options?.reason) || 'success')
+                    .c((options?.reason) || JingleReasonCondition.SUCCESS)
                     .up();
 
             if (options?.reasonDescription) {

@@ -823,21 +823,23 @@ export default class ChatRoom extends Listenable {
     onPresence(pres: Element): void {
         const from = pres.getAttribute('from');
         const member: IRoomMember = {};
-        const statusEl = pres.getElementsByTagName('status')[0];
+        const statusEl = findFirst(pres, ':scope>status');
 
         if (statusEl) {
             member.status = statusEl.textContent || '';
         }
         let hasStatusUpdate = false;
         let hasVersionUpdate = false;
-        const xElement
-            = pres.getElementsByTagNameNS(
-                'http://jabber.org/protocol/muc#user', 'x')[0];
-        const mucUserItem
-            = xElement?.getElementsByTagName('item')[0];
 
-        member.isReplaceParticipant
-            = pres.getElementsByTagName('flip_device').length;
+        // The room adds the muc#user element as a direct child of the presence, after the content that the client
+        // sent, so the last one is the element of the room. An element with the same name that is deeper in the
+        // stanza belongs to another extension and does not describe the occupant.
+        const xElements = findAll(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]');
+        const xElement = xElements[xElements.length - 1] ?? null;
+        const mucUserItem = findFirst(xElement, ':scope>item');
+
+        // The server reads and removes flip_device only as a direct child of the presence.
+        member.isReplaceParticipant = findAll(pres, ':scope>flip_device').length;
 
         member.affiliation
             = mucUserItem?.getAttribute('affiliation');
@@ -859,11 +861,8 @@ export default class ChatRoom extends Listenable {
             presence: pres
         });
 
-        const xEl = pres.querySelector('x');
-
-        if (xEl) {
-            xEl.remove();
-        }
+        // The muc#user element is already read above, so it is not one of the nodes that are processed below.
+        xElements.forEach(element => element.remove());
 
         const nodes: IPresenceNode[] = [];
 
@@ -984,7 +983,7 @@ export default class ChatRoom extends Listenable {
                 if (permissionEl) {
                     const permissionsMap = {};
 
-                    findAll(permissionEl, 'p').forEach(p => {
+                    findAll(permissionEl, ':scope>p').forEach(p => {
                         permissionsMap[getAttribute(p, 'name')] = getAttribute(p, 'val');
                     });
 
@@ -1154,7 +1153,7 @@ export default class ChatRoom extends Listenable {
                 const { status } = attributes;
 
                 if (status && status !== this.transcriptionStatus
-                    && member.isHiddenDomain && member.features.has(FEATURE_TRANSCRIBER)) {
+                    && member.isHiddenDomain && member.features?.has(FEATURE_TRANSCRIBER)) {
                     this.transcriptionStatus = status;
                     this.eventEmitter.emit(
                         XMPPEvents.TRANSCRIPTION_STATUS_CHANGED,
@@ -1177,6 +1176,7 @@ export default class ChatRoom extends Listenable {
                 break;
             }
             case 'etherpad':
+            case 'jibri-sip-call-state':
                 if (member.isFocus) {
                     this._processNode(node, from);
                 }
@@ -1526,7 +1526,7 @@ export default class ChatRoom extends Listenable {
         const isSelfPresence = exists(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="110"]');
         const isKick = exists(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="307"]');
         const membersKeys = Object.keys(this.members);
-        const isReplaceParticipant = exists(pres, 'flip_device');
+        const isReplaceParticipant = exists(pres, ':scope>flip_device');
 
         if (isKick) {
             const actorSelect = findFirst(pres, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>item>actor');
@@ -1592,7 +1592,7 @@ export default class ChatRoom extends Listenable {
             // In this case we *do* fire MUC_MEMBER_LEFT for the focus?
             this.eventEmitter.emit(XMPPEvents.MUC_MEMBER_LEFT, from, reason);
 
-            if (member && member.isHiddenDomain && member.features.has(FEATURE_TRANSCRIBER)
+            if (member && member.isHiddenDomain && member.features?.has(FEATURE_TRANSCRIBER)
                 && this.transcriptionStatus !== JitsiTranscriptionStatus.OFF) {
                 this.transcriptionStatus = JitsiTranscriptionStatus.OFF;
                 this.eventEmitter.emit(
@@ -1636,6 +1636,29 @@ export default class ChatRoom extends Listenable {
             return true;
         }
 
+        const bodyEl = findFirst(msg, ':scope>body');
+        const txt = bodyEl ? getText(bodyEl) : '';
+
+        // A mediated invite is relayed by the room for the user who sent it. It is handled as an invite only,
+        // and nothing else in the stanza is read as sent by the room.
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        const invite = from === this.roomjid
+            && findFirst(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>invite');
+
+        if (invite) {
+            const passwordSelect = findFirst(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>password');
+            let password;
+
+            if (passwordSelect) {
+                password = getText(passwordSelect);
+            }
+
+            this.eventEmitter.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
+                from, getAttribute(invite, 'from'), txt, password);
+
+            return true;
+        }
+
         const reactions = findAll(msg, ':scope>[*|xmlns="urn:xmpp:reactions:0"]>reaction');
 
         if (reactions.length > 0) {
@@ -1659,10 +1682,13 @@ export default class ChatRoom extends Listenable {
             return true;
         }
 
-
-        const bodyEl = findFirst(msg, ':scope>body');
-        const txt = bodyEl ? getText(bodyEl) : '';
-        const subject = findFirst(msg, ':scope>subject');
+        // XEP-0045 §8.1: only a groupchat message with a <subject> and no <body> or <thread> changes the subject.
+        // Any other message with a <subject> is an ordinary message, and the room does not handle it as a subject
+        // change. The room sends a subject change from the bare room jid or from the jid of the occupant that set it.
+        const subject = type === 'groupchat'
+            && !exists(msg, ':scope>body')
+            && !exists(msg, ':scope>thread')
+            && findFirst(msg, ':scope>subject');
 
         if (subject) {
             const subjectText = getText(subject);
@@ -1693,23 +1719,10 @@ export default class ChatRoom extends Listenable {
             }
         }
 
-        if (from === this.roomjid) {
-            let invite;
-
-            // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
-            if (exists(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]')) {
-                this.discoRoomInfo();
-            } else if (invite = findFirst(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>invite')) {
-                const passwordSelect = findFirst(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>password');
-                let password;
-
-                if (passwordSelect) {
-                    password = getText(passwordSelect);
-                }
-
-                this.eventEmitter.emit(XMPPEvents.INVITE_MESSAGE_RECEIVED,
-                    from, getAttribute(invite, 'from'), txt, password);
-            }
+        // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
+        if (from === this.roomjid
+                && exists(msg, ':scope>x[*|xmlns="http://jabber.org/protocol/muc#user"]>status[code="104"]')) {
+            this.discoRoomInfo();
         }
 
         // Use *|xmlns to match xmlns attributes across any namespace (CSS Selectors Level 3)
@@ -1749,7 +1762,7 @@ export default class ChatRoom extends Listenable {
                     }
 
                     const messageId = getAttribute(applyToEl, 'id');
-                    const reason = getText(findFirst(moderatedEl, 'reason'));
+                    const reason = getText(findFirst(moderatedEl, ':scope>reason'));
 
                     this.eventEmitter.emit(XMPPEvents.MESSAGE_MODERATED, messageId, reason);
 
@@ -1813,11 +1826,16 @@ export default class ChatRoom extends Listenable {
                 if (isVisitorMessage) {
                     displayName = getText(displayNameEl);
 
-                    // Check for original visitor JID in addresses element (XEP-0033)
-                    const addressesEl = findFirst(msg, ':scope>addresses[*|xmlns="http://jabber.org/protocol/address"]');
+                    // Check for original visitor JID in addresses element (XEP-0033). The visitor relay appends its
+                    // own addresses element after the content that the visitor sent, so the last direct child
+                    // is the one that the relay added. An address that is deeper in the stanza does not count.
+                    const addressesEls
+                        = findAll(msg, ':scope>addresses[*|xmlns="http://jabber.org/protocol/address"]');
+                    const addressesEl = addressesEls[addressesEls.length - 1];
 
                     if (addressesEl) {
-                        const ofromEl = findFirst(addressesEl, 'address[type="ofrom"]');
+                        const ofromEls = findAll(addressesEl, ':scope>address[type="ofrom"]');
+                        const ofromEl = ofromEls[ofromEls.length - 1];
 
                         if (ofromEl) {
                             originalFrom = getAttribute(ofromEl, 'jid');
@@ -2571,7 +2589,7 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = findFirst(iq, 'mute');
+        const mute = findFirst(iq, ':scope>mute[*|xmlns="http://jitsi.org/jitmeet/audio"]');
 
         if (getText(mute) === 'true') {
             this.eventEmitter.emit(XMPPEvents.AUDIO_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));
@@ -2670,7 +2688,7 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = findFirst(iq, 'mute');
+        const mute = findFirst(iq, ':scope>mute[*|xmlns="http://jitsi.org/jitmeet/video"]');
 
         if (getText(mute) === 'true') {
             this.eventEmitter.emit(XMPPEvents.VIDEO_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));
@@ -2697,7 +2715,7 @@ export default class ChatRoom extends Listenable {
 
             return;
         }
-        const mute = findFirst(iq, 'mute');
+        const mute = findFirst(iq, ':scope>mute[*|xmlns="http://jitsi.org/jitmeet/desktop"]');
 
         if (getText(mute) === 'true') {
             this.eventEmitter.emit(XMPPEvents.DESKTOP_MUTED_BY_FOCUS, getAttribute(mute, 'actor'));

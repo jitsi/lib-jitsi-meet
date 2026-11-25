@@ -6,6 +6,22 @@ import browser from '../browser';
 
 const logger = getLogger('rtc:ScreenObtainer');
 
+// Electron maps 'restrictOwnAudio' on its 'loopback' system audio to a capture without the app's own playback,
+// on macOS and Windows only.
+const MIN_ELECTRON_VERSION_FOR_RESTRICT_OWN_AUDIO = [ 43, 4 ];
+
+/**
+ * Returns whether the Electron version is the given [major, minor] or later.
+ *
+ * @param {number[]} minVersion - The minimum version as [major, minor].
+ * @returns {boolean}
+ */
+function isElectronVersionAtLeast([ minMajor, minMinor ]: number[]): boolean {
+    const [ major = 0, minor = 0 ] = (browser.getVersion() ?? '').split('.').map(Number);
+
+    return major > minMajor || (major === minMajor && minor >= minMinor);
+}
+
 /**
  * Interface for desktop sharing frame rate configuration.
  */
@@ -192,8 +208,10 @@ class ScreenObtainer {
         // enabled explicity to avoid echo issues.
         // See https://issues.chromium.org/issues/422611724 and https://chromestatus.com/feature/5128140732760064 for more details.
         const supportsRestrictOwnAudio = browser.isChromiumBased()
-            && browser.isEngineVersionGreaterThan(141)
-            && !browser.isElectron();
+            && (browser.isElectron()
+                ? isElectronVersionAtLeast(MIN_ELECTRON_VERSION_FOR_RESTRICT_OWN_AUDIO)
+                    && (browser.isMacOS() || browser.getOS() === 'Windows')
+                : browser.isEngineVersionGreaterThan(141));
         const needsEchoCancellation = !audioQuality?.stereo
             && browser.isChromiumBased()
             && browser.isEngineVersionGreaterThan(136)
@@ -357,10 +375,10 @@ class ScreenObtainer {
             })
             .catch(error => {
                 const errorDetails = {
-                    errorCode: error.code,
-                    errorMsg: error.message,
-                    errorName: error.name,
-                    errorStack: error.stack
+                    errorCode: error?.code,
+                    errorMsg: error?.message,
+                    errorName: error?.name,
+                    errorStack: error?.stack
                 };
 
                 logger.warn('getDisplayMedia error', JSON.stringify(constraints), JSON.stringify(errorDetails));
@@ -368,14 +386,16 @@ class ScreenObtainer {
                 if (errorDetails.errorCode === DOMException.NOT_SUPPORTED_ERR) {
                     // This error is thrown when an Electron client has not set a permissions handler.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_NOT_SUPPORTED_ERROR));
-                } else if (errorDetails.errorMsg?.indexOf('denied by system') !== -1) {
+                } else if (errorDetails.errorMsg?.includes('denied by system')) {
                     // On Chrome this is the only thing different between error returned when user cancels
                     // and when no permission was given on the OS level.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.PERMISSION_DENIED));
-                } else if (errorDetails.errorMsg === 'NotReadableError') {
-                    // This can happen under some weird conditions:
+                } else if (errorDetails.errorName === 'NotReadableError' || !(error instanceof DOMException)) {
+                    // NotReadableError can happen under some weird conditions:
                     //  - https://issues.chromium.org/issues/369103607
                     //  - https://issues.chromium.org/issues/353555347
+                    // A user cancel is always a DOMException, so report anything else (e.g. a TypeError for invalid
+                    // constraints) as a failure instead of hiding it.
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_GENERIC_ERROR));
                 } else {
                     errorCallback(new JitsiTrackError(JitsiTrackErrors.SCREENSHARING_USER_CANCELED));

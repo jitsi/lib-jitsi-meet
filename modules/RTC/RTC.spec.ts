@@ -1,3 +1,4 @@
+import audioOutputManager from './AudioOutputManager';
 import RTC from './RTC';
 import RTCUtils from './RTCUtils';
 
@@ -29,5 +30,16 @@ describe('RTC', () => {
 
             expect(rtc._updateAudioOutputForAudioTracks).not.toHaveBeenCalled();
         });
+    });
+
+    it('leaves the audio output to the audio output manager when it is enabled', () => {
+        spyOnProperty(audioOutputManager, 'enabled').and.returnValue(true);
+        spyOn(RTCUtils, 'isDeviceChangeAvailable').and.returnValue(true);
+
+        const addListener = spyOn(RTCUtils, 'addListener');
+
+        new RTC({}).destroy();
+
+        expect(addListener).not.toHaveBeenCalled();
     });
 });

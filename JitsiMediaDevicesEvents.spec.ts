@@ -13,6 +13,7 @@ describe( "/JitsiMediaDevicesEvents members", () => {
 
         expect( JitsiMediaDevicesEvents.DEVICE_LIST_CHANGED ).toBe( 'mediaDevices.devicechange' );
         expect( JitsiMediaDevicesEvents.PERMISSIONS_CHANGED ).toBe( 'rtc.permissions_changed' );
+        expect( JitsiMediaDevicesEvents.PERMISSION_STATUS_CHANGED ).toBe( 'mediaDevices.permissionStatusChanged' );
         expect( JitsiMediaDevicesEvents.PERMISSION_PROMPT_IS_SHOWN ).toBe( 'mediaDevices.permissionPromptIsShown' );
     } );
 

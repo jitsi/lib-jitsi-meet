@@ -6,10 +6,14 @@ import { MockRTC } from '../RTC/MockClasses';
 import SDP from '../sdp/SDP';
 import EventEmitter from '../util/EventEmitter';
 import Statistics from '../statistics/statistics';
+import { nextTick } from '../util/TestUtils';
 import { parseXML, findAll, findFirst } from '../util/XMLUtils';
 import { IceRestartReason } from '../../service/RTC/IceRestartReason';
 import { MediaType } from '../../service/RTC/MediaType';
+import { RTCEvents } from '../../service/RTC/RTCEvents';
 import { VideoType } from '../../service/RTC/VideoType';
+import { MediaConnectivityReason, MediaConnectivityStatus } from '../../service/connectivity/MediaConnectivity';
+import { AnalyticsEvents } from '../../service/statistics/AnalyticsEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import FeatureFlags from '../flags/FeatureFlags';
 
@@ -106,6 +110,31 @@ describe('JingleSessionPC', () => {
                     + '</content>'
                     + '</jingle>'
                     + '</iq>');
+            });
+        });
+        it('does not send content-modify again for unchanged recv frame sizes', () => {
+            const sendIQSpy = spyOn(connection, 'sendIQ').and.callThrough();
+            const constraints = (v1Height: number) => new Map([ [ '8d519815-v0', 180 ], [ '8d519815-v1', v1Height ] ]);
+
+            return new Promise((resolve, reject) => {
+                jingleSession.acceptOffer(
+                    offerIQ,
+                    resolve,
+                    reject,
+                    /* local tracks */ []);
+            }).then(() => {
+                expect(jingleSession.getState()).toBe(JingleSessionState.ACTIVE);
+                sendIQSpy.calls.reset();
+
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                jingleSession.setReceiverVideoConstraint(constraints(2160));
+                expect(sendIQSpy.calls.count()).toBe(1);
+
+                jingleSession.setReceiverVideoConstraint(constraints(-1));
+                expect(sendIQSpy.calls.count()).toBe(2);
+                expect((sendIQSpy.calls.mostRecent().args[0] as any).toString()).toContain(
+                    '<source-frame-height maxHeight="-1" sourceName="8d519815-v1"');
             });
         });
         it('fires an event when remote peer sends content-modify', () => {
@@ -488,6 +517,18 @@ describe('JingleSessionPC', () => {
             (jingleSession as any)._recoverWedgedAudioSource(mockTrack(111, 'source-A'));
             runQueuedTask();
 
+            expect(addOrRemoveSpy).not.toHaveBeenCalled();
+            expect(Statistics.sendAnalytics).not.toHaveBeenCalled();
+        });
+
+        it('skips recovery when the slot is demuxed by mid', () => {
+            spyOn(peerconnection, 'getTrackBySSRC').and.returnValue(mockTrack(111, 'source-A'));
+            spyOn(peerconnection, 'getRemoteSourceInfoBySourceName').and.returnValue({ mid: 'a3' });
+
+            (jingleSession as any)._recoverWedgedAudioSource(mockTrack(111, 'source-A'));
+            runQueuedTask();
+
+            expect(peerconnection.getRemoteSourceInfoBySourceName).toHaveBeenCalledWith('source-A');
             expect(addOrRemoveSpy).not.toHaveBeenCalled();
             expect(Statistics.sendAnalytics).not.toHaveBeenCalled();
         });
@@ -1175,4 +1216,129 @@ describe('JingleSessionPC in-place ICE restart', () => {
         });
     });
 
+});
+
+describe('JingleSessionPC media connectivity', () => {
+    const HOST_CANDIDATE = {
+        candidate: 'candidate:1 1 udp 2122260223 10.0.0.1 54321 typ host generation 0',
+        protocol: 'udp',
+        type: 'host'
+    };
+    let room;
+    let rtc;
+    let pc;
+    let sendAnalytics;
+    let session: JingleSessionPC;
+
+    beforeEach(() => {
+        room = new MockChatRoom();
+        room.connectionTimes = {};
+        rtc = new MockRTC();
+        sendAnalytics = spyOn(Statistics, 'sendAnalytics');
+
+        // Another spec can leave SSRC rewriting on, which starts the audio wedge detector the mocks can't serve.
+        spyOn(FeatureFlags, 'isSsrcRewritingSupported').and.returnValue(false);
+        session = new JingleSessionPC('sid', 'peer1', 'focus', new MockStropheConnection(), { },
+            { iceServers: [ { urls: 'turn:turn.example.com:443' } ] }, false, false);
+        session.initialize(
+            room,
+            rtc,
+            // eslint-disable-next-line no-empty-function
+            { clearSyntheticSourceKinds: () => { }, setSSRCOwner: () => { }, removeSSRCOwners: () => { } },
+            { webrtcIceTcpDisable: true });
+        pc = session.peerconnection;
+    });
+
+    it('reports host-only gathering, skipping candidates of disabled protocols', () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.onicecandidateerror({ errorCode: 701, url: 'turn:turn.example.com:443' });
+        pc.onicecandidate({ candidate: { ...HOST_CANDIDATE, protocol: 'tcp', type: 'srflx' } });
+        pc.onicecandidate({ candidate: HOST_CANDIDATE });
+        pc.onicecandidate({ candidate: null });
+
+        const connectivity = session.getMediaConnectivity();
+
+        expect(connectivity).toEqual(jasmine.objectContaining({
+            candidates: { host: 1, prflx: 0, relay: 0, srflx: 0 },
+            iceServerErrors: [ { errorCode: 701, url: 'turn:turn.example.com:443' } ],
+            status: MediaConnectivityStatus.AT_RISK
+        }));
+        expect(emit).toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, connectivity);
+        expect(sendAnalytics).toHaveBeenCalledWith(AnalyticsEvents.MEDIA_CONNECTIVITY_CHANGED, jasmine.objectContaining({
+            'host_candidates': 1,
+            reasons: 'no-server-reflexive,turn-unreachable',
+            status: MediaConnectivityStatus.AT_RISK
+        }));
+    });
+
+    it('reports an ICE failure and disposes the monitor on close', () => {
+        pc.iceConnectionState = 'failed';
+        pc.oniceconnectionstatechange();
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.FAILED);
+
+        session.close();
+        expect(session.getMediaConnectivity()).toBeUndefined();
+    });
+
+    it('reports a PeerConnection failure that Chrome doesn\'t reflect in the ICE state', () => {
+        pc.iceConnectionState = 'disconnected';
+        pc.connectionState = 'failed';
+        pc.onconnectionstatechange();
+
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.FAILED);
+    });
+
+    it('reports an interruption when the bridge session is terminated while media flows', async () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        session.onTerminated('success', 'reinvite requested');
+
+        expect(emit).toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, jasmine.objectContaining({
+            reasons: [ MediaConnectivityReason.SESSION_ENDED ],
+            status: MediaConnectivityStatus.INTERRUPTED
+        }));
+        expect(session.getMediaConnectivity()).toBeUndefined();
+    });
+
+    it('reports no interruption when Jicofo ends the session of a participant left alone', async () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        session.onTerminated('expired', 'Idle session timeout');
+
+        expect(emit).not.toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, jasmine.objectContaining({
+            status: MediaConnectivityStatus.INTERRUPTED
+        }));
+        expect(session.getMediaConnectivity()).toBeUndefined();
+    });
+
+    it('follows the selected pair from its own peerconnection\'s stats poll until closed', async () => {
+        const tcpRelay = {
+            local: { candidateType: 'relay', id: 'L1', protocol: 'udp', relayProtocol: 'tls', type: 'local-candidate' },
+            pair: { id: 'CP1', type: 'candidate-pair' }
+        };
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.GOOD);
+
+        rtc.eventEmitter.emit(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, { }, tcpRelay);
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.GOOD);
+
+        rtc.eventEmitter.emit(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS, pc, tcpRelay);
+        expect(session.getMediaConnectivity()?.status).toBe(MediaConnectivityStatus.DEGRADED);
+
+        session.close();
+        expect(rtc.eventEmitter.listenerCount(RTCEvents.SELECTED_CANDIDATE_PAIR_STATS)).toBe(0);
+    });
 });

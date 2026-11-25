@@ -186,6 +186,19 @@ export enum AnalyticsEvents {
     ICE_STATE_CHANGED = 'ice.state.changed',
 
     /**
+     * Indicates that the connectivity assessment of a media session changed, see {@link IMediaConnectivity}.
+     *
+     * Properties:
+     *      status: the {@link MediaConnectivityStatus}.
+     *      reasons: comma separated {@link MediaConnectivityReason}s.
+     *      p2p: whether the session is P2P.
+     *      host_candidates, srflx_candidates, relay_candidates: the local candidates gathered per type.
+     *      ice_server_errors: the number of distinct STUN/TURN errors.
+     *      local_candidate_type, protocol, relay_protocol, rtt: the selected candidate pair, once connected.
+     */
+    MEDIA_CONNECTIVITY_CHANGED = 'ice.media_connectivity.changed',
+
+    /**
      * Indicates that no bytes have been sent for the track.
      *
      * Properties:

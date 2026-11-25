@@ -85,7 +85,64 @@ describe('ReceiveVideoController', () => {
             };
 
             receiveVideoController.setReceiverConstraints(constraints);
-            expect(rtcSpy).toHaveBeenCalledWith(constraints);
+            expect(rtcSpy).toHaveBeenCalledWith({
+                ...constraints,
+                lastN: -1
+            });
+        });
+    });
+
+    describe('with a p2p session', () => {
+        let p2pSession;
+        const constraints = (lastN?: number) => ({
+            constraints: { 'A-v0': { maxHeight: 180 } },
+            defaultConstraints: { maxHeight: 0 },
+            lastN,
+            onStageSources: [ 'A-v0' ],
+            selectedSources: []
+        });
+
+        beforeEach(() => {
+            p2pSession = {
+                isP2P: true,
+                // eslint-disable-next-line no-empty-function
+                setReceiverVideoConstraint() {}
+            };
+            conference.mediaSessions = [ p2pSession ];
+        });
+
+        it('does not resend unchanged constraints that leave lastN out', () => {
+            const p2pSpy = spyOn(p2pSession, 'setReceiverVideoConstraint');
+            const rtcSpy = spyOn(rtc, 'setReceiverVideoConstraints');
+
+            receiveVideoController.setReceiverConstraints(constraints());
+            receiveVideoController.setReceiverConstraints(constraints());
+            receiveVideoController.setReceiverConstraints(constraints());
+
+            expect(p2pSpy).toHaveBeenCalledTimes(1);
+            expect(p2pSpy).toHaveBeenCalledWith(new Map([ [ 'A-v0', 180 ] ]));
+            expect(rtcSpy).toHaveBeenCalledTimes(1);
+            expect(rtcSpy.calls.mostRecent().args[0].lastN).toBe(-1);
+        });
+
+        it('sends the constraints again when they change', () => {
+            const p2pSpy = spyOn(p2pSession, 'setReceiverVideoConstraint');
+
+            receiveVideoController.setReceiverConstraints(constraints(25));
+            receiveVideoController.setReceiverConstraints(constraints(25));
+            receiveVideoController.setReceiverConstraints(constraints(10));
+
+            expect(p2pSpy).toHaveBeenCalledTimes(2);
+            expect(receiveVideoController.getLastN()).toBe(10);
+        });
+
+        it('does not modify the constraints passed in', () => {
+            const passed = constraints();
+
+            receiveVideoController.setReceiverConstraints(passed);
+
+            expect(passed.lastN).toBeUndefined();
+            expect(passed).toEqual(constraints());
         });
     });
 });

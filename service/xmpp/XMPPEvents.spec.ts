@@ -43,6 +43,7 @@ describe( "/service/xmpp/XMPPEvents members", () => {
         expect( XMPPEvents.GRACEFUL_SHUTDOWN ).toBe( 'xmpp.graceful_shutdown' );
         expect( XMPPEvents.KICKED ).toBe( 'xmpp.kicked' );
         expect( XMPPEvents.LOCAL_ROLE_CHANGED ).toBe( 'xmpp.localrole_changed' );
+        expect( XMPPEvents.MEDIA_CONNECTIVITY_CHANGED ).toBe( 'xmpp.media_connectivity.changed' );
         expect( XMPPEvents.MEETING_ID_SET ).toBe( 'xmpp.meeting_id_set' );
         expect( XMPPEvents.MESSAGE_RECEIVED ).toBe( 'xmpp.message_received' );
         expect( XMPPEvents.INVITE_MESSAGE_RECEIVED ).toBe( 'xmpp.invite_message_received' );

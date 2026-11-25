@@ -147,6 +147,8 @@ export class Context {
             }
 
             if (ratchetCount < RATCHET_WINDOW_SIZE) {
+                // Senders only ratchet their newest key, which is the receiver's current one, so the ratcheted
+                // key (and initialKey on failure) intentionally go to the current slot rather than keyIndex.
                 const currentKey = this._cryptoKeyRing[this._currentKeyIndex] as ICryptoKeyData;
 
                 material = await importKey(await ratchet(material));

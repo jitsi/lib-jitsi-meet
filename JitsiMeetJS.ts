@@ -28,6 +28,7 @@ import ProxyConnectionService
     from './modules/proxyconnection/ProxyConnectionService';
 import recordingConstants from './modules/recording/recordingConstants';
 import Settings from './modules/settings/Settings';
+import runIceConnectivityCheck, { IIceConnectivityResult } from './modules/statistics/IceConnectivityCheck';
 import LocalStatsCollector from './modules/statistics/LocalStatsCollector';
 import runPreCallTest, { IIceServer, IPreCallResult } from './modules/statistics/PreCallTest';
 import Statistics from './modules/statistics/statistics';
@@ -36,9 +37,11 @@ import ScriptUtil from './modules/util/ScriptUtil';
 import * as VideoSIPGWConstants from './modules/videosipgw/VideoSIPGWConstants';
 import AudioMixer from './modules/webaudio/AudioMixer';
 import { IceRestartReason } from './service/RTC/IceRestartReason';
+import { MediaPermissionState, PermissionDenialReason } from './service/RTC/MediaPermission';
 import { MediaType } from './service/RTC/MediaType';
 import { VideoType } from './service/RTC/VideoType';
 import { ConnectionQualityEvents } from './service/connectivity/ConnectionQualityEvents';
+import { MediaConnectivityReason, MediaConnectivityStatus } from './service/connectivity/MediaConnectivity';
 import { E2ePingEvents } from './service/e2eping/E2ePingEvents';
 import { createGetUserMediaEvent } from './service/statistics/AnalyticsEvents';
 import { COMMIT_HASH } from './version';
@@ -94,6 +97,10 @@ interface IJitsiMeetJSOptions {
         rtcstatsStoreLogs?: boolean;
     };
     audioLevelsInterval?: number;
+    audioOutput?: {
+        manager?: boolean;
+        switchTimeout?: number;
+    };
     desktopSharingSources?: Array<desktopSharingSourceType>;
     disableAudioLevels?: boolean;
     disableThirdPartyRequests?: boolean;
@@ -160,6 +167,10 @@ const JitsiMeetJS = {
      */
     constants: {
         iceRestartReason: IceRestartReason,
+        mediaConnectivityReason: MediaConnectivityReason,
+        mediaConnectivityStatus: MediaConnectivityStatus,
+        mediaPermissionState: MediaPermissionState,
+        permissionDenialReason: PermissionDenialReason,
         recording: recordingConstants,
         sipVideoGW: VideoSIPGWConstants,
         trackStreamingStatus: TrackStreamingStatus,
@@ -267,6 +278,9 @@ const JitsiMeetJS = {
                         = getAnalyticsAttributesFromOptions(options);
 
                     attributes.reason = error.name;
+                    if (error.reason) {
+                        attributes.denial_reason = error.reason;
+                    }
                     Statistics.sendAnalytics(
                         createGetUserMediaEvent('error', attributes));
                 }
@@ -594,6 +608,18 @@ const JitsiMeetJS = {
         sendStatsEntry(statsType: RTCStatsEvents, data?: Optional<any>) {
             RTCStats.sendStatsEntry(statsType, null, data);
         }
+    },
+
+    /**
+     * Checks whether the browser can reach the TURN servers, and over which transport, without sending any test
+     * traffic.
+     *
+     * @param {Array<IIceServer>} iceServers - The STUN and TURN servers to check.
+     * @param {number} [timeout] - How long to wait for the connection, in milliseconds.
+     * @returns {Promise<IIceConnectivityResult>} Resolves with the result; never rejects.
+     */
+    runIceConnectivityCheck(iceServers: IIceServer[], timeout?: number): Promise<IIceConnectivityResult> {
+        return runIceConnectivityCheck(iceServers, timeout);
     },
 
     /**
