@@ -15,6 +15,7 @@ import { ISelectedCandidatePairStats } from '../../service/RTC/TransportCost';
 import { VideoType } from '../../service/RTC/VideoType';
 import { IMediaConnectivity } from '../../service/connectivity/MediaConnectivity';
 import { AnalyticsEvents, createAudioWedgeRecoveryEvent, createJingleEvent } from '../../service/statistics/AnalyticsEvents';
+import { JingleReasonCondition } from '../../service/xmpp/JingleReasonCondition';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
 import { COMMIT_HASH } from '../../version';
@@ -221,7 +222,7 @@ interface ISourceFrameHeight {
  * Interface for Jingle session termination options.
  */
 export interface ITerminateOptions {
-    reason?: string;
+    reason?: JingleReasonCondition;
     reasonDescription?: string;
     requestRestart?: boolean;
     sendSessionTerminate?: boolean;
@@ -862,6 +863,11 @@ export default class JingleSessionPC extends JingleSession {
      * source that was detected as wedged - letting the normal sources-map flow own the slot and the watchdog re-detect
      * on a later cycle. This prevents recycling a source with stale owner/source-name metadata.
      *
+     * A source that the bridge demuxes by mid is not recycled. The source-add would give the fresh m-line a new mid,
+     * while the bridge keeps the slot's mid on the forwarded packets, and the rejected m-line still holds that mid in
+     * the SDP. Mid demux removes the cause of the wedge, so a detection there is a source that receives nothing because
+     * nothing is sent to it.
+     *
      * @param {JitsiRemoteTrack} track - The wedged remote audio track.
      * @returns {void}
      */
@@ -891,6 +897,16 @@ export default class JingleSessionPC extends JingleSession {
 
             const source = currentTrack.getSourceName();
             const owner = currentTrack.getParticipantId();
+
+            // A recycled source gets a new m-line with a new mid, but the bridge keeps the slot's mid on the packets.
+            // The recycle would move the slot to an m-line that those packets do not match.
+            if (this.peerconnection.getRemoteSourceInfoBySourceName(source)?.mid) {
+                logger.warn(`${this} Skipping wedge recovery for audio source ${source} (ssrc=${ssrc}): the slot is `
+                    + 'demuxed by mid, and recycling it would change the mid of its m-line.');
+                finishedCallback();
+
+                return;
+            }
 
             logger.warn(`${this} Recycling wedged remote audio source ${source} (ssrc=${ssrc}, owner=${owner})`);
 
@@ -2700,8 +2716,9 @@ export default class JingleSessionPC extends JingleSession {
             });
         }
 
-        // P2P media moves to the bridge right away, only the end of a bridge session interrupts it.
-        !this.isP2P && this._mediaConnectivityMonitor?.onSessionEnded();
+        // P2P media moves to the bridge right away, and Jicofo ends the bridge session of a participant left alone
+        // as expired, so only the end of any other bridge session interrupts the media.
+        !this.isP2P && reasonCondition !== JingleReasonCondition.EXPIRED && this._mediaConnectivityMonitor?.onSessionEnded();
 
         this.close();
     }
@@ -3199,7 +3216,7 @@ export default class JingleSessionPC extends JingleSession {
                         xmlns: 'urn:xmpp:jingle:1'
                     })
                     .c('reason')
-                    .c((options?.reason) || 'success')
+                    .c((options?.reason) || JingleReasonCondition.SUCCESS)
                     .up();
 
             if (options?.reasonDescription) {

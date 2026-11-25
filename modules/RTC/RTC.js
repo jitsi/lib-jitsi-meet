@@ -9,6 +9,7 @@ import browser from '../browser';
 import Listenable from '../util/Listenable';
 import { safeCounterIncrement } from '../util/MathUtil';
 
+import { isAudioOutputManagerEnabled } from './AudioOutputManager';
 import BridgeChannel from './BridgeChannel';
 import JitsiLocalTrack from './JitsiLocalTrack';
 import RTCUtils from './RTCUtils';
@@ -142,8 +143,8 @@ export default class RTC extends Listenable {
         this._updateAudioOutputForAudioTracks = this._updateAudioOutputForAudioTracks.bind(this);
 
         // Switch audio output device on all remote audio tracks. Local audio
-        // tracks handle this event by themselves.
-        if (RTCUtils.isDeviceChangeAvailable('output')) {
+        // tracks handle this event by themselves. The audio output manager switches all of them otherwise.
+        if (RTCUtils.isDeviceChangeAvailable('output') && !isAudioOutputManagerEnabled()) {
             RTCUtils.addListener(
                 RTCEvents.AUDIO_OUTPUT_DEVICE_CHANGED,
                 this._updateAudioOutputForAudioTracks

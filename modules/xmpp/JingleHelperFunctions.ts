@@ -10,6 +10,12 @@ import { findFirst } from '../util/XMLUtils';
 
 const logger = getLogger('xmpp:JingleHelperFunctions');
 
+/**
+ * Selects the Jingle element of an IQ. Strophe picks the Jingle handler when any direct child of the IQ has the
+ * Jingle namespace, so the namespace is part of the selector.
+ */
+export const JINGLE_SELECTOR = ':scope>jingle[*|xmlns="urn:xmpp:jingle:1"]';
+
 export interface ISourceCompactJson {
     m?: string;
     n: string;
@@ -91,7 +97,7 @@ function _createSsrcGroupExtension(ssrcGroupCompactJson: ICompactSsrcGroup): Nod
  * @returns the RTP description element with the given media type.
  */
 function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
-    const jingle = findFirst(iq, 'jingle');
+    const jingle = findFirst(iq, JINGLE_SELECTOR);
     let content = findFirst(jingle, `:scope>content[name="${mediaType}"]`);
 
     if (!content) {
@@ -102,7 +108,7 @@ function _getOrCreateRtpDescription(iq: Element, mediaType: string): Element {
         jingle?.appendChild(content);
     }
 
-    let description = findFirst(content, 'description');
+    let description = findFirst(content, ':scope>description');
 
     if (!description) {
         description = $build('description', {

@@ -92,6 +92,7 @@ import {
     createJvbIceFailedEvent,
     createP2PEvent
 } from './service/statistics/AnalyticsEvents';
+import { JingleReasonCondition } from './service/xmpp/JingleReasonCondition';
 import { XMPPEvents } from './service/xmpp/XMPPEvents';
 
 export interface IConferenceOptions {
@@ -192,7 +193,7 @@ export interface IStatisticsOptions {
 }
 
 export interface IStopSessionOptions {
-    reason?: string;
+    reason?: JingleReasonCondition;
     reasonDescription?: string;
     requestRestart?: boolean;
     sendSessionTerminate?: boolean;
@@ -965,7 +966,7 @@ export default class JitsiConference extends Listenable {
 
         if (this.jvbJingleSession) {
             this._stopJvbSession({
-                reason: 'success',
+                reason: JingleReasonCondition.SUCCESS,
                 reasonDescription: 'restart required',
                 requestRestart: true,
                 sendSessionTerminate: true
@@ -1501,13 +1502,13 @@ export default class JitsiConference extends Listenable {
      */
     private _stopP2PSession(options: {
         latchFallback?: boolean;
-        reason?: string;
+        reason?: JingleReasonCondition;
         reasonDescription?: string;
         requestRestart?: boolean;
     } = {}): void {
         const {
             latchFallback = false,
-            reason = 'success',
+            reason = JingleReasonCondition.SUCCESS,
             reasonDescription = 'Turning off P2P session',
             requestRestart = false
         } = options;
@@ -1558,7 +1559,7 @@ export default class JitsiConference extends Listenable {
                 // considered as graceful session terminate
                 // where both initiator and responder terminate their sessions
                 // simultaneously.
-                if (reason !== 'success') {
+                if (reason !== JingleReasonCondition.SUCCESS) {
                     logger.error('An error occurred while trying to terminate P2P Jingle session', error);
                 }
             }, {
@@ -1806,7 +1807,7 @@ export default class JitsiConference extends Listenable {
      */
     private _rejectIncomingCall(jingleSession: JingleSessionPC, options: {
         errorMsg?: string;
-        reason?: string;
+        reason?: JingleReasonCondition;
         reasonDescription?: string;
     }): void {
         if (options?.errorMsg) {
@@ -1837,32 +1838,41 @@ export default class JitsiConference extends Listenable {
         let rejectReason;
         const contentName = getAttribute(findFirst(jingleOffer, ':scope>content'), 'name');
         const peerUsesUnifiedPlan = contentName === '0' || contentName === '1';
+        const isFromParticipant = this.getParticipants().some(p => p.getJid() === jingleSession.remoteJid);
 
-        // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified plan).
-        if (!peerUsesUnifiedPlan) {
+        // A P2P session runs between two participants of the conference, so the offer has to come from one of them.
+        if (!isFromParticipant) {
+            rejectReason = {
+                errorMsg: `Received P2P "session-initiate" from ${jingleSession.remoteJid} which is not a participant`,
+                reason: JingleReasonCondition.SECURITY_ERROR,
+                reasonDescription: 'Rejecting session-initiate from non-participant.'
+            };
+        } else if (!peerUsesUnifiedPlan) {
+            // Reject P2P between endpoints that are not running in the same mode w.r.t to SDPs (plan-b and unified
+            // plan).
             rejectReason = {
                 errorMsg: 'P2P across two endpoints in different SDP modes is disabled',
-                reason: 'decline',
+                reason: JingleReasonCondition.DECLINE,
                 reasonDescription: 'P2P disabled'
             };
         } else if ((!this.isP2PEnabled() && !this.isP2PTestModeEnabled())
             || (browser.isFirefox() && !this._firefoxP2pEnabled)) {
             rejectReason = {
                 errorMsg: 'P2P mode disabled in the configuration or browser unsupported',
-                reason: 'decline',
+                reason: JingleReasonCondition.DECLINE,
                 reasonDescription: 'P2P disabled'
             };
         } else if (this.p2pJingleSession) {
             // Reject incoming P2P call (already in progress)
             rejectReason = {
                 errorMsg: 'Duplicated P2P "session-initiate"',
-                reason: 'busy',
+                reason: JingleReasonCondition.BUSY,
                 reasonDescription: 'P2P already in progress'
             };
         } else if (!this._shouldBeInP2PMode()) {
             rejectReason = {
                 errorMsg: 'Received P2P "session-initiate" when should not be in P2P mode',
-                reason: 'decline',
+                reason: JingleReasonCondition.DECLINE,
                 reasonDescription: 'P2P requirements not met'
             };
             Statistics.sendAnalytics(createJingleEvent(AnalyticsEvents.ACTION_P2P_DECLINED));
@@ -1938,7 +1948,7 @@ export default class JitsiConference extends Listenable {
         // config.testing.p2pTestMode.
         this._stopP2PSession({
             latchFallback: true,
-            reason: 'connectivity-error',
+            reason: JingleReasonCondition.CONNECTIVITY_ERROR,
             reasonDescription: `P2P ${reason}`
         });
     }
@@ -1988,7 +1998,7 @@ export default class JitsiConference extends Listenable {
             }
             this._stopP2PSession({
                 latchFallback: true,
-                reason: 'connectivity-error',
+                reason: JingleReasonCondition.CONNECTIVITY_ERROR,
                 reasonDescription: 'ICE FAILED'
             });
         } else if (session && this.jvbJingleSession === session && this._iceRestarts < MAX_CONNECTION_RETRIES) {
@@ -2101,7 +2111,7 @@ export default class JitsiConference extends Listenable {
 
         logger.warn('Stopping P2P session due to SSRC regeneration on P2P connection');
         this._stopP2PSession({
-            reason: 'connectivity-error',
+            reason: JingleReasonCondition.CONNECTIVITY_ERROR,
             reasonDescription: 'P2P SSRC regeneration'
         });
     }
@@ -2511,7 +2521,7 @@ export default class JitsiConference extends Listenable {
             this._pendingTranslationRequests.delete(id);
         }
 
-        const condition = getFirstChildElement(findFirst(stanza, 'error'))?.localName;
+        const condition = getFirstChildElement(findFirst(stanza, ':scope>error'))?.localName;
         const error = (Object.values(JitsiAudioTranslationErrors) as string[]).includes(condition ?? '')
             ? condition as JitsiAudioTranslationErrors
             : JitsiAudioTranslationErrors.UNKNOWN;
@@ -2553,7 +2563,7 @@ export default class JitsiConference extends Listenable {
      * @returns {boolean}
      */
     private _onTranslationListenersChanged(stanza: Element): boolean {
-        const child = findFirst(stanza, 'translation-listeners');
+        const child = findFirst(stanza, ':scope>translation-listeners');
 
         if (!child) {
             return true; // Another message from the component (e.g. an error reply handled elsewhere).
@@ -2717,7 +2727,7 @@ export default class JitsiConference extends Listenable {
      * @param {boolean} options.sendSessionTerminate - Whether session-terminate needs to be sent to Jicofo.
      * @internal
      */
-    _stopJvbSession(options?: { reason?: string; reasonDescription?: string; requestRestart?: boolean; sendSessionTerminate?: boolean; }): void {
+    _stopJvbSession(options?: { reason?: JingleReasonCondition; reasonDescription?: string; requestRestart?: boolean; sendSessionTerminate?: boolean; }): void {
         const {
             requestRestart = false,
             sendSessionTerminate = false
@@ -4484,7 +4494,7 @@ export default class JitsiConference extends Listenable {
                 this._rejectIncomingCall(
                     jingleSession, {
                         errorMsg: description,
-                        reason: 'security-error',
+                        reason: JingleReasonCondition.SECURITY_ERROR,
                         reasonDescription: description
                     });
 
@@ -4527,12 +4537,12 @@ export default class JitsiConference extends Listenable {
         } else if (jingleSession === this.p2pJingleSession) {
             const stopOptions: { requestRestart?: boolean; } = {};
 
-            if (reasonCondition === 'connectivity-error' && reasonText === 'ICE FAILED') {
+            if (reasonCondition === JingleReasonCondition.CONNECTIVITY_ERROR && reasonText === 'ICE FAILED') {
                 // It can happen that the other peer detects ICE failed and
                 // terminates the session, before we get the event
                 // on our side. But we are able to parse the reason and mark it here.
                 Statistics.analytics.addPermanentProperties({ p2pFailed: true });
-            } else if (reasonCondition === 'success' && reasonText === 'restart') {
+            } else if (reasonCondition === JingleReasonCondition.SUCCESS && reasonText === 'restart') {
                 // When we are restarting media sessions we don't want to switch the tracks to the JVB just yet.
                 stopOptions.requestRestart = true;
             }
@@ -5078,7 +5088,7 @@ export default class JitsiConference extends Listenable {
      * @internal
      */
     stopP2PSession(options: {
-        reason: string;
+        reason: JingleReasonCondition;
         reasonDescription: string;
         requestRestart: boolean;
     }): void {

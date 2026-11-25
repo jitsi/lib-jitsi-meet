@@ -521,6 +521,18 @@ describe('JingleSessionPC', () => {
             expect(Statistics.sendAnalytics).not.toHaveBeenCalled();
         });
 
+        it('skips recovery when the slot is demuxed by mid', () => {
+            spyOn(peerconnection, 'getTrackBySSRC').and.returnValue(mockTrack(111, 'source-A'));
+            spyOn(peerconnection, 'getRemoteSourceInfoBySourceName').and.returnValue({ mid: 'a3' });
+
+            (jingleSession as any)._recoverWedgedAudioSource(mockTrack(111, 'source-A'));
+            runQueuedTask();
+
+            expect(peerconnection.getRemoteSourceInfoBySourceName).toHaveBeenCalledWith('source-A');
+            expect(addOrRemoveSpy).not.toHaveBeenCalled();
+            expect(Statistics.sendAnalytics).not.toHaveBeenCalled();
+        });
+
         it('skips recovery when the slot was removed', () => {
             spyOn(peerconnection, 'getTrackBySSRC').and.returnValue(null);
 
@@ -1288,6 +1300,21 @@ describe('JingleSessionPC media connectivity', () => {
 
         expect(emit).toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, jasmine.objectContaining({
             reasons: [ MediaConnectivityReason.SESSION_ENDED ],
+            status: MediaConnectivityStatus.INTERRUPTED
+        }));
+        expect(session.getMediaConnectivity()).toBeUndefined();
+    });
+
+    it('reports no interruption when Jicofo ends the session of a participant left alone', async () => {
+        const emit = spyOn(room.eventEmitter, 'emit');
+
+        pc.getStats = () => Promise.resolve(new Map());
+        pc.iceConnectionState = 'connected';
+        pc.oniceconnectionstatechange();
+        await nextTick();
+        session.onTerminated('expired', 'Idle session timeout');
+
+        expect(emit).not.toHaveBeenCalledWith(XMPPEvents.MEDIA_CONNECTIVITY_CHANGED, session, jasmine.objectContaining({
             status: MediaConnectivityStatus.INTERRUPTED
         }));
         expect(session.getMediaConnectivity()).toBeUndefined();

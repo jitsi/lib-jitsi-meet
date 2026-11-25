@@ -295,6 +295,13 @@ export class MockPeerConnection {
     }
 
     /**
+     * {@link TraceablePeerConnection.getRemoteSourceInfoBySourceName}.
+     */
+    getRemoteSourceInfoBySourceName(): any {
+        return undefined;
+    }
+
+    /**
      * {@link TraceablePeerConnection.getTrackBySSRC}.
      */
     getTrackBySSRC(): any {

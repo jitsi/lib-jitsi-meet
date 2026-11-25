@@ -1,6 +1,8 @@
 /* eslint-disable */
 
 import { $iq, Strophe } from 'strophe.js';
+import { findFirst } from '../util/XMLUtils';
+
 import { handleStropheError } from './StropheErrorHandler';
 
 Strophe.addConnectionPlugin('disco',
@@ -181,12 +183,34 @@ Strophe.addConnectionPlugin('disco',
         return iqresult.c('query', query_attrs);
     },
 
+    /** PrivateFunction: _replyBadRequest
+     * Answers a request that matched the namespace of a handler but has no query element as a direct child.
+     * Returns true, because a handler that returns false or throws is removed by Strophe.
+     */
+    _replyBadRequest: function(stanza)
+    {
+        var iqresult = $iq({type: 'error', id: stanza.getAttribute('id')});
+        var from = stanza.getAttribute('from');
+
+        if (from !== null) {
+            iqresult.attrs({to: from});
+        }
+        iqresult.c('error', {type: 'modify'})
+            .c('bad-request', {xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'});
+        this._connection.send(iqresult.tree());
+        return true;
+    },
     /** PrivateFunction: _onDiscoInfo
      * Called when receive info request
      */
     _onDiscoInfo: function(stanza)
     {
-        var node = stanza.getElementsByTagName('query')[0].getAttribute('node');
+        var query = findFirst(stanza, ':scope>query[*|xmlns="' + Strophe.NS.DISCO_INFO + '"]');
+        if (!query)
+        {
+            return this._replyBadRequest(stanza);
+        }
+        var node = query.getAttribute('node');
         var attrs = {xmlns: Strophe.NS.DISCO_INFO};
         var i;
         if (node)
@@ -217,7 +241,12 @@ Strophe.addConnectionPlugin('disco',
     _onDiscoItems: function(stanza)
     {
         var query_attrs = {xmlns: Strophe.NS.DISCO_ITEMS};
-        var node = stanza.getElementsByTagName('query')[0].getAttribute('node');
+        var query = findFirst(stanza, ':scope>query[*|xmlns="' + Strophe.NS.DISCO_ITEMS + '"]');
+        if (!query)
+        {
+            return this._replyBadRequest(stanza);
+        }
+        var node = query.getAttribute('node');
         var items, i;
         if (node)
         {

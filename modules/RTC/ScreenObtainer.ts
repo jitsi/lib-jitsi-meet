@@ -6,6 +6,22 @@ import browser from '../browser';
 
 const logger = getLogger('rtc:ScreenObtainer');
 
+// Electron maps 'restrictOwnAudio' on its 'loopback' system audio to a capture without the app's own playback,
+// on macOS and Windows only.
+const MIN_ELECTRON_VERSION_FOR_RESTRICT_OWN_AUDIO = [ 43, 4 ];
+
+/**
+ * Returns whether the Electron version is the given [major, minor] or later.
+ *
+ * @param {number[]} minVersion - The minimum version as [major, minor].
+ * @returns {boolean}
+ */
+function isElectronVersionAtLeast([ minMajor, minMinor ]: number[]): boolean {
+    const [ major = 0, minor = 0 ] = (browser.getVersion() ?? '').split('.').map(Number);
+
+    return major > minMajor || (major === minMajor && minor >= minMinor);
+}
+
 /**
  * Interface for desktop sharing frame rate configuration.
  */
@@ -192,8 +208,10 @@ class ScreenObtainer {
         // enabled explicity to avoid echo issues.
         // See https://issues.chromium.org/issues/422611724 and https://chromestatus.com/feature/5128140732760064 for more details.
         const supportsRestrictOwnAudio = browser.isChromiumBased()
-            && browser.isEngineVersionGreaterThan(141)
-            && !browser.isElectron();
+            && (browser.isElectron()
+                ? isElectronVersionAtLeast(MIN_ELECTRON_VERSION_FOR_RESTRICT_OWN_AUDIO)
+                    && (browser.isMacOS() || browser.getOS() === 'Windows')
+                : browser.isEngineVersionGreaterThan(141));
         const needsEchoCancellation = !audioQuality?.stereo
             && browser.isChromiumBased()
             && browser.isEngineVersionGreaterThan(136)

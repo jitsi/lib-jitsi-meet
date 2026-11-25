@@ -58,7 +58,8 @@ export enum MediaConnectivityReason {
     NO_SERVER_REFLEXIVE = 'no-server-reflexive',
 
     /**
-     * The session carrying media was terminated, by Jicofo or for a session restart.
+     * The session carrying media was terminated, by Jicofo or for a session restart. Not reported when Jicofo ends
+     * the session of a participant left alone.
      */
     SESSION_ENDED = 'session-ended',
 
