@@ -229,6 +229,24 @@ export default class BrowserCapabilities extends BrowserDetection {
     }
 
     /**
+     * Checks if RTCEncoded{Audio,Video}FrameMetadata has mimeType. It is a dictionary member, so it can't be
+     * feature-detected without a frame.
+     *
+     * @returns {boolean}
+     */
+    supportsEncodedFrameMimeType(): boolean {
+        if (this.isChromiumBased()) {
+            return this.isEngineVersionGreaterThan(120);
+        }
+        if (this.isFirefox()) {
+            return this.isVersionGreaterThan(150);
+        }
+
+        // iOS Safari is versioned via the OS; other iOS browsers report a frozen 18_7 and are treated as unsupported.
+        return this._getSafariVersion() >= 26 || this._getIOSVersion() >= 26;
+    }
+
+    /**
      * Returns true if the browser supports Dependency Descriptor header extension.
      *
      * @returns {boolean}
