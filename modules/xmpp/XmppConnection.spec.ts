@@ -60,6 +60,9 @@ describe('XmppConnection', () => {
         it('will send the IQ on reconnect', () => {
             mockStropheConnection.simulateConnectionState(Strophe.Status.CONNECTING);
 
+            // Mock Date so that the elapsed time is driven by the Jasmine clock.
+            jasmine.clock().mockDate(new Date());
+
             let resolved = false;
 
             connection
@@ -82,6 +85,9 @@ describe('XmppConnection', () => {
                 .then(() => {
                     expect(resolved).toBe(true);
                     expect(sendIQSpy).toHaveBeenCalled();
+
+                    // 15000ms timeout minus the 10000ms already elapsed while disconnected.
+                    expect(sendIQSpy.calls.mostRecent().args[3]).toBe(5000);
                 });
         });
         it('will timeout the operation if not connected in time', () => {

@@ -67,6 +67,7 @@ interface IDeferredSendIQ {
     resolve: (result: Element) => void;
     start: number;
     timeout: ReturnType<typeof setTimeout>;
+    timeoutMs: number;
 }
 
 /**
@@ -681,7 +682,9 @@ export default class XmppConnection extends Listenable {
             if (deferred.iq) {
                 clearTimeout(deferred.timeout);
 
-                const timeLeft = Date.now() - deferred.start;
+                // Strophe treats a timeout of 0 as "no timeout", so clamp to 1ms
+                // to make sure an already-expired IQ still times out.
+                const timeLeft = Math.max(1, deferred.timeoutMs - (Date.now() - deferred.start));
 
                 this.sendIQ(
                     deferred.iq,
@@ -760,7 +763,8 @@ export default class XmppConnection extends Listenable {
 
                         // Strophe calls with undefined on timeout
                         reject(undefined);
-                    }, timeout)
+                    }, timeout),
+                    timeoutMs: timeout
                 };
 
                 this._deferredIQs.push(deferred);
