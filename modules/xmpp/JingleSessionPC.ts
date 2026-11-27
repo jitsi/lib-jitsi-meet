@@ -1527,9 +1527,9 @@ export default class JingleSessionPC extends JingleSession {
                 session: undefined
             };
 
-            if (errResponse instanceof Element) {
+            if (errResponse?.nodeType === 1) {
                 // Get XMPP error code and condition(reason)
-                const errorElSel = findFirst(errResponse, 'error');
+                const errorElSel = findFirst(errResponse as Element , 'error');
 
                 if (errorElSel) {
                     error.code = getAttribute(errorElSel, 'code');
