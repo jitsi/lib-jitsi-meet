@@ -179,7 +179,8 @@ class RecordingManager {
         return JibriSession.stop({
             connection: this._chatRoom.connection,
             focusMucJid: this._chatRoom.focusMucJid,
-            mode: session?.getMode()
+            mode: session?.getMode(),
+            sessionID
         });
     }
 
@@ -278,8 +279,7 @@ class RecordingManager {
 
         session.setStatusFromJicofo(status);
 
-        if (this._chatRoom.role === 'visitor') {
-            // visitors will not receive presence updates from jibri, so we handle their status here
+        if (status === 'off' || this._chatRoom.role === 'visitor') {
             session.setStatus(status);
         }
 
