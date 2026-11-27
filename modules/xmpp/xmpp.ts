@@ -8,6 +8,7 @@ import * as JitsiConnectionErrors from '../../JitsiConnectionErrors';
 import * as JitsiConnectionEvents from '../../JitsiConnectionEvents';
 import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 import { XEP } from '../../service/xmpp/XMPPExtensioProtocols';
+import { isCcfbSupported } from '../RTC/CcfbProbe';
 import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
@@ -116,6 +117,7 @@ export interface IXMPPOptions {
     deploymentInfo?: IDeploymentInfo;
     disableBeforeUnloadHandlers?: boolean;
     disableRtx?: boolean;
+    enableCcfb?: boolean;
     enableOpusRed?: boolean;
     enableRemb?: boolean;
     enableTcc?: boolean;
@@ -511,6 +513,18 @@ export default class XMPP extends Listenable {
         if (!(browser.isFirefox() && browser.isVersionLessThan(115))
             && (typeof this.options.enableTcc === 'undefined' || this.options.enableTcc)) {
             this.caps.addFeature('http://jitsi.org/tcc');
+        }
+
+        // RTCP feedback for congestion control (RFC 8888). Whether the browser supports it can only be found out by
+        // probing it, which is asynchronous. The feature is published when the probe completes, normally well before
+        // a conference is joined; if not, the conference just goes without it.
+        if (typeof this.options.enableCcfb === 'undefined' || this.options.enableCcfb) {
+            isCcfbSupported().then(supported => {
+                if (supported) {
+                    logger.info('RTCP feedback for congestion control (RFC 8888) is supported');
+                    this.caps.addFeature('http://jitsi.org/ccfb', true);
+                }
+            });
         }
         if (this.connection.rayo) {
             this.caps.addFeature('urn:xmpp:rayo:client:1');
