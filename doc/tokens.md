@@ -203,7 +203,7 @@ JWT is currently checked in 2 places:
 
 ### Lib-jitsi-meet options
 
-When JWT authentication is used with _lib-jitsi-meet_ the token is passed to the _JitsiConference_ constructor:
+When using JWT authentication with _lib-jitsi-meet_, pass the token as the second argument to the `JitsiConnection` constructor.
 
 ```javascript
 var token = {token_is_provided_by_your_application_possibly_after_some_authentication}
